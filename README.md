@@ -1,6 +1,6 @@
 # Geed Hardwin — 2D Animation Editor
 
-**Editor v0.4** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt, không cần cài đặt.
+**Editor v0.5** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt, không cần cài đặt.
 
 ## Mở và sử dụng
 
@@ -11,7 +11,7 @@ Mở website Geed Hardwin bằng Chrome hoặc Edge. Dự án có thể làm vi�
 - Sân khấu 1280 × 720, tỷ lệ 16:9.
 - Công cụ Select, Rectangle, Circle, Text, Image, Pencil và Line; tạo hình bằng thao tác kéo trực tiếp trên sân khấu.
 - Nhập ảnh và âm thanh từ máy tính.
-- Chọn, kéo thả, ẩn/hiện, nhân bản, xóa, căn giữa và sắp xếp layer trước/sau.
+- Chọn, kéo thả, ẩn/hiện, khóa/mở khóa, nhân bản, xóa, căn giữa và sắp xếp layer trước/sau.
 - Điều chỉnh vị trí, kích thước, tỷ lệ, góc xoay, độ mờ, màu sắc, cỡ chữ và độ dày nét.
 - Timeline có thể chọn 12, 24, 30 hoặc 60 FPS; thời lượng từ 1 đến 120 giây.
 - Keyframe cho từng layer; thêm, chọn, kéo đổi vị trí, chuyển tới và xóa keyframe.
@@ -23,7 +23,7 @@ Mở website Geed Hardwin bằng Chrome hoặc Edge. Dự án có thể làm vi�
 - Undo/Redo bằng giao diện hoặc Ctrl+Z / Ctrl+Shift+Z.
 - Tự lưu trong bộ nhớ trình duyệt (IndexedDB), khôi phục khi mở lại.
 - Lưu dự án JSON và mở lại dự án, bao gồm dữ liệu ảnh/âm thanh đã nhập.
-- Xem trước hoạt ảnh và xuất WebM bằng MediaRecorder.
+- Xem trước hoạt ảnh và xuất WebM bằng MediaRecorder; bản cập nhật xuất tuần tự tất cả các cảnh trong dự án.
 
 ## Phím tắt
 
