@@ -40,6 +40,7 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
     <div class="section">
       <div class="sectiontitle">Create</div>
       <div class="toolgrid">
+        <button class="tool active" id="addSelect"><span class="ico">↖</span>Select</button>
         <button class="tool" id="addRect"><span class="ico">▰</span>Rectangle</button>
         <button class="tool" id="addCircle"><span class="ico">●</span>Circle</button>
         <button class="tool" id="addText"><span class="ico">T</span>Text</button>
@@ -56,6 +57,8 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
     <div class="section">
       <div class="sectiontitle">Scenes</div>
       <div style="display:flex;align-items:center;gap:7px"><select id="sceneSelect" aria-label="Choose scene" style="max-width:135px;background:#111720;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:7px"></select><button id="addScene" style="margin-left:auto;padding:6px 9px">＋ New</button></div>
+      <div style="display:flex;gap:6px;margin-top:8px"><input id="sceneRename" aria-label="Scene name" placeholder="Scene name" style="min-width:0;flex:1;background:#111720;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:7px"><button id="renameScene">Rename</button></div>
+      <div style="display:flex;gap:6px;margin-top:6px"><button id="duplicateScene" style="flex:1">Duplicate</button><button id="deleteScene" style="flex:1">Delete</button></div>
     </div>
   </aside>
 
@@ -146,7 +149,7 @@ function formatTime(f){const sec=f/FPS;const mm=Math.floor(sec/60),ss=Math.floor
 function setFrame(f){frame=Math.max(0,Math.min(MAX,Math.round(f)));updatePlayhead();draw();renderInspector()}
 function setTimelineSettings(nextFps,nextDuration){const oldFps=FPS;const fps=[12,24,30,60].includes(Number(nextFps))?Number(nextFps):24;const requested=Math.max(1,Math.min(120,Number(nextDuration)||5));const longest=Math.max(0,...scenes.flatMap(sc=>sc.objects.flatMap(o=>(o.keys||[]).map(k=>k.frame/oldFps))));FPS=fps;DURATION=Math.min(120,Math.max(requested,Math.ceil(longest)));MAX=FPS*DURATION;for(const sc of scenes)for(const o of sc.objects)o.keys=(o.keys||[]).map(k=>({...k,frame:Math.round(k.frame/oldFps*FPS)})).sort((a,b)=>a.frame-b.frame);frame=Math.min(MAX,Math.round(frame/oldFps*FPS));$('fpsSelect').value=String(FPS);$('durationInput').value=String(DURATION);$('frameRange').max=MAX;renderAll();toast('Timeline settings updated')}
 $('fpsSelect').onchange=e=>setTimelineSettings(e.target.value,DURATION);$('durationInput').onchange=e=>setTimelineSettings(FPS,e.target.value);
-function renderScenePicker(){const el=$('sceneSelect');if(!el)return;el.innerHTML='';scenes.forEach((sc,i)=>{const op=document.createElement('option');op.value=String(i);op.textContent=sc.name;el.appendChild(op)});el.value=String(sceneIndex)}
+function renderScenePicker(){const el=$('sceneSelect');if(!el)return;el.innerHTML='';scenes.forEach((sc,i)=>{const op=document.createElement('option');op.value=String(i);op.textContent=sc.name;el.appendChild(op)});el.value=String(sceneIndex);$('sceneRename').value=scene().name}
 function renderAll(full=true){if(full){renderLayers();renderInspector();renderTimeline();renderScenePicker();$('selectionLabel').textContent=selected()?selected().name+' selected':'No selection'}draw();updatePlayhead();if(!restoringHistory)recordHistory()}
 function projectSnapshot(){return {format:'geed-hardwin-project',version:3,fps:FPS,duration:DURATION,sceneIndex,nextId,selectedId,frame,scenes:scenes.map(sc=>({...sc,objects:sc.objects.map(o=>({...o,img:undefined}))}))}}
 function recordHistory(){if(restoringHistory)return;const snap=JSON.stringify(projectSnapshot());if(history[historyIndex]===snap)return;history=history.slice(0,historyIndex+1);history.push(snap);if(history.length>60)history.shift();historyIndex=history.length-1;updateHistoryButtons();if(appReady)scheduleAutosave(snap)}
@@ -167,9 +170,9 @@ canvas.addEventListener('pointermove',e=>{if(drawing){const p=canvasPoint(e),las
 function finishDrawing(){if(!drawing)return;const d=drawing;drawing=null;if(d.points.length<2){draw();return}const xs=d.points.map(p=>p.x),ys=d.points.map(p=>p.y),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),cx=(minX+maxX)/2,cy=(minY+maxY)/2,pts=d.points.map(p=>({x:p.x-cx,y:p.y-cy}));makeObject('path',{name:d.mode==='line'?'Line':'Pencil stroke',width:Math.max(16,maxX-minX),height:Math.max(16,maxY-minY),x:cx,y:cy,points:pts,strokeWidth:d.mode==='line'?5:8,color:'#24354a'});setTool('select')}
 canvas.addEventListener('pointerup',()=>{if(drag){drag=null;renderAll()}if(drawing)finishDrawing()});canvas.addEventListener('pointercancel',()=>{drag=null;if(drawing)finishDrawing()});
 function addShape(type){makeObject(type)}
-function setTool(mode){toolMode=mode;['addPencil','addLine'].forEach(id=>$(id).classList.toggle('active',(id==='addPencil'&&mode==='pencil')||(id==='addLine'&&mode==='line')));canvas.style.cursor=mode==='select'?'default':'crosshair'}
+function setTool(mode){toolMode=mode;['addSelect','addPencil','addLine'].forEach(id=>$(id).classList.toggle('active',(id==='addSelect'&&mode==='select')||(id==='addPencil'&&mode==='pencil')||(id==='addLine'&&mode==='line')));canvas.style.cursor=mode==='select'?'default':'crosshair'}
 function moveLayer(direction){const arr=objects(),i=arr.findIndex(o=>o.id===selectedId);if(i<0)return;const j=direction>0?Math.min(arr.length-1,i+1):Math.max(0,i-1);if(i===j)return;[arr[i],arr[j]]=[arr[j],arr[i]];renderAll()}
-$('addRect').onclick=()=>{setTool('select');addShape('rect')};$('addCircle').onclick=()=>{setTool('select');addShape('circle')};$('addText').onclick=()=>{setTool('select');makeObject('text',{name:'Text layer'})};$('uploadImage').onclick=()=>$('imageInput').click();$('addPencil').onclick=()=>setTool(toolMode==='pencil'?'select':'pencil');$('addLine').onclick=()=>setTool(toolMode==='line'?'select':'line');
+$('addSelect').onclick=()=>setTool('select');$('addRect').onclick=()=>{setTool('select');addShape('rect')};$('addCircle').onclick=()=>{setTool('select');addShape('circle')};$('addText').onclick=()=>{setTool('select');makeObject('text',{name:'Text layer'})};$('uploadImage').onclick=()=>$('imageInput').click();$('addPencil').onclick=()=>setTool(toolMode==='pencil'?'select':'pencil');$('addLine').onclick=()=>setTool(toolMode==='line'?'select':'line');
 $('imageInput').onchange=e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{const dataUrl=reader.result,img=new Image();img.onload=()=>{const scale=Math.min(520/img.width,420/img.height,1);makeObject('image',{name:file.name,width:img.width*scale,height:img.height*scale,src:file.name,img,dataUrl})};img.onerror=()=>toast('Image could not be loaded');img.src=dataUrl};reader.onerror=()=>toast('Image could not be read');reader.readAsDataURL(file);e.target.value=''};
 $('addKeyframe').onclick=()=>{const o=selected();if(!o){toast('Select an object first');return}addKey(o)};
 function jumpKey(direction){const o=selected();if(!o)return;const keys=sortedKeys(o).map(k=>k.frame),target=direction<0?[...keys].reverse().find(f=>f<frame):keys.find(f=>f>frame);if(target!==undefined)setFrame(target);else toast(direction<0?'No previous keyframe':'No next keyframe')}
@@ -180,6 +183,9 @@ function tick(ts){if(!playing)return;if(!lastTick)lastTick=ts;const delta=ts-las
 $('playBtn').onclick=()=>{if(playing){pause();return}playing=true;lastTick=0;$('playBtn').textContent='Ⅱ';raf=requestAnimationFrame(tick)};$('stopBtn').onclick=()=>{pause();setFrame(0)};
  $('sceneSelect').onchange=e=>{sceneIndex=Number(e.target.value);selectedId=null;pause();setFrame(0);renderAll();toast('Scene opened')};
 $('addScene').onclick=()=>{scenes.push({name:'Scene '+String(scenes.length+1).padStart(2,'0'),objects:[]});sceneIndex=scenes.length-1;selectedId=null;pause();setFrame(0);renderAll();toast('New scene created')};
+$('renameScene').onclick=()=>{const name=$('sceneRename').value.trim();if(!name){toast('Enter a scene name');return}scene().name=name;renderAll();toast('Scene renamed')};
+$('duplicateScene').onclick=()=>{const clone=JSON.parse(JSON.stringify(scene()));clone.name=scene().name+' copy';clone.objects=clone.objects.map(o=>({...o,id:uid(),img:null}));scenes.splice(sceneIndex+1,0,clone);sceneIndex++;selectedId=null;hydrateImages();renderAll();toast('Scene duplicated')};
+$('deleteScene').onclick=()=>{if(scenes.length<=1){toast('A project must keep at least one scene');return}scenes.splice(sceneIndex,1);sceneIndex=Math.max(0,Math.min(sceneIndex,scenes.length-1));selectedId=null;pause();setFrame(0);renderAll();toast('Scene deleted')};
 $('clearSelection').onclick=()=>{selectedId=null;renderAll()};$('fitStage').onclick=()=>toast('Stage is fitted to the workspace');
 $('saveProject').onclick=()=>{const data=projectSnapshot();const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});download(blob,'geed-hardwin-project.json');toast('Project saved with images and timeline')};
 $('openProject').onclick=()=>$('projectInput').click();
