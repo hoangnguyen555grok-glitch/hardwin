@@ -27,7 +27,9 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
   <span class="topmeta">2D Animation Studio · Prototype v0.1</span>
   <div class="topspacer"></div>
   <span class="status">Prototype workspace</span>
+  <button class="ghost" id="openProject">Open project</button>
   <button class="ghost" id="saveProject">Save project</button>
+  <input id="projectInput" type="file" accept="application/json,.json" hidden />
   <button class="primary" id="exportVideo">Export video</button>
 </header>
 <div class="app">
@@ -142,7 +144,7 @@ canvas.addEventListener('pointermove',e=>{if(!drag)return;const o=objects().find
 canvas.addEventListener('pointerup',()=>{if(drag){drag=null;renderAll()}});canvas.addEventListener('pointercancel',()=>drag=null);
 function addShape(type){makeObject(type)}
 $('addRect').onclick=()=>addShape('rect');$('addCircle').onclick=()=>addShape('circle');$('addText').onclick=()=>makeObject('text',{name:'Text layer'});$('uploadImage').onclick=()=>$('imageInput').click();
-$('imageInput').onchange=e=>{const file=e.target.files[0];if(!file)return;const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{const scale=Math.min(520/img.width,420/img.height,1);const o=makeObject('image',{name:file.name,width:img.width*scale,height:img.height*scale,src:file.name,img});o.dataUrl=null;const reader=new FileReader();reader.onload=ev=>{o.dataUrl=ev.target.result};reader.readAsDataURL(file);renderAll()};img.src=url;e.target.value=''};
+$('imageInput').onchange=e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{const dataUrl=reader.result,img=new Image();img.onload=()=>{const scale=Math.min(520/img.width,420/img.height,1);makeObject('image',{name:file.name,width:img.width*scale,height:img.height*scale,src:file.name,img,dataUrl})};img.onerror=()=>toast('Image could not be loaded');img.src=dataUrl};reader.onerror=()=>toast('Image could not be read');reader.readAsDataURL(file);e.target.value=''};
 $('addKeyframe').onclick=()=>{const o=selected();if(!o){toast('Select an object first');return}addKey(o)};
 $('frameRange').oninput=e=>{pause();setFrame(Number(e.target.value))};
 function pause(){playing=false;cancelAnimationFrame(raf);$('playBtn').textContent='▶'}
@@ -151,7 +153,9 @@ $('playBtn').onclick=()=>{if(playing){pause();return}playing=true;lastTick=0;$('
  $('sceneSelect').onchange=e=>{sceneIndex=Number(e.target.value);selectedId=null;pause();setFrame(0);renderAll();toast('Scene opened')};
 $('addScene').onclick=()=>{scenes.push({name:'Scene '+String(scenes.length+1).padStart(2,'0'),objects:[]});sceneIndex=scenes.length-1;selectedId=null;pause();setFrame(0);renderAll();toast('New scene created')};
 $('clearSelection').onclick=()=>{selectedId=null;renderAll()};$('fitStage').onclick=()=>toast('Stage is fitted to the workspace');
-$('saveProject').onclick=()=>{const data={format:'motion-studio-project',version:1,fps:FPS,duration:DURATION,scenes:scenes.map(s=>({...s,objects:s.objects.map(o=>({...o,img:undefined}))}))};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});download(blob,'motion-studio-project.json');toast('Project JSON saved')};
+$('saveProject').onclick=()=>{const data={format:'geed-hardwin-project',version:2,fps:FPS,duration:DURATION,sceneIndex,nextId,selectedId,scenes:scenes.map(sc=>({...sc,objects:sc.objects.map(o=>({...o,img:undefined}))}))};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});download(blob,'geed-hardwin-project.json');toast('Project saved with scenes, keyframes and images')};
+$('openProject').onclick=()=>$('projectInput').click();
+$('projectInput').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(!Array.isArray(data.scenes))throw new Error('Invalid project');pause();scenes=data.scenes.map(sc=>({...sc,objects:(sc.objects||[]).map(o=>({...o,img:null}))}));sceneIndex=Math.max(0,Math.min(scenes.length-1,Number(data.sceneIndex)||0));nextId=Number(data.nextId)||1;selectedId=data.selectedId&&objects().some(o=>o.id===data.selectedId)?data.selectedId:null;for(const sc of scenes){for(const o of sc.objects){if(o.type==='image'&&o.dataUrl){o.img=await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=o.dataUrl})}}}setFrame(0);renderAll();toast('Project opened')}catch(err){console.error(err);toast('Could not open this project file')}e.target.value=''};
 function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
 $('exportVideo').onclick=async()=>{pause();if(!window.MediaRecorder||!canvas.captureStream){toast('Video export is not supported in this browser');return}toast('Rendering 5-second WebM preview…');const stream=canvas.captureStream(30);let chunks=[];let recorder;try{recorder=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9'});}catch(e){recorder=new MediaRecorder(stream,{mimeType:'video/webm'});}recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};recorder.onstop=()=>{download(new Blob(chunks,{type:'video/webm'}),'motion-studio-preview.webm');stream.getTracks().forEach(t=>t.stop());setFrame(0);toast('Video exported as WebM')};recorder.start();let f=0;const renderFrame=()=>{frame=f;draw();if(f>=MAX){recorder.stop();return}f++;setTimeout(renderFrame,1000/FPS)};renderFrame()};
 // Start with one editable title-card object so the canvas is not empty.
