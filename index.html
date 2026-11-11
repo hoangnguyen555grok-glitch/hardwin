@@ -49,7 +49,7 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
     </div>
     <div class="section">
       <div class="sectiontitle">Scenes</div>
-      <div style="display:flex;align-items:center;gap:7px"><span class="scenechip" id="sceneName">Scene 01</span><button id="addScene" style="margin-left:auto;padding:6px 9px">＋ New</button></div>
+      <div style="display:flex;align-items:center;gap:7px"><select id="sceneSelect" aria-label="Choose scene" style="max-width:135px;background:#111720;color:var(--text);border:1px solid var(--line);border-radius:7px;padding:7px"></select><button id="addScene" style="margin-left:auto;padding:6px 9px">＋ New</button></div>
     </div>
   </aside>
 
@@ -132,7 +132,8 @@ function renderTimeline(){const names=$('trackNames'),tracks=$('tracks');names.i
 function updatePlayhead(){const p=$('playhead');if(p)p.style.left=(frame/MAX*100)+'%';$('timecode').textContent=formatTime(frame);$('frameRange').value=frame}
 function formatTime(f){const sec=f/FPS;const mm=Math.floor(sec/60),ss=Math.floor(sec%60),ff=Math.floor((sec%1)*FPS);return [mm,ss,ff].map(x=>String(x).padStart(2,'0')).join(':')}
 function setFrame(f){frame=Math.max(0,Math.min(MAX,Math.round(f)));updatePlayhead();draw();renderInspector()}
-function renderAll(full=true){if(full){renderLayers();renderInspector();renderTimeline();$('sceneName').textContent=scene().name;$('selectionLabel').textContent=selected()?selected().name+' selected':'No selection'}draw();updatePlayhead()}
+function renderScenePicker(){const el=$('sceneSelect');if(!el)return;el.innerHTML='';scenes.forEach((sc,i)=>{const op=document.createElement('option');op.value=String(i);op.textContent=sc.name;el.appendChild(op)});el.value=String(sceneIndex)}
+function renderAll(full=true){if(full){renderLayers();renderInspector();renderTimeline();renderScenePicker();$('selectionLabel').textContent=selected()?selected().name+' selected':'No selection'}draw();updatePlayhead()}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function escapeAttr(s){return escapeHtml(s)}
 function hit(o,x,y){const s=stateAt(o,frame);const dx=x-s.x,dy=y-s.y,rad=-s.rotation*Math.PI/180;const lx=(dx*Math.cos(rad)-dy*Math.sin(rad))/s.scale,ly=(dx*Math.sin(rad)+dy*Math.cos(rad))/s.scale;return Math.abs(lx)<=o.width/2+8&&Math.abs(ly)<=o.height/2+8}
 function canvasPoint(e){const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
@@ -147,7 +148,8 @@ $('frameRange').oninput=e=>{pause();setFrame(Number(e.target.value))};
 function pause(){playing=false;cancelAnimationFrame(raf);$('playBtn').textContent='▶'}
 function tick(ts){if(!playing)return;if(!lastTick)lastTick=ts;const delta=ts-lastTick;lastTick=ts;frame+=delta/1000*FPS;if(frame>MAX)frame=0;updatePlayhead();draw();raf=requestAnimationFrame(tick)}
 $('playBtn').onclick=()=>{if(playing){pause();return}playing=true;lastTick=0;$('playBtn').textContent='Ⅱ';raf=requestAnimationFrame(tick)};$('stopBtn').onclick=()=>{pause();setFrame(0)};
-$('addScene').onclick=()=>{scenes.push({name:'Scene '+String(scenes.length+1).padStart(2,'0'),objects:[]});sceneIndex=scenes.length-1;selectedId=null;setFrame(0);renderAll();toast('New scene created')};
+ $('sceneSelect').onchange=e=>{sceneIndex=Number(e.target.value);selectedId=null;pause();setFrame(0);renderAll();toast('Scene opened')};
+$('addScene').onclick=()=>{scenes.push({name:'Scene '+String(scenes.length+1).padStart(2,'0'),objects:[]});sceneIndex=scenes.length-1;selectedId=null;pause();setFrame(0);renderAll();toast('New scene created')};
 $('clearSelection').onclick=()=>{selectedId=null;renderAll()};$('fitStage').onclick=()=>toast('Stage is fitted to the workspace');
 $('saveProject').onclick=()=>{const data={format:'motion-studio-project',version:1,fps:FPS,duration:DURATION,scenes:scenes.map(s=>({...s,objects:s.objects.map(o=>({...o,img:undefined}))}))};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});download(blob,'motion-studio-project.json');toast('Project JSON saved')};
 function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
