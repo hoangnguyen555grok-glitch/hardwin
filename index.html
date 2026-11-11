@@ -60,11 +60,11 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
   </aside>
 
   <main class="center">
-    <div class="stagebar"><span class="scenechip">STAGE</span><span class="smallmuted">1280 × 720 · 16:9</span><div class="topspacer"></div><button id="fitStage" class="ghost">Fit</button><button id="clearSelection" class="ghost">Deselect</button></div>
+    <div class="stagebar"><span class="scenechip">STAGE</span><span class="smallmuted">1280 × 720 · 16:9</span><span class="topspacer"></span><label class="smallmuted">FPS <select id="fpsSelect" style="background:#111720;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:5px"><option>12</option><option selected>24</option><option>30</option><option>60</option></select></label><label class="smallmuted">Seconds <input id="durationInput" type="number" min="1" max="120" value="5" style="width:58px;background:#111720;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:5px"></label><button id="fitStage" class="ghost">Fit</button><button id="clearSelection" class="ghost">Deselect</button></div>
     <div class="stagewrap">
       <div class="canvasframe"><canvas id="stage" width="1280" height="720"></canvas><div class="stagehint">Select and drag objects · Add keyframes to animate</div></div>
     </div>
-    <div class="stagefooter"><span id="selectionLabel">No selection</span><span>24 FPS · 5 seconds</span><span>Canvas preview</span></div>
+    <div class="stagefooter"><span id="selectionLabel">No selection</span><span id="timelineMeta">24 FPS · 5 seconds</span><span>Canvas preview</span></div>
   </main>
 
   <aside class="right panel">
@@ -98,7 +98,7 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
 <div class="toast" id="toast"></div>
 <script>
 (() => {
-const W=1280,H=720,FPS=24,DURATION=5,MAX=FPS*DURATION;
+const W=1280,H=720;let FPS=24,DURATION=5,MAX=FPS*DURATION;
 const canvas=document.getElementById('stage'),ctx=canvas.getContext('2d');
 const $=id=>document.getElementById(id);
 let scenes=[{name:'Scene 01',objects:[]}],sceneIndex=0,selectedId=null,frame=0,playing=false,raf=0,lastTick=0,nextId=1,drag=null;
