@@ -29,9 +29,9 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
 <body>
 <header class="topbar">
   <div class="brand"><img class="brandlogo" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRYHE1V2gwMtLSOzrCNG-C3zeWnRj-i1GtkR8pLxDeUJQ&amp;s=10" alt="Geed Hardwin brand image" referrerpolicy="no-referrer" onerror="this.style.display='none'" /><span>GEED HARDWIN</span></div>
-  <span class="topmeta">2D Animation Editor · v0.6</span>
+  <span class="topmeta">2D Animation Editor · v0.7</span>
   <div class="topspacer"></div>
-  <span class="status">Animation workspace · v0.6</span>
+  <span class="status">Animation workspace · v0.7</span>
   <button class="ghost" id="undoBtn" title="Undo (Ctrl+Z)">↶</button>
   <button class="ghost" id="redoBtn" title="Redo (Ctrl+Shift+Z)">↷</button>
   <button class="ghost" id="openProject">Open project</button>
@@ -214,7 +214,7 @@ function setTimelineSettings(nextFps,nextDuration){const oldFps=FPS;const fps=[1
 $('fpsSelect').onchange=e=>setTimelineSettings(e.target.value,DURATION);$('durationInput').onchange=e=>setTimelineSettings(FPS,e.target.value);$('onionToggle').onchange=e=>{onionSkin=e.target.checked;draw()};
 function renderScenePicker(){const el=$('sceneSelect');if(!el)return;el.innerHTML='';scenes.forEach((sc,i)=>{const op=document.createElement('option');op.value=String(i);op.textContent=sc.name;el.appendChild(op)});el.value=String(sceneIndex);$('sceneRename').value=scene().name}
 function renderAll(full=true){if(full){renderLayers();renderInspector();renderTimeline();renderScenePicker();$('selectionLabel').textContent=selectedIds.length>1?selectedIds.length+' layers selected':selected()?selected().name+' selected':'No selection'}draw();updatePlayhead();if(!restoringHistory)recordHistory()}
-function projectSnapshot(){return {format:'geed-hardwin-project',version:6,fps:FPS,duration:DURATION,sceneIndex,nextId,nextGroupId,selectedId,selectedIds,frame,scenes:scenes.map(sc=>({...sc,objects:sc.objects.map(o=>({...o,img:undefined}))}))}}
+function projectSnapshot(){return {format:'geed-hardwin-project',version:7,fps:FPS,duration:DURATION,sceneIndex,nextId,nextGroupId,selectedId,selectedIds,frame,scenes:scenes.map(sc=>({...sc,objects:sc.objects.map(o=>({...o,img:undefined}))}))}}
 function recordHistory(){if(restoringHistory)return;const snap=JSON.stringify(projectSnapshot());if(history[historyIndex]===snap)return;history=history.slice(0,historyIndex+1);history.push(snap);if(history.length>60)history.shift();historyIndex=history.length-1;updateHistoryButtons();if(appReady)scheduleAutosave(snap)}
 function updateHistoryButtons(){const u=$('undoBtn'),r=$('redoBtn');if(u)u.disabled=historyIndex<=0;if(r)r.disabled=historyIndex<0||historyIndex>=history.length-1}
 function createAudioPlayer(o){if(!o||o.type!=='audio'||!o.dataUrl)return null;let player=audioPlayers.get(o.id);if(!player){player=new Audio(o.dataUrl);player.preload='auto';audioPlayers.set(o.id,player)}return player}
