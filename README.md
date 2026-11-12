@@ -1,14 +1,16 @@
 # Geed Hardwin — 2D Animation Studio
 
-**Editor v0.7** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
+**Editor v0.8** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
 
 ## Công cụ hiện có
 
 - Sân khấu 1280 × 720, tỷ lệ 16:9; bố cục tự co theo cửa sổ.
-- Select, Rectangle, Circle, Text, Image, Pencil và Line.
+- Select, Rectangle, Circle, Text, Image, Pencil, Line và Audio.
 - Nhập ảnh và âm thanh từ máy tính.
 - Layer: chọn, kéo, ẩn/hiện, khóa/mở khóa, nhân bản, xóa, căn giữa và sắp xếp trước/sau.
 - Chọn nhiều layer bằng Ctrl-click; nhóm, di chuyển cùng nhau, tách nhóm và xóa cả nhóm.
+- Mask layer: chọn nhiều layer, dùng layer đầu tiên (Rectangle/Circle/Pencil path) làm mask cho các layer còn lại; có thể gỡ liên kết mask.
+- Chế độ Frame-by-frame: bật nút Frame-by-frame, vẽ hình/đường/nét ở frame hiện tại; các đối tượng mới được phơi sáng đúng frame đó. Có nút đi từng frame.
 - Inspector: vị trí, kích thước, tỷ lệ, xoay, opacity, màu sắc, chữ và nét vẽ.
 - Timeline 12, 24, 30 hoặc 60 FPS; thời lượng 1–120 giây.
 - Keyframe biến đổi cho từng đối tượng; kéo thả keyframe trên timeline.
@@ -36,12 +38,12 @@
 
 ## Những phần vẫn đang phát triển
 
-Geed Hardwin v0.7 chưa phải bản thay thế đầy đủ Adobe Animate hoặc Alight Motion. Các hạng mục lớn còn thiếu hoặc chưa đạt mức chuyên nghiệp gồm:
+Geed Hardwin v0.8 chưa phải bản thay thế đầy đủ Adobe Animate hoặc Alight Motion. Các hạng mục lớn còn thiếu hoặc chưa đạt mức chuyên nghiệp gồm:
 
-- Frame-by-frame animation với cel/layer exposure đầy đủ.
+- Cel-based frame-by-frame exposure sheet và timeline drawing layers thực thụ; v0.8 cung cấp chế độ phơi sáng một frame cho đối tượng mới.
 - Shape Tween và Motion Tween theo từng thuộc tính với graph editor.
 - Symbol / Graphic / MovieClip lồng nhau và thư viện tài sản tái sử dụng.
-- Mask nâng cao, clipping groups và hệ thống hiệu ứng mở rộng.
+- Mask alpha/luma, mask lồng nhau, clipping groups và hiệu ứng mask nâng cao.
 - Character rigging, bones, inverse kinematics và lip-sync.
 - Camera layer, parallax và điều khiển camera theo keyframe.
 - Xuất PNG sequence/GIF chuyên nghiệp, quản lý codec và preset render.
