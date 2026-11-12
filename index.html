@@ -59,9 +59,9 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
 <body>
 <header class="topbar">
   <div class="brand"><img class="brandlogo" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRYHE1V2gwMtLSOzrCNG-C3zeWnRj-i1GtkR8pLxDeUJQ&amp;s=10" alt="Geed Hardwin brand image" referrerpolicy="no-referrer" onerror="this.style.display='none'" /><span>GEED HARDWIN</span></div>
-  <span class="topmeta">2D Animation Editor · v1.10</span>
+  <span class="topmeta">2D Animation Editor · v1.11</span>
   <div class="topspacer"></div>
-  <span class="status">Animation workspace · v1.10</span>
+  <span class="status">Animation workspace · v1.11</span>
   <button class="ghost" id="undoBtn" title="Undo (Ctrl+Z)">↶</button>
   <button class="ghost" id="redoBtn" title="Redo (Ctrl+Shift+Z)">↷</button>
   <button class="ghost" id="openProject">Open project</button>
@@ -606,7 +606,7 @@ $('undoBtn').onclick=()=>travelHistory(-1);$('redoBtn').onclick=()=>travelHistor
 document.addEventListener('keydown',e=>{const tag=(e.target&&e.target.tagName||'').toLowerCase(),typing=tag==='input'||tag==='textarea'||tag==='select';if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();travelHistory(e.shiftKey?1:-1)}else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();travelHistory(1)}else if(!typing&&(e.key==='Delete'||e.key==='Backspace')&&selected()){e.preventDefault();const o=selected();const ids=new Set(selectedIds.length>1?selectedIds:[o.id]);removeObjectsByIds(ids);selectOne(null);renderAll()}else if(!typing&&e.key===' '){e.preventDefault();$('playBtn').click()}});
 function openAutosaveDb(){return new Promise((resolve,reject)=>{if(!('indexedDB'in window)){reject(new Error('IndexedDB unavailable'));return}const req=indexedDB.open('GeedHardwinStudio',1);req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('projects'))req.result.createObjectStore('projects')};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
 function scheduleAutosave(snapshot){clearTimeout(autosaveTimer);autosaveTimer=setTimeout(async()=>{try{const db=await openAutosaveDb();const tx=db.transaction('projects','readwrite');tx.objectStore('projects').put(snapshot,'autosave');tx.oncomplete=()=>db.close();tx.onerror=()=>db.close()}catch(err){console.warn('Autosave unavailable',err)}},700)}
-async function restoreAutosave(){try{const db=await openAutosaveDb();const snapshot=await new Promise((resolve,reject)=>{const tx=db.transaction('projects','readonly'),req=tx.objectStore('projects').get('autosave');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});db.close();if(snapshot){restoringHistory=true;applyProject(JSON.parse(snapshot));renderAll();restoringHistory=false;history=[];historyIndex=-1;recordHistory();toast('Autosave restored')}}catch(err){restoringHistory=false;console.warn('No autosave restored',err)}}
+async function restoreAutosave(){try{const db=await openAutosaveDb();const snapshot=await new Promise((resolve,reject)=>{const tx=db.transaction('projects','readonly'),req=tx.objectStore('projects').get('autosave');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});db.close();if(snapshot){restoringHistory=true;applyProject(JSON.parse(snapshot));scenes.forEach(sc=>{sc.objects=(sc.objects||[]).filter(o=>!(o.id==='obj-2'&&o.name==='Accent circle'&&o.type==='circle'))});renderAll();restoringHistory=false;history=[];historyIndex=-1;recordHistory();toast('Autosave restored')}}catch(err){restoringHistory=false;console.warn('No autosave restored',err)}}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function escapeAttr(s){return escapeHtml(s)}
 function hit(o,x,y){if(o.type==='audio'||o.locked||frame<(o.inFrame??0)||frame>(o.outFrame??MAX))return false;const p=matrixPoint(invertMatrix(objectWorldMatrix(o,frame,objects())),x,y),s=stateAt(o,frame);return Math.abs(p.x)<=(s.width??o.width)/2+8&&Math.abs(p.y)<=(s.height??o.height)/2+8}
 function canvasPoint(e){const p=rawCanvasPoint(e);if(symbolEditId)return {x:p.x-W/2,y:p.y-H/2};if(cameraMode)return p;const c=cameraAt(frame),dx=(p.x-W/2-c.x)/c.zoom,dy=(p.y-H/2-c.y)/c.zoom,rad=c.rotation*Math.PI/180;return {x:W/2+dx*Math.cos(rad)-dy*Math.sin(rad),y:H/2+dx*Math.sin(rad)+dy*Math.cos(rad)}}
@@ -673,7 +673,7 @@ $('exportVideo').onclick=async()=>{
 // Start with one editable title-card object so the canvas is not empty.
 const title=makeObject('text',{name:'Title',text:'My first animation',fontSize:74,color:'#26384f',x:W/2,y:H/2,width:850,height:110});
 title.keys=[{frame:0,state:{x:W/2-170,y:H/2,scale:.8,rotation:-4,opacity:.2}},{frame:MAX,state:{x:W/2,y:H/2,scale:1,rotation:0,opacity:1}}];
-makeObject('circle',{name:'Accent circle',x:330,y:470,width:115,height:115,color:'#ffb85c'}).keys=[{frame:0,state:{x:280,y:475,scale:.7,rotation:0,opacity:.4}},{frame:MAX,state:{x:370,y:475,scale:1.15,rotation:180,opacity:1}}];
+// The starter Accent circle has been removed; user-created circles remain available from the Circle tool.
 selectedId=title.id;renderAll();appReady=true;restoreAutosave();
 })();
 </script>
