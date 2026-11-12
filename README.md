@@ -1,8 +1,10 @@
 # Geed Hardwin — 2D Animation Studio
 
-**Editor v1.9** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
+**Editor v1.11** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
 
 ## Công cụ hiện có
+
+- Màn hình khởi động không còn tạo sẵn layer demo “Accent circle”; công cụ Circle và các hình tròn do người dùng tự tạo vẫn hoạt động bình thường. Khi khôi phục autosave, chỉ layer demo cũ có ID `obj-2` và tên “Accent circle” được lọc bỏ.
 
 - Sân khấu 1280 × 720, tỷ lệ 16:9; bố cục tự co theo cửa sổ.
 - Select, Rectangle, Circle, Text, Image, Pencil, Line và Audio.
