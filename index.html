@@ -289,7 +289,9 @@ function drawObject(o,f=frame,editing=true,ghostAlpha=1,stateOverride=null,depth
  }
  if(o.type==='symbol'){
   const def=symbolLibrary.find(x=>x.id===o.symbolId);if(!def)return;
-  ctx.save();ctx.translate(s.x,s.y);ctx.translate(px,py);ctx.rotate(s.rotation*Math.PI/180);ctx.scale(s.scale,s.scale);ctx.translate(-px,-py);
+  ctx.save();const outerMask=o.maskId&&siblings.find(m=>m.id===o.maskId&&m.isMask&&m.visible);if(outerMask)applyMaskClip(outerMask,f);
+  ctx.globalCompositeOperation=o.blendMode||'source-over';ctx.filter=(ctx.filter&&ctx.filter!=='none'?ctx.filter+' ':'')+'brightness('+Math.max(0,s.brightness??100)+'%) contrast('+Math.max(0,s.contrast??100)+'%) saturate('+Math.max(0,s.saturation??100)+'%) blur('+Math.max(0,s.blur??0)+'px)';if((s.glow??0)>0){ctx.shadowColor=o.color||'#ffffff';ctx.shadowBlur=Math.min(40,s.glow)}
+  ctx.translate(s.x,s.y);ctx.translate(px,py);ctx.rotate(s.rotation*Math.PI/180);ctx.scale(s.scale,s.scale);ctx.translate(-px,-py);
   const parentAlpha=ghostAlpha*Math.max(0,Math.min(1,s.opacity)),childFrame=def.timelineVersion===1?symbolLocalFrame(o,f,def):f,children=def.objects||[];
   rootObjects(children).forEach(child=>drawObject(child,childFrame,false,parentAlpha,null,depth+1,children));
   if(editing&&selectedIds.includes(o.id)){ctx.save();ctx.globalCompositeOperation='source-over';ctx.filter='none';ctx.globalAlpha=1;ctx.strokeStyle='#246ee8';ctx.lineWidth=2/Math.max(.1,s.scale);ctx.setLineDash([8,5]);ctx.strokeRect(-w/2-5,-h/2-5,w+10,h+10);ctx.setLineDash([]);ctx.fillStyle='#f5a623';ctx.strokeStyle='#fff';ctx.beginPath();ctx.arc(px,py,7/Math.max(.1,s.scale),0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore()}
