@@ -8,7 +8,7 @@
 - Select, Rectangle, Circle, Text, Image, Pencil, Line và Audio.
 - Nhập ảnh và âm thanh từ máy tính.
 - Layer: chọn, kéo, ẩn/hiện, khóa/mở khóa, nhân bản, xóa, căn giữa và sắp xếp trước/sau.
-- Layer Parenting + Pivot Editor v1.8: gắn layer con vào layer cha; vị trí, xoay và tỷ lệ của cha được kế thừa theo thời gian; đổi cha giữ tư thế và keyframe mẫu; chỉnh pivot X/Y và giữ hình không nhảy khi đổi pivot; kéo/chọn và chỉnh điểm vector hiểu hệ tọa độ cha-con. Khi xóa cha, các layer con được chuyển lên cấp cha tiếp theo để bảo toàn vị trí.
+- Layer Parenting + Pivot Editor v1.8: gắn layer con vào layer cha; vị trí, xoay và tỷ lệ của cha được kế thừa theo thời gian; đổi cha giữ tư thế và keyframe mẫu; chỉnh pivot X/Y và giữ hình không nhảy khi đổi pivot; kéo/chọn và chỉnh điểm vector hiểu hệ tọa độ cha-con. Khi xóa cha, các layer con được chuyển lên cấp cha tiếp theo để bảo toàn vị trí. Khi đóng gói nhiều layer đã gắn cha-con thành MovieClip, hệ thống giữ cây phân cấp và quy đổi các layer gốc về tâm Symbol.
 - Chọn nhiều layer bằng Ctrl-click; nhóm, di chuyển cùng nhau, tách nhóm và xóa cả nhóm.
 - MovieClip / Graphic Symbols: chuyển một hoặc nhiều layer đã animate thành MovieClip; mở Edit MovieClip để chỉnh sửa layer và keyframe trên timeline nội bộ; đặt độ dài clip; lồng symbol trong symbol; mỗi instance có tốc độ, phase offset, Loop / Once / Ping-pong và Single Frame.
 - Graphic Symbol Frame Picker: chọn frame nội bộ của Symbol tại một frame trên timeline chính, tạo keyframe riêng để đổi hình miệng, mắt, tay hoặc tư thế; các Frame Picker keys có marker riêng trên timeline và được lưu trong project.
