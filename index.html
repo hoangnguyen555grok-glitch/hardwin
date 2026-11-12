@@ -482,7 +482,7 @@ function formatTime(f){const sec=f/FPS;const mm=Math.floor(sec/60),ss=Math.floor
 function setFrame(f){frame=Math.max(0,Math.min(MAX,Math.round(f)));updatePlayhead();draw();renderInspector();if(exposureOpen)renderExposureSheet()}$('prevFrame').onclick=()=>setFrame(frame-1);$('nextFrame').onclick=()=>setFrame(frame+1);
 function setTimelineSettings(nextFps,nextDuration){const oldFps=FPS;const fps=[12,24,30,60].includes(Number(nextFps))?Number(nextFps):24;const requested=Math.max(1,Math.min(120,Number(nextDuration)||5));const longest=Math.max(0,...scenes.flatMap(sc=>sc.objects.flatMap(o=>(o.keys||[]).map(k=>k.frame/oldFps))));const oldMax=MAX;FPS=fps;DURATION=Math.min(120,Math.max(requested,Math.ceil(longest)));MAX=FPS*DURATION;for(const sc of scenes){if(sc.camera?.keys)sc.camera.keys=sc.camera.keys.map(k=>({...k,frame:Math.round(k.frame/oldFps*FPS)}));for(const o of sc.objects){o.inFrame=Math.round((o.inFrame??0)/oldFps*FPS);o.outFrame=Math.min(MAX,Math.round((o.outFrame??oldMax)/oldFps*FPS));if(o.type==='audio')o.audioStartFrame=Math.round((o.audioStartFrame??o.inFrame)/oldFps*FPS);const mapped=(o.keys||[]).map(k=>({...k,frame:Math.round(k.frame/oldFps*FPS)}));const uniqueKeys=new Map();mapped.forEach(k=>uniqueKeys.set(k.frame,k));o.keys=[...uniqueKeys.values()].sort((a,b)=>a.frame-b.frame)}}frame=Math.min(MAX,Math.round(frame/oldFps*FPS));$('fpsSelect').value=String(FPS);$('durationInput').value=String(DURATION);$('frameRange').max=MAX;renderAll();toast('Timeline settings updated')}
 $('duplicateFrameBtn').onclick=duplicateArtworkToNextFrame;$('fpsSelect').onchange=e=>setTimelineSettings(e.target.value,DURATION);$('durationInput').onchange=e=>setTimelineSettings(FPS,e.target.value);$('onionToggle').onchange=e=>{onionSkin=e.target.checked;draw()};$('frameModeBtn').onclick=()=>{frameByFrame=!frameByFrame;$('frameModeBtn').textContent='Frame-by-frame: '+(frameByFrame?'ON':'OFF');$('frameModeBtn').classList.toggle('active',frameByFrame);$('stageHint').textContent=frameByFrame?'Frame-by-frame ON · New drawings last one frame':'Select and drag objects · Add keyframes to animate';toast(frameByFrame?'Frame-by-frame drawing enabled':'Frame-by-frame drawing disabled')};
-function duplicateArtworkToNextFrame(){if(frame>=MAX){toast('You are already at the last frame');return}const originals=objects().filter(o=>o.type!=='audio'&&o.visible!==false&&frame>=(o.inFrame??0)&&frame<=(o.outFrame??MAX));if(!originals.length){toast('No visible artwork to duplicate at this frame');return}const idMap=new Map(originals.map(o=>[o.id,uid()])),groupMap=new Map(),copies=originals.map(o=>{const copy=JSON.parse(JSON.stringify({...o,img:undefined})),state=stateAt(o,frame);copy.id=idMap.get(o.id);copy.name=o.name+' · frame '+(frame+2);Object.assign(copy,state);copy.inFrame=frame+1;copy.outFrame=frame+1;copy.keys=[{frame:frame+1,state,easing:easingAt(o,frame)}];copy.img=null;if(o.groupId){if(!groupMap.has(o.groupId))groupMap.set(o.groupId,'grp-'+(nextGroupId++));copy.groupId=groupMap.get(o.groupId)}if(copy.maskId)copy.maskId=idMap.get(copy.maskId)||null;if(copy.type==='image'&&copy.dataUrl){const im=new Image();im.onload=()=>draw();im.src=copy.dataUrl;copy.img=im}return copy});objects().push(...copies);selectedIds=copies.map(o=>o.id);selectedId=selectedIds[selectedIds.length-1]||null;setFrame(frame+1);renderAll();toast(copies.length+' artwork layer(s) copied to next frame')}
+function duplicateArtworkToNextFrame(){if(frame>=MAX){toast('You are already at the last frame');return}const originals=objects().filter(o=>o.type!=='audio'&&o.visible!==false&&frame>=(o.inFrame??0)&&frame<=(o.outFrame??MAX));if(!originals.length){toast('No visible artwork to duplicate at this frame');return}const idMap=new Map(originals.map(o=>[o.id,uid()])),groupMap=new Map(),copies=originals.map(o=>{const copy=JSON.parse(JSON.stringify({...o,img:undefined})),state=stateAt(o,frame);copy.id=idMap.get(o.id);copy.name=o.name+' · frame '+(frame+2);Object.assign(copy,state);copy.inFrame=frame+1;copy.outFrame=frame+1;copy.keys=[{frame:frame+1,state,easing:easingAt(o,frame)}];copy.img=null;if(o.groupId){if(!groupMap.has(o.groupId))groupMap.set(o.groupId,'grp-'+(nextGroupId++));copy.groupId=groupMap.get(o.groupId)}if(copy.maskId)copy.maskId=idMap.get(copy.maskId)||null;if(copy.parentId)copy.parentId=idMap.get(copy.parentId)||copy.parentId;if(copy.type==='image'&&copy.dataUrl){const im=new Image();im.onload=()=>draw();im.src=copy.dataUrl;copy.img=im}return copy});objects().push(...copies);selectedIds=copies.map(o=>o.id);selectedId=selectedIds[selectedIds.length-1]||null;setFrame(frame+1);renderAll();toast(copies.length+' artwork layer(s) copied to next frame')}
 function renderScenePicker(){const el=$('sceneSelect');if(!el)return;el.innerHTML='';scenes.forEach((sc,i)=>{const op=document.createElement('option');op.value=String(i);op.textContent=sc.name;el.appendChild(op)});el.value=String(sceneIndex);$('sceneRename').value=scene().name}
 function symbolPickerFrame(instance,parentFrame,def){
  const duration=Math.max(1,Number(def.duration)||FPS),keys=[...(instance.framePickerKeys||[])].filter(k=>Number.isFinite(k.frame)&&k.frame<=parentFrame).sort((a,b)=>a.frame-b.frame);
@@ -523,18 +523,30 @@ function renderSymbolEditBanner(){
 $('exitSymbolEdit').onclick=exitSymbolEdit;
 $('symbolDurationInput').onchange=e=>{const def=activeSymbol();if(!def)return;def.duration=Math.max(2,Math.min(2880,Math.round(Number(e.target.value)||2)));MAX=def.duration-1;frame=Math.min(frame,MAX);$('frameRange').max=MAX;renderAll();toast('MovieClip length updated')};
 function createSymbolFromSelection(){
- const items=selectedObjects().filter(o=>o.type!=='audio'&&!o.isMask);if(!items.length){toast('Select one or more visual layers');return}
- const originFrame=frame,states=items.map(o=>({o,s:currentState(o)}));
- const minX=Math.min(...states.map(x=>x.s.x-(x.s.width??x.o.width)*x.s.scale/2)),maxX=Math.max(...states.map(x=>x.s.x+(x.s.width??x.o.width)*x.s.scale/2));
- const minY=Math.min(...states.map(x=>x.s.y-(x.s.height??x.o.height)*x.s.scale/2)),maxY=Math.max(...states.map(x=>x.s.y+(x.s.height??x.o.height)*x.s.scale/2));
- const cx=(minX+maxX)/2,cy=(minY+maxY)/2,id='sym-'+(nextSymbolId++),name=(items.length===1?items[0].name:items[0].name+' group')+' MovieClip';
- const children=items.map(o=>{const c=JSON.parse(JSON.stringify({...o,img:undefined}));c.x-=cx;c.y-=cy;delete c.groupId;c.inFrame=Math.max(0,(o.inFrame??originFrame)-originFrame);c.outFrame=Math.max(c.inFrame,(o.outFrame??MAX)-originFrame);c.keys=(c.keys||[]).map(k=>({...k,frame:k.frame-originFrame,state:{...k.state,x:(k.state?.x??o.x)-cx,y:(k.state?.y??o.y)-cy}})).sort((a,b)=>a.frame-b.frame);if(!c.keys.length)c.keys=[{frame:0,state:baseState(c),easing:c.easing||'linear'}];return c});
- const last=Math.max(0,...children.flatMap(c=>(c.keys||[]).map(k=>k.frame))),duration=Math.max(FPS,last+1);
+ const siblings=objects(),items=selectedObjects().filter(o=>o.type!=='audio'&&!o.isMask);if(!items.length){toast('Select one or more visual layers');return}
+ const originFrame=frame,itemIds=new Set(items.map(o=>o.id)),bounds=[];
+ for(const o of items){
+  const s=stateAt(o,originFrame),m=objectWorldMatrix(o,originFrame,siblings),w=s.width??o.width,h=s.height??o.height;
+  [[-w/2,-h/2],[w/2,-h/2],[w/2,h/2],[-w/2,h/2]].forEach(([x,y])=>bounds.push(matrixPoint(m,x,y)));
+ }
+ const minX=Math.min(...bounds.map(p=>p.x)),maxX=Math.max(...bounds.map(p=>p.x)),minY=Math.min(...bounds.map(p=>p.y)),maxY=Math.max(...bounds.map(p=>p.y)),cx=(minX+maxX)/2,cy=(minY+maxY)/2;
+ const id='sym-'+(nextSymbolId++),name=(items.length===1?items[0].name:items[0].name+' group')+' MovieClip',children=items.map(o=>{
+  const c=JSON.parse(JSON.stringify({...o,img:undefined})),keepParent=!!(o.parentId&&itemIds.has(o.parentId));
+  c.parentId=keepParent?o.parentId:null;delete c.groupId;if(c.maskId&&!itemIds.has(c.maskId))delete c.maskId;
+  c.inFrame=Math.max(0,(o.inFrame??originFrame)-originFrame);c.outFrame=Math.max(c.inFrame,(o.outFrame??MAX)-originFrame);
+  const convertAt=f=>{const m=objectWorldMatrix(o,f,siblings);m.e-=cx;m.f-=cy;return objectLocalFromWorld(m,identityMatrix(),c)};
+  if(!keepParent)Object.assign(c,convertAt(originFrame));
+  c.keys=(o.keys||[]).map(k=>({...k,frame:k.frame-originFrame,state:{...k.state,...(keepParent?{}:convertAt(k.frame))}})).sort((a,b)=>a.frame-b.frame);
+  if(!c.keys.length)c.keys=[{frame:0,state:baseState(c),easing:c.easing||'linear'}];
+  return c;
+ });
+ const lastKey=Math.max(0,...children.flatMap(c=>(c.keys||[]).map(k=>k.frame))),lastExposure=Math.max(0,...children.map(c=>c.outFrame??0)),duration=Math.max(FPS,lastKey+1,lastExposure+1);
  symbolLibrary.push({id,name,width:Math.max(20,maxX-minX),height:Math.max(20,maxY-minY),objects:children,duration,timelineVersion:1});
- setObjects(objects().filter(o=>!items.some(i=>i.id===o.id)));
+ setObjects(siblings.filter(o=>!itemIds.has(o.id)));
  makeObject('symbol',{name,symbolId:id,x:cx,y:cy,width:Math.max(20,maxX-minX),height:Math.max(20,maxY-minY),scale:1,playbackSpeed:1,playbackOffset:0,playbackMode:'loop'});
- hydrateImages();toast('MovieClip created · '+duration+' frame internal timeline');renderSymbolLibrary();
+ hydrateImages();toast('MovieClip created · hierarchy preserved · '+duration+' frame internal timeline');renderSymbolLibrary();
 }
+
 function swapSymbolInstance(instance,nextId){
  const next=symbolLibrary.find(def=>def.id===nextId);if(!instance||instance.type!=='symbol'||!next){toast('Choose a valid Graphic Symbol');return}
  if(instance.symbolId===nextId){toast('This instance already uses that symbol');return}
