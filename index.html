@@ -287,7 +287,24 @@ function renderInspector(){const o=selected(),box=$('inspector');if(cameraMode){
  $('p_blur').onchange=e=>{setProperty('blur',Math.max(0,Math.min(30,Number(e.target.value)||0)))};
  $('p_glow').onchange=e=>{setProperty('glow',Math.max(0,Math.min(40,Number(e.target.value)||0)))};
  $('p_color').oninput=e=>{o.color=e.target.value;draw()};$('p_color').onchange=()=>renderAll();$('p_blendMode').onchange=e=>{o.blendMode=e.target.value;renderAll()};if(o.type==='audio'){$('p_audioStart').onchange=e=>{o.audioStartFrame=Math.max(0,Math.min(MAX,Number(e.target.value)||0));o.inFrame=o.audioStartFrame;renderAll()};$('p_volume').oninput=e=>{const value=Math.max(0,Math.min(1,Number(e.target.value)));const st=currentState(o);st.volume=value;const key=o.keys.find(k=>k.frame===frame);if(key)key.state=st;else o.keys.push({frame,state:st,easing:easingAt(o,frame)});o.volume=value;const player=createAudioPlayer(o);if(player)player.volume=value};$('p_volume').onchange=()=>renderAll()}if(o.type==='text'){$('p_text').onchange=e=>{o.text=e.target.value;renderAll()};$('p_fontSize').onchange=e=>{setProperty('fontSize',Number(e.target.value))}}
- if(o.type==='path'&&$('togglePathClosed'))$('togglePathClosed').onclick=()=>{o.closed=!o.closed;renderAll();toast(o.closed?'Path closed and filled':'Path opened')};$('createSymbol').onclick=createSymbolFromSelection;if(o.type==='symbol'&&$('editSymbol'))$('editSymbol').onclick=()=>enterSymbolEdit(o.symbolId,o);if(o.type==='symbol'){$('p_clipSpeed').onchange=e=>{o.playbackSpeed=Math.max(.1,Math.min(4,Number(e.target.value)||1));renderAll()};$('p_clipOffset').onchange=e=>{o.playbackOffset=Math.max(0,Math.min(symbolDuration(o.symbolId)-1,Math.round(Number(e.target.value)||0)));renderAll()};$('p_clipMode').onchange=e=>{o.playbackMode=e.target.value;renderAll()}}$('duplicateObj').onclick=()=>{const copy=JSON.parse(JSON.stringify(o));copy.id=uid();copy.name=o.name+' copy';copy.x+=40;copy.y+=40;copy.keys=copy.keys.map(k=>({...k,state:{...k.state,x:k.state.x+40,y:k.state.y+40}}));if(o.img)copy.img=o.img;if(copy.type==='audio')createAudioPlayer(copy);objects().push(copy);selectedId=copy.id;selectedIds=[copy.id];renderAll()};$('deleteObj').onclick=()=>{setObjects(objects().filter(x=>x.id!==o.id));selectedId=null;selectedIds=[];renderAll()};$('hideObj').onclick=()=>{o.visible=!o.visible;renderAll()};$('lockObj').onclick=()=>{o.locked=!o.locked;renderAll()};$('centerObj').onclick=()=>{setProperty('x',W/2);setProperty('y',H/2);renderAll()};$('bringFront').onclick=()=>moveLayer(1);$('sendBack').onclick=()=>moveLayer(-1);}
+ if(o.type==='path'&&$('togglePathClosed'))$('togglePathClosed').onclick=()=>{o.closed=!o.closed;renderAll();toast(o.closed?'Path closed and filled':'Path opened')};$('createSymbol').onclick=createSymbolFromSelection;if(o.type==='symbol'&&$('editSymbol'))$('editSymbol').onclick=()=>enterSymbolEdit(o.symbolId,o);if(o.type==='symbol'){
+ $('p_clipSpeed').onchange=e=>{o.playbackSpeed=Math.max(.1,Math.min(4,Number(e.target.value)||1));renderAll()};
+ $('p_clipOffset').onchange=e=>{o.playbackOffset=Math.max(0,Math.min(symbolDuration(o.symbolId)-1,Math.round(Number(e.target.value)||0)));renderAll()};
+ $('p_clipMode').onchange=e=>{o.playbackMode=e.target.value;renderAll()};
+ $('p_symbolFrame').onchange=e=>{
+  const value=Math.max(0,Math.min(symbolDuration(o.symbolId)-1,Math.round(Number(e.target.value)||0)));
+  o.symbolFrame=value;const key=(o.framePickerKeys||[]).find(k=>k.frame===frame);if(key)key.symbolFrame=value;draw();renderInspector();
+ };
+ $('setSymbolFrameKey').onclick=()=>{
+  const value=Math.max(0,Math.min(symbolDuration(o.symbolId)-1,Math.round(Number($('p_symbolFrame').value)||0)));
+  o.symbolFrame=value;o.framePickerKeys=o.framePickerKeys||[];
+  const key=o.framePickerKeys.find(k=>k.frame===frame);if(key)key.symbolFrame=value;else o.framePickerKeys.push({frame,symbolFrame:value});
+  o.framePickerKeys.sort((a,b)=>a.frame-b.frame);renderAll();toast('Graphic Symbol frame '+(value+1)+' keyed at frame '+(frame+1));
+ };
+ $('clearSymbolFrameKey').onclick=()=>{
+  o.framePickerKeys=(o.framePickerKeys||[]).filter(k=>k.frame!==frame);renderAll();toast('Frame Picker key removed');
+ };
+}$('duplicateObj').onclick=()=>{const copy=JSON.parse(JSON.stringify(o));copy.id=uid();copy.name=o.name+' copy';copy.x+=40;copy.y+=40;copy.keys=copy.keys.map(k=>({...k,state:{...k.state,x:k.state.x+40,y:k.state.y+40}}));if(o.img)copy.img=o.img;if(copy.type==='audio')createAudioPlayer(copy);objects().push(copy);selectedId=copy.id;selectedIds=[copy.id];renderAll()};$('deleteObj').onclick=()=>{setObjects(objects().filter(x=>x.id!==o.id));selectedId=null;selectedIds=[];renderAll()};$('hideObj').onclick=()=>{o.visible=!o.visible;renderAll()};$('lockObj').onclick=()=>{o.locked=!o.locked;renderAll()};$('centerObj').onclick=()=>{setProperty('x',W/2);setProperty('y',H/2);renderAll()};$('bringFront').onclick=()=>moveLayer(1);$('sendBack').onclick=()=>moveLayer(-1);}
 function exposureSelection(){return selectedObjects().filter(o=>o.type!=='audio')}
 function setExposureButtons(){
  const has=exposureSelection().some(o=>frame>=(o.inFrame??0)&&frame<=(o.outFrame??MAX));
