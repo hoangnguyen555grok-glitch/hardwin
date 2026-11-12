@@ -20,7 +20,7 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
 .app.exposure-open{grid-template-rows:minmax(260px,1fr) 330px}
 .exposure-tools{min-height:30px;display:flex;align-items:center;gap:6px;padding:4px 10px;border-bottom:1px solid var(--line);overflow-x:auto;flex-shrink:0}
 .exposure-tools button{padding:4px 8px;font-size:10px;white-space:nowrap}
-.exposure-tools button:disabled{opacity:.4}
+.exposure-tools button:disabled{opacity:.4}.exposure-tools button.active{border-color:#5a8fe8;background:#233149}
 .exposure-separator{height:18px;width:1px;background:var(--line);margin:0 3px}
 .exposure-sheet{height:118px;min-height:118px;background:#141922;border-bottom:1px solid var(--line);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
 .exposure-sheet[hidden]{display:none}
@@ -30,7 +30,7 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
 .exposure-grid-scroll{flex:1;overflow:auto;min-height:0}
 .exposure-grid{display:grid;grid-auto-rows:24px;width:max-content;min-width:100%;align-items:stretch}
 .exposure-grid-label,.exposure-frame-label{position:sticky;left:0;z-index:2;background:#1d2430;border-right:1px solid #394354;border-bottom:1px solid #2c3441;display:flex;align-items:center;padding:0 7px;font-size:10px;color:#c1ccdb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.exposure-frame-label{left:auto;justify-content:center;padding:0;font:9px ui-monospace,monospace;color:#9eabc0;background:#1a202a}
+.exposure-frame-label{position:sticky;top:0;z-index:3;left:auto;justify-content:center;padding:0;font:9px ui-monospace,monospace;color:#9eabc0;background:#1a202a}
 .exposure-frame-label.current{color:#fff;background:#3b5277}
 .exposure-grid-label.active{color:#fff;background:#293c58}
 .exposure-cell{width:18px;height:24px;min-width:18px;padding:0;border:0;border-right:1px solid #293241;border-bottom:1px solid #293241;border-radius:0;background:#181e28;color:#71839b;font-size:9px}
@@ -146,7 +146,7 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
         <div class="tracks" id="tracks"><div class="playhead" id="playhead"></div></div>
       </div>
     </div>
-    <div class="bottomline"><span id="timelineHint">Drag on stage to reposition · ◆ marks a keyframe</span><span id="keyframeCount">0 keyframes</span></div>
+    <div class="bottomline"><span id="timelineHint">Exposure Sheet: select cells · split, blank, hold or duplicate a cel</span><span id="keyframeCount">0 keyframes</span></div>
   </section>
 </div>
 <div class="toast" id="toast"></div>
@@ -442,7 +442,7 @@ function createSymbolFromSelection(){
 function renderSymbolLibrary(){const el=$('symbolSelect');if(!el)return;const previous=el.value;el.innerHTML='';symbolLibrary.forEach(def=>{const op=document.createElement('option');op.value=def.id;op.textContent=def.name+' · '+Math.max(1,Number(def.duration)||FPS)+'f';el.appendChild(op)});if(!symbolLibrary.length){const op=document.createElement('option');op.value='';op.textContent='No symbols';el.appendChild(op)}else if(symbolLibrary.some(x=>x.id===previous))el.value=previous;$('symbolCount').textContent=symbolLibrary.length;$('insertSymbol').disabled=!symbolLibrary.length}
 $('insertSymbol').onclick=()=>{const def=symbolLibrary.find(x=>x.id===$('symbolSelect').value);if(!def){toast('Choose a symbol first');return}makeObject('symbol',{name:def.name,symbolId:def.id,x:W/2,y:H/2,width:def.width,height:def.height})};
 function renderAll(full=true){if(full){renderExposureSheet();const cb=$('cameraModeBtn');if(cb){cb.classList.toggle('active',cameraMode);cb.disabled=!!symbolEditId}renderLayers();renderInspector();renderTimeline();renderScenePicker();renderSymbolLibrary();$('selectionLabel').textContent=selectedIds.length>1?selectedIds.length+' layers selected':selected()?selected().name+' selected':'No selection';$('sceneSelect').disabled=!!symbolEditId;['addScene','renameScene','duplicateScene','deleteScene','fpsSelect','durationInput','exportVideo'].forEach(id=>{const el=$(id);if(el)el.disabled=!!symbolEditId});renderSymbolEditBanner()}draw();updatePlayhead();if(!restoringHistory)recordHistory()}
-function projectSnapshot(){return {format:'geed-hardwin-project',version:13,fps:FPS,duration:DURATION,sceneIndex,nextId,nextGroupId,selectedId,selectedIds,frame,frameByFrame,nextSymbolId,symbolLibrary:symbolLibrary.map(def=>({...def,objects:(def.objects||[]).map(o=>({...o,img:undefined}))})),symbolEditId,symbolEditStack:symbolEditStack.map(x=>({...x,selectedIds:[...(x.selectedIds||[])]})),scenes:scenes.map(sc=>({...sc,objects:sc.objects.map(o=>({...o,img:undefined}))}))}}
+function projectSnapshot(){return {format:'geed-hardwin-project',version:14,fps:FPS,duration:DURATION,sceneIndex,nextId,nextGroupId,selectedId,selectedIds,frame,frameByFrame,nextSymbolId,symbolLibrary:symbolLibrary.map(def=>({...def,objects:(def.objects||[]).map(o=>({...o,img:undefined}))})),symbolEditId,symbolEditStack:symbolEditStack.map(x=>({...x,selectedIds:[...(x.selectedIds||[])]})),scenes:scenes.map(sc=>({...sc,objects:sc.objects.map(o=>({...o,img:undefined}))}))}}
 function recordHistory(){if(restoringHistory)return;const snap=JSON.stringify(projectSnapshot());if(history[historyIndex]===snap)return;history=history.slice(0,historyIndex+1);history.push(snap);if(history.length>60)history.shift();historyIndex=history.length-1;updateHistoryButtons();if(appReady)scheduleAutosave(snap)}
 function updateHistoryButtons(){const u=$('undoBtn'),r=$('redoBtn');if(u)u.disabled=historyIndex<=0;if(r)r.disabled=historyIndex<0||historyIndex>=history.length-1}
 function createAudioPlayer(o){if(!o||o.type!=='audio'||!o.dataUrl)return null;let player=audioPlayers.get(o.id);if(!player){player=new Audio(o.dataUrl);player.preload='auto';audioPlayers.set(o.id,player)}return player}
