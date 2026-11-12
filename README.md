@@ -1,6 +1,6 @@
 # Geed Hardwin — 2D Animation Studio
 
-**Editor v1.3** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
+**Editor v1.4** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
 
 ## Công cụ hiện có
 
@@ -9,7 +9,7 @@
 - Nhập ảnh và âm thanh từ máy tính.
 - Layer: chọn, kéo, ẩn/hiện, khóa/mở khóa, nhân bản, xóa, căn giữa và sắp xếp trước/sau.
 - Chọn nhiều layer bằng Ctrl-click; nhóm, di chuyển cùng nhau, tách nhóm và xóa cả nhóm.
-- Graphic Symbols: chuyển một hoặc nhiều layer thành symbol, lưu vào thư viện dự án, chèn nhiều instance và biến đổi instance độc lập.
+- MovieClip / Graphic Symbols: chuyển một hoặc nhiều layer đã animate thành MovieClip; mở Edit MovieClip để chỉnh sửa layer và keyframe trên timeline nội bộ; đặt độ dài clip; lồng symbol trong symbol; mỗi instance có tốc độ, phase offset và chế độ Loop / Once / Ping-pong độc lập.
 - Mask layer: chọn nhiều layer, dùng Rectangle/Circle/Pencil path làm mask cho các layer khác; có thể gỡ liên kết mask.
 - Chế độ Frame-by-frame: vẽ tại frame hiện tại; đối tượng mới được phơi sáng đúng một frame; có nút đi từng frame và Duplicate artwork → next frame để sao chép toàn bộ artwork đang hiện sang frame kế tiếp, giữ liên kết nhóm/mask và dữ liệu ảnh.
 - Path point editor: kéo các điểm vector trực tiếp trên sân khấu.
@@ -39,11 +39,11 @@
 
 ## Những phần vẫn đang phát triển
 
-Geed Hardwin v1.3 đã có nhiều công cụ cốt lõi nhưng chưa phải bản thay thế đầy đủ Adobe Animate hoặc Alight Motion. Các hạng mục lớn còn thiếu hoặc chưa đạt mức chuyên nghiệp gồm:
+Geed Hardwin v1.4 đã có nhiều công cụ cốt lõi nhưng chưa phải bản thay thế đầy đủ Adobe Animate hoặc Alight Motion. Các hạng mục lớn còn thiếu hoặc chưa đạt mức chuyên nghiệp gồm:
 
-- Cel-based frame-by-frame exposure sheet và drawing layers chuyên dụng; v1.3 dùng các đối tượng phơi sáng một frame.
+- Cel-based frame-by-frame exposure sheet, drawing layers chuyên dụng, onion-skin theo từng layer và copy/paste dải frame; v1.4 đã có MovieClip timeline riêng nhưng frame-by-frame vẫn dùng hệ đối tượng phơi sáng theo frame.
 - Shape Tween tương đương Adobe với shape hints/topology correspondence vẫn chưa có; Vector Path Morph hiện nội suy đường tự do bằng lấy mẫu lại, chưa morph trực tiếp mọi loại primitive.
-- Symbol/MovieClip có timeline nội bộ độc lập, nested playback và chỉnh sửa symbol tại chỗ.
+- Symbol/MovieClip hiện đã có timeline nội bộ, nested playback và chỉnh sửa tại chỗ ở mức cơ bản; vẫn cần nâng cấp thêm thư viện symbol chuyên sâu, đồ họa vector đầy đủ và quản lý tween trong symbol.
 - Mask alpha/luma, mask lồng nhau và clipping groups nâng cao.
 - Character rigging, bones, inverse kinematics và lip-sync.
 - Camera keyframe hiện điều khiển pan/zoom/rotation cơ bản; chưa có nhiều camera, lens/focus hay parallax theo layer.
