@@ -1,6 +1,6 @@
 # Geed Hardwin — 2D Animation Studio
 
-**Editor v1.4** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
+**Editor v1.5** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
 
 ## Công cụ hiện có
 
@@ -11,6 +11,7 @@
 - Chọn nhiều layer bằng Ctrl-click; nhóm, di chuyển cùng nhau, tách nhóm và xóa cả nhóm.
 - MovieClip / Graphic Symbols: chuyển một hoặc nhiều layer đã animate thành MovieClip; mở Edit MovieClip để chỉnh sửa layer và keyframe trên timeline nội bộ; đặt độ dài clip; lồng symbol trong symbol; mỗi instance có tốc độ, phase offset và chế độ Loop / Once / Ping-pong độc lập.
 - Mask layer: chọn nhiều layer, dùng Rectangle/Circle/Pencil path làm mask cho các layer khác; có thể gỡ liên kết mask.
+- Exposure Sheet / Cel Animation cơ bản: bảng ô hình theo từng layer, xem 48 frame mỗi trang; Insert Keyframe để tách exposure và tạo cel tiếp nối; Blank Keyframe để kết thúc exposure tại đầu phát; Hold +1 để kéo dài hình; Duplicate Cel để sao chép cel sang frame kế tiếp. Các thao tác được lưu trong project và hỗ trợ Undo/Redo.
 - Chế độ Frame-by-frame: vẽ tại frame hiện tại; đối tượng mới được phơi sáng đúng một frame; có nút đi từng frame và Duplicate artwork → next frame để sao chép toàn bộ artwork đang hiện sang frame kế tiếp, giữ liên kết nhóm/mask và dữ liệu ảnh.
 - Path point editor: kéo các điểm vector trực tiếp trên sân khấu.
 - Vector Path Morph: nội suy các đường vector ở hai keyframe kể cả khi số điểm khác nhau; đường được lấy mẫu lại tối đa 96 điểm. Có thể đóng/mở path và tô màu vùng khép kín.
@@ -39,9 +40,9 @@
 
 ## Những phần vẫn đang phát triển
 
-Geed Hardwin v1.4 đã có nhiều công cụ cốt lõi nhưng chưa phải bản thay thế đầy đủ Adobe Animate hoặc Alight Motion. Các hạng mục lớn còn thiếu hoặc chưa đạt mức chuyên nghiệp gồm:
+Geed Hardwin v1.5 đã có nhiều công cụ cốt lõi nhưng chưa phải bản thay thế đầy đủ Adobe Animate hoặc Alight Motion. Các hạng mục lớn còn thiếu hoặc chưa đạt mức chuyên nghiệp gồm:
 
-- Cel-based frame-by-frame exposure sheet, drawing layers chuyên dụng, onion-skin theo từng layer và copy/paste dải frame; v1.4 đã có MovieClip timeline riêng nhưng frame-by-frame vẫn dùng hệ đối tượng phơi sáng theo frame.
+- Exposure Sheet v1.5 đã có ô hình, blank/hold/split/duplicate cel; vẫn cần hoàn thiện kéo chọn dải frame, copy/paste range, drawing layers chuyên dụng, onion skin màu theo phạm vi và thao tác nhiều frame cùng lúc.
 - Shape Tween tương đương Adobe với shape hints/topology correspondence vẫn chưa có; Vector Path Morph hiện nội suy đường tự do bằng lấy mẫu lại, chưa morph trực tiếp mọi loại primitive.
 - Symbol/MovieClip hiện đã có timeline nội bộ, nested playback và chỉnh sửa tại chỗ ở mức cơ bản; vẫn cần nâng cấp thêm thư viện symbol chuyên sâu, đồ họa vector đầy đủ và quản lý tween trong symbol.
 - Mask alpha/luma, mask lồng nhau và clipping groups nâng cao.
