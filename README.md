@@ -68,3 +68,7 @@ Repository công khai để theo dõi tiến độ. Chưa gắn giấy phép mã
 ---
 
 **Geed Hardwin** · Built for creating 2D animation in the browser.
+
+## Cập nhật v1.10
+
+- **Polygon & Star vector tools (v1.10):** vẽ trực tiếp trên Stage bằng thao tác kéo để tạo lục giác và ngôi sao 5 cánh dạng vector path khép kín, có fill/stroke, chỉnh sửa được bằng Edit path points và hỗ trợ keyframe/morph theo nền tảng path hiện có.
