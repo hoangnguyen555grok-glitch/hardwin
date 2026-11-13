@@ -103,7 +103,7 @@ async def geed_stop() -> dict[str, Any]:
 @mcp.tool()
 async def geed_set_frame(frame: int) -> dict[str, Any]:
     """Move the Geed Hardwin playhead to a specified frame."""
-    return await _call_editor_api("setFrame", frame)
+    return await _call_editor_api("setFrame", {"frame": frame})
 
 
 @mcp.tool()
