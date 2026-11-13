@@ -1,7 +1,7 @@
 @echo off
 setlocal
 set "OPERA_EXE="
-for %%P in ("%LOCALAPPDATA%\Programs\Opera\opera.exe" "%LOCALAPPDATA%\Programs\Opera\launcher.exe" "%ProgramFiles%\Opera\launcher.exe" "%ProgramFiles%\Opera\opera.exe" "%ProgramFiles(x86)%\Opera\launcher.exe" "%ProgramFiles(x86)%\Opera\opera.exe") do (
+for %%P in ("%LOCALAPPDATA%\Programs\Opera GX\opera.exe" "%LOCALAPPDATA%\Programs\Opera GX\launcher.exe" "%ProgramFiles%\Opera GX\launcher.exe" "%ProgramFiles(x86)%\Opera GX\launcher.exe" "%LOCALAPPDATA%\Programs\Opera\opera.exe" "%LOCALAPPDATA%\Programs\Opera\launcher.exe" "%ProgramFiles%\Opera\launcher.exe" "%ProgramFiles%\Opera\opera.exe" "%ProgramFiles(x86)%\Opera\launcher.exe" "%ProgramFiles(x86)%\Opera\opera.exe") do (
   if exist "%%~P" if not defined OPERA_EXE set "OPERA_EXE=%%~P"
 )
 if not defined OPERA_EXE (
