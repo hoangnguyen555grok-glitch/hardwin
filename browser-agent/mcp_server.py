@@ -27,9 +27,20 @@ async def _call_editor_api(method: str, args: dict[str, Any] | None = None) -> A
             """({method, args}) => {
               const api = window["GeedHardwinBridge"];
               if (!api) throw new Error("The Geed Hardwin control API is not available. Reload the editor to v1.12 or newer.");
-              const fn = api[method];
-              if (typeof fn !== "function") throw new Error("Unsupported editor action: " + method);
-              return fn(...(args || []));
+              const actions = {
+                getStatus: () => api.getStatus(),
+                listLayers: () => api.listLayers(),
+                createCircle: () => api.createCircle(args || {}),
+                animateCircle: () => api.animateCircle(args || {}),
+                play: () => api.play(),
+                stop: () => api.stop(),
+                setFrame: () => api.setFrame(Number(args.frame)),
+                deleteSelected: () => api.deleteSelected(),
+                exportVideo: () => api.exportVideo()
+              };
+              const action = actions[method];
+              if (typeof action !== "function") throw new Error("Unsupported editor action: " + method);
+              return action();
             }""",
             {"method": method, "args": args or {}},
         )
