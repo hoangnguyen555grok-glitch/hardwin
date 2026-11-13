@@ -7,7 +7,7 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-py -3.11 -m venv .venv
+py -3 -m venv .venv
 if errorlevel 1 (
   echo Could not create the virtual environment. Check that Python 3.11 is installed.
   pause
