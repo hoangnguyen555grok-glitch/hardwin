@@ -1,0 +1,5 @@
+browser-use==1.0.2
+mcp[cli]>=1.26,<2
+playwright>=1.55,<2
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
