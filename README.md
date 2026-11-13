@@ -1,8 +1,11 @@
 # Geed Hardwin — 2D Animation Studio
 
-**Editor v1.11** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
+**Editor v1.12** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
 
 ## Công cụ hiện có
+
+- AI Bridge v1.12: bảng điều khiển thử nghiệm bên trong editor, có bộ lệnh cục bộ giới hạn và API qua \`window["GeedHardwinBridge"]\` cho trạng thái dự án, danh sách layer, tạo hình tròn, tạo chuyển động theo keyframe, phát/dừng, chọn frame, xóa layer đang chọn và yêu cầu xuất video. Bảng này chưa kết nối ChatGPT hay mô hình AI; giao diện hiển thị rõ hai trạng thái chưa ghép nối.
+
 
 - Màn hình khởi động không còn tạo sẵn layer demo “Accent circle”; công cụ Circle và các hình tròn do người dùng tự tạo vẫn hoạt động bình thường. Khi khôi phục autosave, chỉ layer demo cũ có ID `obj-2` và tên “Accent circle” được lọc bỏ.
 
