@@ -14,7 +14,7 @@ The Geed Hardwin editor exposes a restricted control API on the page:
 - delete the selected layer(s);
 - start video export.
 
-The local MCP server in `mcp_server.py` exposes these as typed tools over Streamable HTTP at:
+The local MCP server in `mcp_server.py` uses MCP Python SDK 2.3.0 and exposes these as typed tools over Streamable HTTP at:
 
 `http://127.0.0.1:8766/mcp`
 
