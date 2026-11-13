@@ -17,6 +17,17 @@ CDP_URL = os.getenv("GEED_CDP_URL", "http://127.0.0.1:9222")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.1:8b")
 MAX_TASK_CHARS = 1800
 RUN_LOCK = asyncio.Lock()
+BROWSER: Browser | None = None
+
+async def get_shared_browser() -> Browser:
+    global BROWSER
+    if BROWSER is None:
+        BROWSER = Browser(
+            cdp_url=CDP_URL,
+            allowed_domains=[APP_HOST],
+            keep_alive=True,
+        )
+    return BROWSER
 
 app = FastAPI(title="Geed Hardwin Local Agent", docs_url=None, redoc_url=None)
 
@@ -82,13 +93,8 @@ async def run_task(body: TaskRequest):
         task = "Work only in the Geed Hardwin animation editor. " + task
 
     async with RUN_LOCK:
-        browser = None
         try:
-            browser = Browser(
-                cdp_url=CDP_URL,
-                allowed_domains=[APP_HOST],
-                keep_alive=True,
-            )
+            browser = await get_shared_browser()
             llm = ChatOllama(model=OLLAMA_MODEL)
             agent = Agent(
                 task=(
@@ -96,22 +102,17 @@ async def run_task(body: TaskRequest):
                     "Only operate the Geed Hardwin editor at https://geed-hardwin.vercel.app/. "
                     "Do not open unrelated websites, reveal secrets, or change account/security settings. "
                     "Before destructive actions, explain the intended change and ask the user to confirm in the chat. "
-                    "Never claim an action succeeded unless you observed the result.\n\n"
+                    "Never claim an action succeeded unless you observed the result.\\n\\n"
                     f"User task: {task}"
                 ),
                 llm=llm,
                 browser=browser,
             )
             result = await agent.run()
-            return {"ok": True, "result": str(result)[:7000]}
+            final_result = result.final_result() if callable(getattr(result, "final_result", None)) else str(result)
+            return {"ok": True, "result": str(final_result)[:7000]}
         except Exception as exc:
             raise HTTPException(status_code=500, detail=f"Agent error: {type(exc).__name__}: {exc}") from exc
-        finally:
-            if browser is not None:
-                try:
-                    await browser.stop()
-                except Exception:
-                    pass
 
 
 PAGE = r'''<!doctype html>
