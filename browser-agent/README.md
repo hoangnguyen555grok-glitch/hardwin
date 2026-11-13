@@ -34,7 +34,7 @@ The model runs on your computer. It is not a copy of the current ChatGPT convers
 
 ### Windows setup
 
-1. Install Python 3.11+.
+1. Install Python 3.11 or newer (64-bit). A local model such as Llama 3.1 8B needs about 8 GB of available RAM; the model download is roughly 4.9 GB.
 2. Install Ollama from https://ollama.com/ and make sure it is running.
 3. Run `setup_windows.bat`.
 4. Open `start_opera_debug.bat`. It launches a **separate Opera profile** with remote debugging on port 9222. This avoids exposing your everyday browser profile to the automation agent. Sign in to Geed Hardwin in this separate window.
