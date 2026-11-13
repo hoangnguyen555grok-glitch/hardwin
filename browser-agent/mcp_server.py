@@ -3,14 +3,14 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 from playwright.async_api import async_playwright
 
 APP_URL = os.getenv("GEED_APP_URL", "https://geed-hardwin.vercel.app/")
 APP_ORIGIN = "https://geed-hardwin.vercel.app"
 CDP_URL = os.getenv("GEED_CDP_URL", "http://127.0.0.1:9222")
 
-mcp = FastMCP("Geed Hardwin Control")
+mcp = MCPServer("Geed Hardwin Control")
 
 
 async def _call_editor_api(method: str, args: dict[str, Any] | None = None) -> Any:
