@@ -54,19 +54,42 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
 .center{min-height:0;overflow:hidden}
 .stagewrap{min-height:0;overflow:hidden;padding:12px}
 .canvasframe{width:min(100%,800px,max(1px,calc((100vh - 395px)*1.77778)));max-width:100%;max-height:100%}
+
+/* AI Bridge panel */
+.ai-bridge{position:fixed;z-index:10000;right:16px;top:68px;width:min(420px,calc(100vw - 32px));height:min(690px,calc(100vh - 88px));display:flex;flex-direction:column;background:#171d27;border:1px solid #42516a;border-radius:14px;box-shadow:0 24px 70px #000b;overflow:hidden}
+.ai-bridge[hidden]{display:none}
+.ai-bridge-head{display:flex;align-items:center;gap:12px;padding:13px 15px;background:#202a39;border-bottom:1px solid #35445a}
+.ai-bridge-mark{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,#6aa8ff,#8e79ff);color:#101827;font-size:19px;font-weight:900}
+.ai-bridge-heading{flex:1;min-width:0}.ai-bridge-heading strong{display:block;font-size:14px}.ai-bridge-heading small{color:#9eacc0;font-size:11px}
+.ai-bridge-status{display:flex;flex-wrap:wrap;gap:7px;padding:10px 14px;background:#141a23;border-bottom:1px solid #2e3949}
+.ai-bridge-chip{font-size:10px;padding:4px 7px;border-radius:999px;background:#1e3b34;color:#9be2c2;border:1px solid #315a4d}
+.ai-bridge-chip.pending{background:#43331c;color:#f2c78b;border-color:#6c512e}
+.ai-bridge-log{flex:1;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.ai-bridge-message{max-width:94%;padding:10px 12px;border-radius:11px;font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.ai-bridge-message.agent{align-self:flex-start;background:#242e3d;color:#dce7f5;border:1px solid #34445a}
+.ai-bridge-message.user{align-self:flex-end;background:#2b4770;color:#f4f8ff;border:1px solid #42699e}
+.ai-bridge-examples{padding:10px 12px;border-top:1px solid #2e3949;display:flex;flex-wrap:wrap;gap:6px}
+.ai-bridge-examples button{font-size:10px;padding:6px 8px}
+.ai-bridge-form{padding:11px 12px;display:flex;gap:7px;border-top:1px solid #2e3949;background:#141a23}
+.ai-bridge-form input{min-width:0;flex:1;border:1px solid #3a485a;border-radius:8px;background:#0f141c;color:#edf2f8;padding:10px 11px;outline:none}
+.ai-bridge-form input:focus{border-color:#709de7}
+.ai-bridge-foot{padding:0 13px 11px;color:#9da9b8;font-size:10px;line-height:1.45;background:#141a23}
+@media(max-width:700px){.ai-bridge{right:8px;top:64px;width:calc(100vw - 16px);height:calc(100vh - 76px)}}
+
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="brand"><img class="brandlogo" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRYHE1V2gwMtLSOzrCNG-C3zeWnRj-i1GtkR8pLxDeUJQ&amp;s=10" alt="Geed Hardwin brand image" referrerpolicy="no-referrer" onerror="this.style.display='none'" /><span>GEED HARDWIN</span></div>
-  <span class="topmeta">2D Animation Editor · v1.11</span>
+  <span class="topmeta">2D Animation Editor · v1.12</span>
   <div class="topspacer"></div>
-  <span class="status">Animation workspace · v1.11</span>
+  <span class="status">Animation workspace · v1.12</span>
   <button class="ghost" id="undoBtn" title="Undo (Ctrl+Z)">↶</button>
   <button class="ghost" id="redoBtn" title="Redo (Ctrl+Shift+Z)">↷</button>
   <button class="ghost" id="openProject">Open project</button>
   <button class="ghost" id="saveProject">Save project</button>
   <input id="projectInput" type="file" accept="application/json,.json" hidden />
+  <button class="ghost" id="aiBridgeOpen" title="Open AI control bridge">✦ AI Bridge</button>
   <button class="primary" id="exportVideo">Export video</button>
 </header>
 <div id="symbolEditBanner" hidden style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 16px;background:#1a2940;border-bottom:1px solid #365477;color:#eaf2ff;font-size:13px"><div><strong id="symbolEditTitle">Editing MovieClip</strong><span style="color:#a8bedc"> · Internal timeline · Local coordinates</span></div><div style="display:flex;align-items:center;gap:8px"><label for="symbolDurationInput" style="color:#c3d5eb">Length (frames)</label><input id="symbolDurationInput" type="number" min="2" max="2880" step="1" style="width:84px;background:#111d2c;color:#fff;border:1px solid #426184;border-radius:6px;padding:6px"><button id="exitSymbolEdit" class="primary">Done editing</button></div></div>
@@ -150,6 +173,34 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
     <div class="bottomline"><span id="timelineHint">Exposure Sheet: select cells · split, blank, hold or duplicate a cel</span><span id="keyframeCount">0 keyframes</span></div>
   </section>
 </div>
+
+<section id="aiBridgePanel" class="ai-bridge" aria-label="AI Bridge" hidden>
+  <div class="ai-bridge-head">
+    <div class="ai-bridge-mark">✦</div>
+    <div class="ai-bridge-heading"><strong>Geed Hardwin AI Bridge</strong><small>Application control interface · prototype</small></div>
+    <button id="aiBridgeClose" class="ghost" title="Close">✕</button>
+  </div>
+  <div class="ai-bridge-status">
+    <span class="ai-bridge-chip">Editor API ready</span>
+    <span class="ai-bridge-chip pending">AI model not connected</span>
+    <span class="ai-bridge-chip pending">ChatGPT MCP not paired</span>
+  </div>
+  <div id="aiBridgeLog" class="ai-bridge-log" aria-live="polite">
+    <div class="ai-bridge-message agent">Xin chào! Bảng này là bản thử nghiệm cầu nối điều khiển bên trong Geed Hardwin. Nó đã có thể gọi một số thao tác biên tập được giới hạn sẵn, nhưng chưa kết nối ChatGPT hay mô hình AI. Hãy thử: “Tạo hoạt cảnh hình tròn 10 giây”, “Phát”, “Dừng”, hoặc “Trạng thái”.</div>
+  </div>
+  <div class="ai-bridge-examples">
+    <button type="button" data-ai-cmd="Tạo hoạt cảnh hình tròn 10 giây">Tạo chuyển động 10 giây</button>
+    <button type="button" data-ai-cmd="Trạng thái">Kiểm tra dự án</button>
+    <button type="button" data-ai-cmd="Phát">Phát</button>
+    <button type="button" data-ai-cmd="Dừng">Dừng</button>
+  </div>
+  <form id="aiBridgeForm" class="ai-bridge-form">
+    <input id="aiBridgeInput" type="text" autocomplete="off" placeholder="Nhập lệnh thử bằng tiếng Việt…" aria-label="AI Bridge command" />
+    <button class="primary" type="submit">Gửi</button>
+  </form>
+  <div class="ai-bridge-foot">Bản hiện tại dùng bộ lệnh cục bộ cố định, chưa phải chatbot tạo sinh. Không có API key nào được lưu trong trang này. Kết nối mô hình và MCP sẽ được bổ sung qua cầu nối chạy trên máy của bạn.</div>
+</section>
+
 <div class="toast" id="toast"></div>
 <script>
 (() => {
@@ -675,6 +726,100 @@ const title=makeObject('text',{name:'Title',text:'My first animation',fontSize:7
 title.keys=[{frame:0,state:{x:W/2-170,y:H/2,scale:.8,rotation:-4,opacity:.2}},{frame:MAX,state:{x:W/2,y:H/2,scale:1,rotation:0,opacity:1}}];
 // The starter Accent circle has been removed; user-created circles remain available from the Circle tool.
 selectedId=title.id;renderAll();appReady=true;restoreAutosave();
+
+/* Controlled API for trusted local agents and the in-app bridge demo.
+   Keep this surface narrow: validate all input and never expose eval/code execution. */
+function bridgeStatus(){
+ const all=objects(),sel=selected();
+ return {
+  app:'Geed Hardwin',version:'v1.12',scene:scene()?.name||'Scene',sceneIndex,
+  fps:FPS,durationSeconds:DURATION,maxFrame:MAX,currentFrame:frame,playing,
+  layerCount:all.length,selected:sel?{id:sel.id,name:sel.name,type:sel.type}:null,
+  layers:all.map(o=>({id:o.id,name:o.name,type:o.type,visible:o.visible!==false,locked:!!o.locked})),
+  aiModelConnected:false,mcpConnected:false
+ };
+}
+function bridgeCreateCircle(args={}){
+ if(symbolEditId)throw new Error('Exit MovieClip edit mode before adding a stage object.');
+ const x=Math.max(40,Math.min(W-40,Number(args.x)||W/2));
+ const y=Math.max(40,Math.min(H-40,Number(args.y)||H/2));
+ const radius=Math.max(12,Math.min(220,Number(args.radius)||70));
+ const color=/^#[0-9a-f]{6}$/i.test(String(args.color||''))?String(args.color):'#4d8ff0';
+ const name=String(args.name||'AI Circle').slice(0,60);
+ const o=makeObject('circle',{name,x,y,width:radius*2,height:radius*2,color});
+ renderAll();
+ return {ok:true,created:{id:o.id,name:o.name,type:o.type,x:o.x,y:o.y,radius},status:bridgeStatus()};
+}
+function bridgeAnimateCircle(args={}){
+ if(symbolEditId)throw new Error('Exit MovieClip edit mode before creating a scene animation.');
+ const seconds=Math.max(1,Math.min(120,Number(args.durationSeconds)||10));
+ const fromX=Math.max(60,Math.min(W-60,Number(args.fromX)||220));
+ const toX=Math.max(60,Math.min(W-60,Number(args.toX)||1060));
+ const y=Math.max(60,Math.min(H-60,Number(args.y)||360));
+ const radius=Math.max(12,Math.min(180,Number(args.radius)||58));
+ const color=/^#[0-9a-f]{6}$/i.test(String(args.color||''))?String(args.color):'#4d8ff0';
+ pause();
+ setTimelineSettings(FPS,seconds);
+ const o=makeObject('circle',{name:String(args.name||'AI Motion Circle').slice(0,60),x:fromX,y,width:radius*2,height:radius*2,color,inFrame:0,outFrame:MAX});
+ const start={...baseState(o),x:fromX,y,rotation:0,scale:1,opacity:1};
+ const end={...start,x:toX,y,rotation:360};
+ o.keys=[{frame:0,state:start,easing:'easeInOut'},{frame:MAX,state:end,easing:'easeInOut'}];
+ o.inFrame=0;o.outFrame=MAX;
+ selectOne(o.id);setFrame(0);renderAll();
+ return {ok:true,message:'Created a circle animation with start/end keyframes.',durationSeconds:seconds,fps:FPS,totalFrames:MAX+1,objectId:o.id,start:{x:fromX,y},end:{x:toX,y},status:bridgeStatus()};
+}
+function bridgePlay(){if(!playing)$('playBtn').click();return {ok:true,playing:true}}
+function bridgeStop(){$('stopBtn').click();return {ok:true,playing:false,frame}}
+function bridgeExport(){if(symbolEditId)throw new Error('Exit MovieClip edit mode before exporting.');$('exportVideo').click();return {ok:true,message:'Export requested. The editor will show its export progress.'}}
+function bridgeSetFrame(value){setFrame(Math.max(0,Math.min(MAX,Math.round(Number(value)||0))));return {ok:true,frame,status:bridgeStatus()}}
+function bridgeDeleteSelected(){
+ const ids=new Set(selectedIds.length?selectedIds:(selectedId?[selectedId]:[]));
+ if(!ids.size)return {ok:false,message:'No layer selected.'};
+ removeObjectsByIds(ids);selectOne(null);renderAll();return {ok:true,deletedCount:ids.size,status:bridgeStatus()};
+}
+window["GeedHardwinBridge"] = Object.freeze({
+ getStatus:bridgeStatus,
+ listLayers:()=>bridgeStatus().layers,
+ createCircle:bridgeCreateCircle,
+ animateCircle:bridgeAnimateCircle,
+ play:bridgePlay,
+ stop:bridgeStop,
+ setFrame:bridgeSetFrame,
+ deleteSelected:bridgeDeleteSelected,
+ exportVideo:bridgeExport
+});
+function aiBridgeAppend(text,who='agent'){
+ const log=$('aiBridgeLog');if(!log)return;
+ const node=document.createElement('div');node.className='ai-bridge-message '+(who==='user'?'user':'agent');node.textContent=String(text);
+ log.appendChild(node);log.scrollTop=log.scrollHeight;
+}
+function aiBridgeCommand(raw){
+ const original=String(raw||'').trim();if(!original)return 'Nhập lệnh trước nhé.';
+ const cmd=original.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+ try{
+  if(/(trang thai|status|kiem tra|du an)/.test(cmd)){
+   const st=bridgeStatus();return 'Dự án: '+st.scene+' · '+st.layerCount+' layer · '+st.fps+' FPS · '+st.durationSeconds+' giây · frame '+st.currentFrame+'/'+st.maxFrame+'. '+(st.selected?'Đang chọn: '+st.selected.name:'Chưa chọn layer')+'.';
+  }
+  if(/(tao|lam|dung).*(tron|circle).*(hoat canh|chuyen dong|giay|seconds|\b10\b)/.test(cmd)){
+   const m=cmd.match(/(\d+(?:\.\d+)?)\s*(giay|s|seconds?)/);const duration=m?Number(m[1]):10;
+   const result=bridgeAnimateCircle({durationSeconds:duration});return 'Đã tạo hình tròn chuyển động '+result.durationSeconds+' giây. Hai keyframe ở frame 0 và '+result.totalFrames+'. Bạn có thể nhấn Play để xem.';
+  }
+  if(/(tao|them).*(hinh tron|tron|circle)/.test(cmd)){
+   const result=bridgeCreateCircle({});return 'Đã tạo hình tròn mới tại tâm sân khấu, layer '+result.created.name+'.';
+  }
+  if(/^(phat|play|bat dau)(\b|$)/.test(cmd)){bridgePlay();return 'Đã bắt đầu phát timeline.'}
+  if(/^(dung|stop|tam dung)(\b|$)/.test(cmd)){bridgeStop();return 'Đã dừng phát ở đầu timeline.'}
+  if(/(xuat video|export video)/.test(cmd)){bridgeExport();return 'Đã gửi lệnh xuất video. Hãy kiểm tra thông báo trong Geed Hardwin.'}
+  if(/(xoa|delete).*(dang chon|layer|doi tuong)/.test(cmd)){const r=bridgeDeleteSelected();return r.ok?'Đã xóa '+r.deletedCount+' layer đang chọn.':r.message}
+  if(/(hoan tac|undo)/.test(cmd)){$('undoBtn').click();return 'Đã gọi Hoàn tác.'}
+  return 'Mình chưa có bộ xử lý AI tự do trong bản thử này. Có thể thử: “Tạo hoạt cảnh hình tròn 10 giây”, “Tạo hình tròn”, “Trạng thái”, “Phát”, “Dừng”, “Xuất video”, hoặc “Xóa layer đang chọn”.';
+ }catch(err){return 'Không thực hiện được: '+(err?.message||String(err))}
+}
+$('aiBridgeOpen').onclick=()=>{$('aiBridgePanel').hidden=false;$('aiBridgeInput').focus()};
+$('aiBridgeClose').onclick=()=>$('aiBridgePanel').hidden=true;
+$('aiBridgeForm').onsubmit=e=>{e.preventDefault();const input=$('aiBridgeInput'),value=input.value.trim();if(!value)return;aiBridgeAppend(value,'user');input.value='';const result=aiBridgeCommand(value);aiBridgeAppend(result,'agent')};
+document.querySelectorAll('[data-ai-cmd]').forEach(button=>button.addEventListener('click',()=>{const value=button.dataset.aiCmd;aiBridgeAppend(value,'user');aiBridgeAppend(aiBridgeCommand(value),'agent')}));
+
 })();
 </script>
 </body>
