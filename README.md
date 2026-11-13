@@ -77,3 +77,8 @@ Repository công khai để theo dõi tiến độ. Chưa gắn giấy phép mã
 ## Cập nhật v1.10
 
 - **Polygon & Star vector tools (v1.10):** vẽ trực tiếp trên Stage bằng thao tác kéo để tạo lục giác và ngôi sao 5 cánh dạng vector path khép kín, có fill/stroke, chỉnh sửa được bằng Edit path points và hỗ trợ keyframe/morph theo nền tảng path hiện có.
+
+
+## AI và điều khiển trình duyệt
+
+Bản AI Bridge nằm trong Geed Hardwin v1.12. Bộ công cụ cục bộ cho hai hướng kết nối (MCP để ghép với trợ lý ChatGPT sau khi có endpoint được bảo vệ; chatbot riêng dùng Browser Use + Ollama để thao tác Opera qua CDP) được ghi tại [browser-agent/README.md](browser-agent/README.md). Đây mới là bộ khung thử nghiệm; README nêu rõ các bước chạy, yêu cầu và những phần chưa được kết nối/xác minh.
