@@ -1,6 +1,6 @@
 # Geed Hardwin — 2D Animation Studio
 
-**Editor v1.12** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
+**Editor v1.13** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
 
 ## Công cụ hiện có
 
@@ -36,7 +36,7 @@
 - Track âm thanh theo cảnh, chỉnh điểm bắt đầu; keyframe âm lượng để tạo fade-in/fade-out.
 - Undo/Redo, phím tắt và tự lưu trong trình duyệt.
 - Save project / Open project bằng JSON; ảnh, âm thanh, camera keyframes và Symbol Library được lưu trong dự án.
-- Xuất MP4 khi MediaRecorder của trình duyệt hỗ trợ; tự chọn WebM nếu MP4 không được hỗ trợ.
+- Xuất MP4 khi MediaRecorder của trình duyệt hỗ trợ; tự chọn WebM nếu MP4 không được hỗ trợ. Xuất PNG sequence nền trong suốt thành ZIP cho toàn bộ cảnh, kèm manifest FPS/kích thước; giới hạn 2.400 frame và 512 MB để bảo vệ bộ nhớ trình duyệt. Video và PNG dùng chế độ render sạch, không kèm lưới, đường safe-area, onion skin hay tay nắm chọn.
 
 ## Phím tắt
 
@@ -57,7 +57,7 @@ Geed Hardwin v1.9 đã có nhiều công cụ cốt lõi nhưng chưa phải b�
 - Mask alpha/luma, mask lồng nhau và clipping groups nâng cao.
 - Layer Parenting + Pivot Editor đã có nền tảng phân cấp cho rig; vẫn còn thiếu Bone Rigging, IK solver, deform/skin weights và lip-sync.
 - Camera keyframe hiện điều khiển pan/zoom/rotation cơ bản; chưa có nhiều camera, lens/focus hay parallax theo layer.
-- Xuất PNG sequence/GIF chuyên nghiệp, quản lý codec và preset render.
+- GIF và preset render nâng cao; PNG sequence ZIP đã có ở v1.13 nhưng vẫn cần kiểm thử tương tác trên nhiều trình duyệt và tối ưu luồng xuất cho dự án rất dài.
 - Đồng bộ dự án cloud, cộng tác và quản lý font/tài nguyên nâng cao.
 
 ## Lưu ý
@@ -82,3 +82,10 @@ Repository công khai để theo dõi tiến độ. Chưa gắn giấy phép mã
 ## AI và điều khiển trình duyệt
 
 Bản AI Bridge nằm trong Geed Hardwin v1.12. Bộ công cụ cục bộ cho hai hướng kết nối (MCP để ghép với trợ lý ChatGPT sau khi có endpoint được bảo vệ; chatbot riêng dùng Browser Use + Ollama để thao tác Opera qua CDP) được ghi tại [browser-agent/README.md](browser-agent/README.md). Đây mới là bộ khung thử nghiệm; README nêu rõ các bước chạy, yêu cầu và những phần chưa được kết nối/xác minh.
+
+
+## Cập nhật v1.13
+
+- **Clean Export:** video render không còn đưa lưới căn chỉnh, đường safe-area, onion skin, đường motion guide hoặc tay nắm chọn vào hình xuất.
+- **Transparent PNG Sequence:** xuất mọi frame của mọi cảnh thành ZIP; mỗi cảnh có thư mục riêng, tên frame tuần tự và file `manifest.json` chứa FPS, kích thước, thời lượng và tên cảnh.
+- Giới hạn an toàn 2.400 frame / 512 MB mỗi lần xuất; cần kiểm thử thực tế trên trình duyệt để xác nhận thời gian và mức sử dụng bộ nhớ ở các dự án lớn.
