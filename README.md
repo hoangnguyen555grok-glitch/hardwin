@@ -1,6 +1,6 @@
 # Geed Hardwin — 2D Animation Studio
 
-**Editor v1.14** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
+**Editor v1.15** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
 
 ## Công cụ hiện có
 
@@ -13,6 +13,7 @@
 - Select, Rectangle, Circle, Text, Image, Pencil, Line và Audio.
 - Nhập ảnh và âm thanh từ máy tính.
 - Layer: chọn, kéo, ẩn/hiện, khóa/mở khóa, nhân bản, xóa, căn giữa và sắp xếp trước/sau.
+- Bone Rigging + two-bone IK v1.15: tạo xương gốc bằng kéo trên sân khấu; chọn xương rồi kéo từ đầu xương để tạo xương con có liên kết parent; dùng IK Move và kéo đầu chuỗi để giải nghịch động học cho chuỗi hai xương; có thể gắn layer hình vào xương bằng Parent. Xương chỉ là điều khiển trong editor và không xuất hiện trong video/PNG. Đây là cut-out rig cơ bản, chưa có mesh deformation, skin weights hoặc IK nhiều khớp.
 - Layer Parenting + Pivot Editor v1.9: gắn layer con vào layer cha; vị trí, xoay và tỷ lệ của cha được kế thừa theo thời gian; đổi cha giữ tư thế và keyframe mẫu; chỉnh pivot X/Y và giữ hình không nhảy khi đổi pivot; kéo/chọn và chỉnh điểm vector hiểu hệ tọa độ cha-con. Khi xóa cha, các layer con được chuyển lên cấp cha tiếp theo để bảo toàn vị trí. Khi đóng gói nhiều layer đã gắn cha-con thành MovieClip, hệ thống giữ cây phân cấp và quy đổi các layer gốc về tâm Symbol.
 - Stage Transform Handles v1.9: kéo nút góc dưới-phải để thay đổi kích thước trực tiếp trên sân khấu; kéo nút phía trên để xoay layer quanh pivot hiện tại; thao tác tạo/cập nhật keyframe tại frame đang chọn và hỗ trợ layer có parent.
 - Chọn nhiều layer bằng Ctrl-click; nhóm, di chuyển cùng nhau, tách nhóm và xóa cả nhóm.
@@ -55,7 +56,8 @@ Geed Hardwin v1.9 đã có nhiều công cụ cốt lõi nhưng chưa phải b�
 - Shape Tween tương đương Adobe với shape hints/topology correspondence vẫn chưa có; Vector Path Morph hiện nội suy đường tự do bằng lấy mẫu lại, chưa morph trực tiếp mọi loại primitive.
 - Symbol/MovieClip hiện có timeline nội bộ, nested playback, chỉnh sửa tại chỗ và Frame Picker; vẫn cần nâng cấp thư viện symbol chuyên sâu, tween lồng nhau, swap sets/trigger nâng cao và quản lý asset.
 - Mask alpha/luma, mask lồng nhau và clipping groups nâng cao.
-- Layer Parenting + Pivot Editor đã có nền tảng phân cấp cho rig; vẫn còn thiếu Bone Rigging, IK solver, deform/skin weights và lip-sync.
+- Bone Rigging + IK hai xương đã có; vẫn còn thiếu mesh deformation, skin weights, IK nhiều khớp, constraints và công cụ rig tự động.
+- Layer Parenting + Pivot Editor đã có nền tảng phân cấp; vẫn cần thêm công cụ rig chuyên sâu.
 - Camera keyframe hiện điều khiển pan/zoom/rotation cơ bản; chưa có nhiều camera, lens/focus hay parallax theo layer.
 - GIF và preset render nâng cao; PNG sequence ZIP đã có ở v1.13 nhưng vẫn cần kiểm thử tương tác trên nhiều trình duyệt và tối ưu luồng xuất cho dự án rất dài.
 - Đồng bộ dự án cloud, cộng tác và quản lý font/tài nguyên nâng cao.
@@ -95,3 +97,11 @@ Bản AI Bridge nằm trong Geed Hardwin v1.12. Bộ công cụ cục bộ cho h
 
 - **Exposure Sheet Range Editing:** Shift-click để chọn đoạn frame liên tục trong cùng một layer; Copy range ghi nhận trạng thái từng frame; Paste range tạo layer/cel mới tại frame hiện tại, giữ ảnh và dữ liệu symbol, đồng thời không ghi đè bản nguồn.
 - Dải copy phải nằm trong vùng exposure đang hiển thị của layer; bản dán phải nằm trọn trong timeline hiện tại.
+
+
+## Cập nhật v1.15
+
+- **Bone Rigging:** tạo xương gốc và các xương con liên kết theo parent hierarchy; layer hình có thể được gắn vào xương để tạo cut-out character rig.
+- **Two-bone IK:** kéo đầu xương cuối để giải vị trí khớp khuỷu theo độ dài hai xương; mục tiêu ngoài tầm với được giới hạn ở khoảng với tối đa/tối thiểu.
+- Xương là control layer, không hiển thị trong video hoặc PNG render.
+- Chưa có skin weights, mesh deformation, solver nhiều khớp hay constraints nâng cao.
