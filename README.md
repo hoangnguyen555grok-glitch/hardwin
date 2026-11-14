@@ -1,6 +1,6 @@
 # Geed Hardwin — 2D Animation Studio
 
-**Editor v1.15** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
+**Editor v1.16** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
 
 ## Công cụ hiện có
 
@@ -105,3 +105,10 @@ Bản AI Bridge nằm trong Geed Hardwin v1.12. Bộ công cụ cục bộ cho h
 - **Two-bone IK:** kéo đầu xương cuối để giải vị trí khớp khuỷu theo độ dài hai xương; mục tiêu ngoài tầm với được giới hạn ở khoảng với tối đa/tối thiểu.
 - Xương là control layer, không hiển thị trong video hoặc PNG render.
 - Chưa có skin weights, mesh deformation, solver nhiều khớp hay constraints nâng cao.
+
+
+## Cập nhật v1.16
+
+- **Pen Tool:** tạo vector path bằng các anchor point; kéo chuột khi đặt anchor để sinh cặp tay nắm Bézier đối xứng; click anchor đầu để đóng path hoặc double-click để kết thúc path mở.
+- Path sử dụng cubic Bézier khi có handle; Edit path points hiển thị các tay nắm và cho phép kéo anchor. Handle offsets được giữ và nội suy qua keyframe.
+- Schema project v19.
