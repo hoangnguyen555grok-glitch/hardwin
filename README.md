@@ -1,6 +1,6 @@
 # Geed Hardwin — 2D Animation Studio
 
-**Editor v1.16** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
+**Editor v1.17** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
 
 ## Công cụ hiện có
 
@@ -112,3 +112,9 @@ Bản AI Bridge nằm trong Geed Hardwin v1.12. Bộ công cụ cục bộ cho h
 - **Pen Tool:** tạo vector path bằng các anchor point; kéo chuột khi đặt anchor để sinh cặp tay nắm Bézier đối xứng; click anchor đầu để đóng path hoặc double-click để kết thúc path mở.
 - Path sử dụng cubic Bézier khi có handle; Edit path points hiển thị các tay nắm và cho phép kéo anchor. Handle offsets được giữ và nội suy qua keyframe.
 - Schema project v19.
+
+
+## Cập nhật v1.17
+
+- **Layer Camera Parallax:** mỗi layer gốc có hệ số Parallax Depth từ 0 đến 2; 0 giữ layer gần cố định trên màn hình, 1 theo camera bình thường, lớn hơn 1 tạo chuyển động nhanh hơn camera. Giá trị có thể keyframe và được áp dụng cả khi preview lẫn render/export. Layer con kế thừa chuyển động từ parent để tránh lệch rig.
+- Project schema v20.
