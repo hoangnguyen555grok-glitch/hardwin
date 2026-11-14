@@ -1,6 +1,6 @@
 # Geed Hardwin — 2D Animation Studio
 
-**Editor v1.13** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
+**Editor v1.14** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
 
 ## Công cụ hiện có
 
@@ -20,7 +20,7 @@
 - Graphic Symbol Frame Picker: chọn frame nội bộ của Symbol tại một frame trên timeline chính, tạo keyframe riêng để đổi hình miệng, mắt, tay hoặc tư thế; các Frame Picker keys có marker riêng trên timeline và được lưu trong project.
 - Swap Symbol / Symbol Variants v1.9: thay Graphic Symbol của một instance mà vẫn giữ vị trí, tỷ lệ, góc xoay và các keyframe trên timeline; nhân bản định nghĩa Symbol thành một biến thể độc lập để tạo phiên bản nhân vật/biểu cảm mà không sửa bản gốc.
 - Mask layer: chọn nhiều layer, dùng Rectangle/Circle/Pencil path làm mask cho các layer khác; có thể gỡ liên kết mask.
-- Exposure Sheet / Cel Animation cơ bản: bảng ô hình theo từng layer, xem 48 frame mỗi trang; Insert Keyframe để tách exposure và tạo cel tiếp nối; Blank Keyframe để kết thúc exposure tại đầu phát; Hold +1 để kéo dài hình; Duplicate Cel để sao chép cel sang frame kế tiếp. Các thao tác được lưu trong project và hỗ trợ Undo/Redo.
+- Exposure Sheet / Cel Animation: bảng ô hình theo từng layer, xem 48 frame mỗi trang; Insert Keyframe, Blank Keyframe, Hold +1, Duplicate Cel; Shift-click chọn dải frame liên tục trên cùng layer; Copy range / Paste range tạo bản layer mới, giữ trạng thái từng frame và không ghi đè cel nguồn. Các thao tác được lưu trong project và hỗ trợ Undo/Redo.
 - Chế độ Frame-by-frame: vẽ tại frame hiện tại; đối tượng mới được phơi sáng đúng một frame; có nút đi từng frame và Duplicate artwork → next frame để sao chép toàn bộ artwork đang hiện sang frame kế tiếp, giữ liên kết nhóm/mask và dữ liệu ảnh.
 - Path point editor: kéo các điểm vector trực tiếp trên sân khấu.
 - Vector Path Morph: nội suy các đường vector ở hai keyframe kể cả khi số điểm khác nhau; đường được lấy mẫu lại tối đa 96 điểm. Có thể đóng/mở path và tô màu vùng khép kín.
@@ -51,7 +51,7 @@
 
 Geed Hardwin v1.9 đã có nhiều công cụ cốt lõi nhưng chưa phải bản thay thế đầy đủ Adobe Animate hoặc Alight Motion. Các hạng mục lớn còn thiếu hoặc chưa đạt mức chuyên nghiệp gồm:
 
-- Exposure Sheet v1.5 đã có ô hình, blank/hold/split/duplicate cel; vẫn cần hoàn thiện kéo chọn dải frame, copy/paste range, drawing layers chuyên dụng, onion skin màu theo phạm vi và thao tác nhiều frame cùng lúc.
+- Exposure Sheet đã có chọn/copy/paste dải frame trên một layer; vẫn cần drawing layers chuyên dụng, onion skin màu theo phạm vi, thao tác nhiều layer/dải cùng lúc và kéo giãn exposure bằng chuột.
 - Shape Tween tương đương Adobe với shape hints/topology correspondence vẫn chưa có; Vector Path Morph hiện nội suy đường tự do bằng lấy mẫu lại, chưa morph trực tiếp mọi loại primitive.
 - Symbol/MovieClip hiện có timeline nội bộ, nested playback, chỉnh sửa tại chỗ và Frame Picker; vẫn cần nâng cấp thư viện symbol chuyên sâu, tween lồng nhau, swap sets/trigger nâng cao và quản lý asset.
 - Mask alpha/luma, mask lồng nhau và clipping groups nâng cao.
@@ -89,3 +89,9 @@ Bản AI Bridge nằm trong Geed Hardwin v1.12. Bộ công cụ cục bộ cho h
 - **Clean Export:** video render không còn đưa lưới căn chỉnh, đường safe-area, onion skin, đường motion guide hoặc tay nắm chọn vào hình xuất.
 - **Transparent PNG Sequence:** xuất mọi frame của mọi cảnh thành ZIP; mỗi cảnh có thư mục riêng, tên frame tuần tự và file `manifest.json` chứa FPS, kích thước, thời lượng và tên cảnh.
 - Giới hạn an toàn 2.400 frame / 512 MB mỗi lần xuất; cần kiểm thử thực tế trên trình duyệt để xác nhận thời gian và mức sử dụng bộ nhớ ở các dự án lớn.
+
+
+## Cập nhật v1.14
+
+- **Exposure Sheet Range Editing:** Shift-click để chọn đoạn frame liên tục trong cùng một layer; Copy range ghi nhận trạng thái từng frame; Paste range tạo layer/cel mới tại frame hiện tại, giữ ảnh và dữ liệu symbol, đồng thời không ghi đè bản nguồn.
+- Dải copy phải nằm trong vùng exposure đang hiển thị của layer; bản dán phải nằm trọn trong timeline hiện tại.
