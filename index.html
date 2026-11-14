@@ -372,7 +372,7 @@ function drawObject(o,f=frame,editing=true,ghostAlpha=1,stateOverride=null,depth
  ctx.restore();
 }
 function drawParallaxLayer(o,f,editing,alpha,stateOverride,siblings){
- const factor=Math.max(0,Math.min(2,Number(o.parallax??1)));
+ const factor=Math.max(0,Math.min(2,Number(stateAt(o,f).parallax??o.parallax??1)));
  if(!symbolEditId&&!o.parentId&&Math.abs(factor-1)>1e-6){
   const camera=cameraAt(f),rad=camera.rotation*Math.PI/180,dx=camera.x*(factor-1),dy=camera.y*(factor-1),z=Math.max(.1,camera.zoom);
   const x=(dx*Math.cos(rad)-dy*Math.sin(rad))/z,y=(dx*Math.sin(rad)+dy*Math.cos(rad))/z;
