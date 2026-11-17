@@ -1,6 +1,6 @@
 # Geed Hardwin — 2D Animation Studio
 
-**Editor v1.17** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
+**Editor v1.18** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
 
 ## Công cụ hiện có
 
@@ -118,3 +118,8 @@ Bản AI Bridge nằm trong Geed Hardwin v1.12. Bộ công cụ cục bộ cho h
 
 - **Layer Camera Parallax:** mỗi layer gốc có hệ số Parallax Depth từ 0 đến 2; 0 giữ layer gần cố định trên màn hình, 1 theo camera bình thường, lớn hơn 1 tạo chuyển động nhanh hơn camera. Giá trị có thể keyframe và được áp dụng cả khi preview lẫn render/export. Layer con kế thừa chuyển động từ parent để tránh lệch rig.
 - Project schema v20.
+
+
+## Cập nhật v1.18
+
+- **Playback Loop Toggle:** nút Loop On/Off trên timeline. Loop On tiếp tục phát từ đầu sau frame cuối; Loop Off dừng chính xác tại frame cuối và giữ playhead ở đó. Thiết lập chỉ điều khiển phát lại, không thêm dữ liệu vào project.
