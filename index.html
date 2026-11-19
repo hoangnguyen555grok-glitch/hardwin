@@ -81,9 +81,9 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
 <body>
 <header class="topbar">
   <div class="brand"><img class="brandlogo" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRYHE1V2gwMtLSOzrCNG-C3zeWnRj-i1GtkR8pLxDeUJQ&amp;s=10" alt="Geed Hardwin brand image" referrerpolicy="no-referrer" onerror="this.style.display='none'" /><span>GEED HARDWIN</span></div>
-  <span class="topmeta">2D Animation Editor · v1.16</span>
+  <span class="topmeta">2D Animation Editor · v1.19</span>
   <div class="topspacer"></div>
-  <span class="status">Animation workspace · v1.16</span>
+  <span class="status">Animation workspace · v1.19</span>
   <button class="ghost" id="undoBtn" title="Undo (Ctrl+Z)">↶</button>
   <button class="ghost" id="redoBtn" title="Redo (Ctrl+Shift+Z)">↷</button>
   <button class="ghost" id="openProject">Open project</button>
@@ -895,7 +895,7 @@ selectedId=title.id;renderAll();appReady=true;restoreAutosave();
 function bridgeStatus(){
  const all=objects(),sel=selected();
  return {
-  app:'Geed Hardwin',version:'v1.16',scene:scene()?.name||'Scene',sceneIndex,
+  app:'Geed Hardwin',version:'v1.19',scene:scene()?.name||'Scene',sceneIndex,
   fps:FPS,durationSeconds:DURATION,maxFrame:MAX,currentFrame:frame,playing,
   layerCount:all.length,selected:sel?{id:sel.id,name:sel.name,type:sel.type}:null,
   layers:all.map(o=>({id:o.id,name:o.name,type:o.type,visible:o.visible!==false,locked:!!o.locked})),
