@@ -389,7 +389,7 @@ function draw(exportMode=false,transparent=false){
  if(symbolEditId){ctx.save();ctx.translate(W/2,H/2)}else{const camera=cameraAt(frame);ctx.save();ctx.translate(W/2+camera.x,H/2+camera.y);ctx.rotate(-camera.rotation*Math.PI/180);ctx.scale(camera.zoom,camera.zoom);ctx.translate(-W/2,-H/2)}
  const layerRoots=rootObjects(objects());
  if(!exportMode&&onionSkin){
-  const roots=onionSelectedOnly?layerRoots.filter(o=>selectedIds.includes(o.id)||o.id===selectedId):layerRoots;
+  const selectedRoots=new Set();if(onionSelectedOnly)selectedObjects().forEach(item=>{let root=item,guard=0;while(root.parentId&&guard++<20){const parent=objects().find(x=>x.id===root.parentId);if(!parent)break;root=parent}selectedRoots.add(root.id)});const roots=onionSelectedOnly?layerRoots.filter(o=>selectedRoots.has(o.id)):layerRoots;
   for(let d=onionPrevCount;d>=1;d--){const f=frame-d;if(f<0)continue;ctx.save();ctx.filter='hue-rotate(185deg) saturate(1.65)';roots.forEach(o=>drawParallaxLayer(o,f,false,onionPrevOpacity/Math.pow(d,.72),null,objects()));ctx.restore()}
   for(let d=1;d<=onionNextCount;d++){const f=frame+d;if(f>MAX)continue;ctx.save();ctx.filter='hue-rotate(320deg) saturate(1.65)';roots.forEach(o=>drawParallaxLayer(o,f,false,onionNextOpacity/Math.pow(d,.72),null,objects()));ctx.restore()}
  }
