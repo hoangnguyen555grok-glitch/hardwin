@@ -52,7 +52,7 @@
 
 Geed Hardwin v1.9 đã có nhiều công cụ cốt lõi nhưng chưa phải bản thay thế đầy đủ Adobe Animate hoặc Alight Motion. Các hạng mục lớn còn thiếu hoặc chưa đạt mức chuyên nghiệp gồm:
 
-- Exposure Sheet đã có chọn/copy/paste dải frame trên một layer; vẫn cần drawing layers chuyên dụng, onion skin màu theo phạm vi, thao tác nhiều layer/dải cùng lúc và kéo giãn exposure bằng chuột.
+- Exposure Sheet đã có chọn/copy/paste dải frame nhiều layer, kéo mép cel để đổi thời lượng và Advanced Onion Skin với số frame/opacity/màu trước-sau; vẫn cần drawing layers chuyên dụng và thao tác biên tập cel hàng loạt chuyên sâu hơn.
 - Shape Tween tương đương Adobe với shape hints/topology correspondence vẫn chưa có; Vector Path Morph hiện nội suy đường tự do bằng lấy mẫu lại, chưa morph trực tiếp mọi loại primitive.
 - Symbol/MovieClip hiện có timeline nội bộ, nested playback, chỉnh sửa tại chỗ và Frame Picker; vẫn cần nâng cấp thư viện symbol chuyên sâu, tween lồng nhau, swap sets/trigger nâng cao và quản lý asset.
 - Mask alpha/luma, mask lồng nhau và clipping groups nâng cao.
