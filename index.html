@@ -520,24 +520,37 @@ function duplicateSelectedCel(){
  objects().push(...copies);selectedIds=copies.map(o=>o.id);selectedId=selectedIds[selectedIds.length-1]||null;setFrame(frame+1);renderAll();toast(copies.length+' cel(s) duplicated to frame '+(frame+1));
 }
 function copyExposureRange(){
- const range=exposureRange;if(!range){toast('Shift-click a cel to select a frame range first');return}
- const source=objects().find(o=>o.id===range.id);
- if(!source||source.type==='audio'){toast('Select a visual layer range to copy');return}
- const start=Math.min(range.start,range.end),end=Math.max(range.start,range.end);
- if(start<(source.inFrame??0)||end>(source.outFrame??MAX)){toast('The selected range must stay inside the visible exposure');return}
- const states=[];for(let f=start;f<=end;f++)states.push({offset:f-start,state:stateAt(source,f),easing:easingAt(source,f)});
- exposureRangeClipboard={object:JSON.parse(JSON.stringify({...source,img:undefined})),duration:end-start+1,states,sourceStart:start};
- $('pasteExposureRange').disabled=false;toast('Copied '+states.length+' frame(s) from '+source.name);
+ const ranges=exposureRange?.items||(exposureRange?.id?[exposureRange]:[]);
+ if(!ranges.length){toast('Shift-click cells across layers to select a multi-layer range');return}
+ const items=[];
+ for(const range of ranges){
+  const source=objects().find(o=>o.id===range.id);if(!source||source.type==='audio')continue;
+  const start=Math.min(range.start,range.end),end=Math.max(range.start,range.end);
+  if(start<(source.inFrame??0)||end>(source.outFrame??MAX)){toast('Every selected range must stay inside its layer exposure');return}
+  const states=[];for(let f=start;f<=end;f++)states.push({offset:f-start,state:stateAt(source,f),easing:easingAt(source,f)});
+  items.push({object:JSON.parse(JSON.stringify({...source,img:undefined})),duration:end-start+1,states,sourceStart:start});
+ }
+ if(!items.length){toast('No visual layer ranges selected');return}
+ exposureRangeClipboard={items,duration:Math.max(...items.map(x=>x.duration))};
+ $('pasteExposureRange').disabled=frame+exposureRangeClipboard.duration-1>MAX;
+ toast('Copied '+items.length+' layer range(s)');
 }
 function pasteExposureRange(){
- const clip=exposureRangeClipboard;if(!clip){toast('Copy a frame range first');return}
- const target=frame;if(target+clip.duration-1>MAX){toast('The copied range does not fit before the end of this timeline');return}
- const clone=JSON.parse(JSON.stringify(clip.object));clone.id=uid();clone.name=(clip.object.name||'Layer')+' · pasted range';clone.inFrame=target;clone.outFrame=target+clip.duration-1;clone.keys=clip.states.map(item=>({frame:target+item.offset,state:JSON.parse(JSON.stringify(item.state)),easing:item.easing||'linear'}));clone.img=null;clone.locked=false;clone.groupId=null;
- if(clone.parentId&&!objects().some(o=>o.id===clone.parentId))clone.parentId=null;
- if(clone.maskId&&!objects().some(o=>o.id===clone.maskId&&o.isMask))clone.maskId=null;
- if(Array.isArray(clone.framePickerKeys))clone.framePickerKeys=clone.framePickerKeys.filter(k=>k.frame>=clip.sourceStart&&k.frame<clip.sourceStart+clip.duration).map(k=>({...k,frame:target+(k.frame-clip.sourceStart)}));
- if(clone.type==='image'&&clone.dataUrl){const im=new Image();im.onload=()=>draw();im.src=clone.dataUrl;clone.img=im}
- objects().push(clone);exposureAnchor={id:clone.id,frame:target};exposureRange={id:clone.id,start:target,end:target+clip.duration-1};selectOne(clone.id);renderAll();toast('Pasted '+clip.duration+' frame(s) at frame '+(target+1));
+ const clip=exposureRangeClipboard;if(!clip?.items?.length){toast('Copy one or more layer ranges first');return}
+ const target=frame;if(target+clip.duration-1>MAX){toast('The copied ranges do not fit before the end of this timeline');return}
+ const clones=[];
+ for(const item of clip.items){
+  const clone=JSON.parse(JSON.stringify(item.object));clone.id=uid();clone.name=(item.object.name||'Layer')+' · pasted range';clone.inFrame=target;clone.outFrame=target+item.duration-1;
+  clone.keys=item.states.map(v=>({frame:target+v.offset,state:JSON.parse(JSON.stringify(v.state)),easing:v.easing||'linear'}));clone.img=null;clone.locked=false;clone.groupId=null;
+  if(clone.parentId&&!objects().some(o=>o.id===clone.parentId))clone.parentId=null;
+  if(clone.maskId&&!objects().some(o=>o.id===clone.maskId&&o.isMask))clone.maskId=null;
+  if(Array.isArray(clone.framePickerKeys))clone.framePickerKeys=clone.framePickerKeys.filter(k=>k.frame>=item.sourceStart&&k.frame<item.sourceStart+item.duration).map(k=>({...k,frame:target+(k.frame-item.sourceStart)}));
+  if(clone.type==='image'&&clone.dataUrl){const im=new Image();im.onload=()=>draw();im.src=clone.dataUrl;clone.img=im}
+  clones.push(clone);
+ }
+ objects().push(...clones);selectedIds=clones.map(o=>o.id);selectedId=clones[0]?.id||null;
+ exposureAnchor={id:clones[0]?.id,frame:target};exposureRange={items:clones.map(o=>({id:o.id,start:target,end:o.outFrame}))};
+ renderAll();toast('Pasted '+clones.length+' layer range(s) at frame '+(target+1));
 }
 function renderExposureSheet(){
  const panel=$('exposureSheet');if(!panel)return;
@@ -559,11 +572,20 @@ function renderExposureSheet(){
   const name=document.createElement('div');name.className='exposure-grid-label'+(selectedIds.includes(o.id)?' active':'');name.textContent=o.name;name.title=o.name;name.onclick=()=>{selectOne(o.id);renderAll()};grid.appendChild(name);
   for(let f=start;f<=end;f++){
    const active=f>=(o.inFrame??0)&&f<=(o.outFrame??MAX),key=(o.keys||[]).some(k=>k.frame===f),isStart=f===(o.inFrame??0);
-   const inRange=!!(exposureRange&&exposureRange.id===o.id&&f>=Math.min(exposureRange.start,exposureRange.end)&&f<=Math.max(exposureRange.start,exposureRange.end));
+   const ranges=exposureRange?.items||(exposureRange?.id?[exposureRange]:[]);const inRange=ranges.some(r=>r.id===o.id&&f>=Math.min(r.start,r.end)&&f<=Math.max(r.start,r.end));
    const cell=document.createElement('button');cell.className='exposure-cell'+(active?' filled':' blank')+(active&&isStart?' cel':'')+(key?' key':'')+(f===frame?' current':'')+(inRange?' range-selected':'')+(o.type==='audio'?' audio':'');
    cell.textContent=active?(key?'◆':isStart?'●':''):'';
    cell.title='Frame '+(f+1)+' · '+(active?(key?'Keyframe':isStart?'Cel start':'Held exposure'):'Blank');
-   cell.onclick=e=>{if(e.shiftKey&&exposureAnchor&&exposureAnchor.id===o.id){exposureRange={id:o.id,start:Math.min(exposureAnchor.frame,f),end:Math.max(exposureAnchor.frame,f)}}else{exposureAnchor={id:o.id,frame:f};exposureRange={id:o.id,start:f,end:f}}selectOne(o.id);setFrame(f);renderAll()};
+   cell.onclick=e=>{if(e.shiftKey&&exposureAnchor){
+ const ai=rows.findIndex(x=>x.id===exposureAnchor.id),bi=rows.findIndex(x=>x.id===o.id);
+ if(ai>=0&&bi>=0){
+  const lo=Math.min(ai,bi),hi=Math.max(ai,bi),fs=Math.min(exposureAnchor.frame,f),fe=Math.max(exposureAnchor.frame,f);
+  const chosen=rows.slice(lo,hi+1).filter(x=>x.type!=='audio'&&fs>=(x.inFrame??0)&&fe<=(x.outFrame??MAX));
+  exposureRange={items:chosen.map(x=>({id:x.id,start:fs,end:fe}))};selectedIds=chosen.map(x=>x.id);selectedId=o.id;
+  if(!chosen.length)toast('Frame range must fit every selected layer');
+ }else exposureRange={items:[{id:o.id,start:f,end:f}]};
+}else{exposureAnchor={id:o.id,frame:f};exposureRange={items:[{id:o.id,start:f,end:f}]};selectOne(o.id)}
+setFrame(f);renderAll()};
    grid.appendChild(cell);
   }
  });
