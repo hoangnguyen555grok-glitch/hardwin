@@ -856,6 +856,8 @@ function applyProject(data){
  audioPlayers.forEach(a=>{a.pause();a.src=''});audioPlayers.clear();
  FPS=[12,24,30,60].includes(Number(data.fps))?Number(data.fps):24;DURATION=Math.max(1,Math.min(120,Number(data.duration)||5));MAX=FPS*DURATION;
  scenes=data.scenes.map(sc=>({...sc,workArea:normalizeWorkArea(sc.workArea,MAX),camera:{...defaultCamera(),...(sc.camera||{}),keys:Array.isArray(sc.camera?.keys)?sc.camera.keys:[]},objects:(sc.objects||[]).map(o=>({...o,img:null,parentId:o.parentId||null,pivotX:Number(o.pivotX)||0,pivotY:Number(o.pivotY)||0,inFrame:Number.isFinite(o.inFrame)?o.inFrame:0,outFrame:Number.isFinite(o.outFrame)?o.outFrame:MAX,keys:Array.isArray(o.keys)?o.keys.map(k=>({...k,state:{...baseState(o),...(k.state||{})},easing:k.easing||o.easing||'linear'})):[]}))}));
+ for(const sc of scenes)reconcileMaskFlags(sc.objects);
+ for(const def of symbolLibrary)reconcileMaskFlags(def.objects||[]);
  sceneIndex=Math.max(0,Math.min(scenes.length-1,Number(data.sceneIndex)||0));
  if(symbolEditId){const def=activeSymbol();MAX=Math.max(1,Number(def.duration)||FPS)-1}
  $('fpsSelect').value=String(FPS);$('durationInput').value=String(DURATION);$('frameRange').max=MAX;
