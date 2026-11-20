@@ -101,6 +101,7 @@ async def lifespan(app: FastAPI):
     memory = MemoryStore(MEMORY_DB)
     async with AsyncSqliteSaver.from_conn_string(str(CHECKPOINT_DB)) as checkpointer:
         app.state.memory = memory
+        app.state.checkpointer = checkpointer
         app.state.workflow = build_workflow(checkpointer, memory, run_browser_task)
         yield
 
