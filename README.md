@@ -1,6 +1,6 @@
 # Geed Hardwin — 2D Animation Studio
 
-**Editor v1.24** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
+**Editor v1.25** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
 
 ## Công cụ hiện có
 
@@ -12,8 +12,8 @@
 - Sân khấu 1280 × 720, tỷ lệ 16:9; bố cục tự co theo cửa sổ.
 - Select, Rectangle, Circle, Text, Image, Pencil, Line và Audio.
 - Nhập ảnh và âm thanh từ máy tính.
-- Layer: chọn, kéo, ẩn/hiện, khóa/mở khóa, nhân bản, xóa, căn giữa và sắp xếp trước/sau.
-- Bone Rigging + multi-joint FABRIK IK v1.24: tạo xương gốc và nối chuỗi xương con; khi đổi Parent giữa hai xương, khớp con tự căn vào đầu xương cha và giữ góc xoay hiện có; có nút Reconnect joint để sửa liên kết. IK Move giải chuỗi từ 1 đến nhiều xương bằng FABRIK: giữ gốc cố định, bảo toàn chiều dài từng đoạn, lấy tư thế hiện tại làm tham chiếu để hạn chế lật khớp khi kéo và ghi keyframe cho toàn chuỗi tại frame hiện hành. Layer ảnh/chữ/vector/Symbol gắn vào xương hoặc lồng qua nhiều cấp cha-con sẽ kế thừa vị trí, xoay và tỷ lệ khi rig chuyển động. Xương chỉ là bộ điều khiển trong editor và không xuất hiện trong video/PNG; đây vẫn là cut-out rig, chưa có mesh deformation hoặc skin weights.
+- Layer: chọn, kéo, ẩn/hiện, khóa/mở khóa, nhân bản, xóa, căn giữa và sắp xếp trước/sau. Bảng thuộc tính có nút Delete layer ở đầu để xóa nhanh layer đang chọn; lớp chữ có thể chỉnh Size trực tiếp.
+- Bone Rigging + multi-joint FABRIK IK v1.25: tạo xương gốc và nối chuỗi xương con; khi đổi Parent giữa hai xương, khớp con tự căn vào đầu xương cha và giữ góc xoay hiện có; có nút Reconnect joint để sửa liên kết. IK Move giải chuỗi từ 1 đến nhiều xương bằng FABRIK: giữ gốc cố định, bảo toàn chiều dài từng đoạn, lấy tư thế hiện tại làm tham chiếu để hạn chế lật khớp khi kéo và ghi keyframe cho toàn chuỗi tại frame hiện hành. Layer ảnh/chữ/vector/Symbol gắn vào xương hoặc lồng qua nhiều cấp cha-con sẽ kế thừa vị trí, xoay và tỷ lệ khi rig chuyển động. Xương chỉ là bộ điều khiển trong editor và không xuất hiện trong video/PNG; đây vẫn là cut-out rig, chưa có mesh deformation hoặc skin weights.
 - Layer Parenting + Pivot Editor v1.9: gắn layer con vào layer cha; vị trí, xoay và tỷ lệ của cha được kế thừa theo thời gian; đổi cha giữ tư thế và keyframe mẫu; chỉnh pivot X/Y và giữ hình không nhảy khi đổi pivot; kéo/chọn và chỉnh điểm vector hiểu hệ tọa độ cha-con. Khi xóa cha, các layer con được chuyển lên cấp cha tiếp theo để bảo toàn vị trí. Khi đóng gói nhiều layer đã gắn cha-con thành MovieClip, hệ thống giữ cây phân cấp và quy đổi các layer gốc về tâm Symbol.
 - Stage Transform Handles v1.9: kéo nút góc dưới-phải để thay đổi kích thước trực tiếp trên sân khấu; kéo nút phía trên để xoay layer quanh pivot hiện tại; thao tác tạo/cập nhật keyframe tại frame đang chọn và hỗ trợ layer có parent.
 - Chọn nhiều layer bằng Ctrl-click; nhóm, di chuyển cùng nhau, tách nhóm và xóa cả nhóm.
@@ -56,7 +56,7 @@ Geed Hardwin v1.9 đã có nhiều công cụ cốt lõi nhưng chưa phải b�
 - Shape Tween tương đương Adobe với shape hints/topology correspondence và morph trực tiếp giữa primitive (rectangle/circle/polygon) vẫn chưa có; Vector Path Morph hiện là nội suy Bézier tự do có căn chỉnh topology cơ bản.
 - Symbol/MovieClip hiện có timeline nội bộ, nested playback, chỉnh sửa tại chỗ và Frame Picker; vẫn cần nâng cấp thư viện symbol chuyên sâu, tween lồng nhau, swap sets/trigger nâng cao và quản lý asset.
 - Mask đã có Alpha/Luma, nested mask stack và hỗ trợ nguồn ảnh/chữ/Symbol; các phần còn có thể phát triển thêm gồm feather/blur, invert mask và công cụ chỉnh vùng mask trực quan.
-- Bone Rigging v1.24 đã hỗ trợ IK nhiều khớp bằng FABRIK, nối lại khớp và layer con lồng nhiều cấp; các phần rig chuyên sâu còn thiếu gồm mesh deformation, skin weights, giới hạn góc khớp có thể cấu hình và công cụ rig tự động.
+- Bone Rigging v1.25 đã hỗ trợ IK nhiều khớp bằng FABRIK, nối lại khớp và layer con lồng nhiều cấp; các phần rig chuyên sâu còn thiếu gồm mesh deformation, skin weights, giới hạn góc khớp có thể cấu hình và công cụ rig tự động.
 - Layer Parenting + Pivot Editor đã có nền tảng phân cấp; vẫn cần thêm công cụ rig chuyên sâu.
 - Camera keyframe hiện điều khiển pan/zoom/rotation cơ bản; chưa có nhiều camera, lens/focus hay parallax theo layer.
 - GIF và preset render nâng cao; PNG sequence ZIP đã có ở v1.13 nhưng vẫn cần kiểm thử tương tác trên nhiều trình duyệt và tối ưu luồng xuất cho dự án rất dài.
