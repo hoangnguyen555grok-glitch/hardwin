@@ -632,8 +632,8 @@ function drawParallaxLayer(o,f,editing,alpha,stateOverride,siblings){
  ctx.save();ctx.transform(transform.a,transform.b,transform.c,transform.d,transform.e,transform.f);
  drawObject(o,f,editing,alpha,stateOverride,0,siblings);ctx.restore();
 }
-function draw(exportMode=false,transparent=false){
- ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,W,H);
+function draw(exportMode=false,transparent=false,outputScale=1){
+ const scale=Math.max(.25,Math.min(3,Number(outputScale)||1));ctx.setTransform(scale,0,0,scale,0,0);ctx.clearRect(0,0,W,H);
  if(!exportMode||!transparent){ctx.fillStyle=exportMode?'#f2f4f7':'#f2f4f7';ctx.fillRect(0,0,W,H)}
  if(!exportMode){
   ctx.fillStyle='#e8edf3';for(let x=0;x<W;x+=80)for(let y=0;y<H;y+=80){if((x/80+y/80)%2===0)ctx.fillRect(x,y,80,80)}
@@ -1065,7 +1065,7 @@ $('libraryFontInput').onchange=e=>{
 };
 function renderSymbolLibrary(){const el=$('symbolSelect');if(!el)return;const previous=el.value;el.innerHTML='';symbolLibrary.forEach(def=>{const op=document.createElement('option');op.value=def.id;op.textContent=def.name+' · '+Math.max(1,Number(def.duration)||FPS)+'f';el.appendChild(op)});if(!symbolLibrary.length){const op=document.createElement('option');op.value='';op.textContent='No symbols';el.appendChild(op)}else if(symbolLibrary.some(x=>x.id===previous))el.value=previous;$('symbolCount').textContent=symbolLibrary.length;$('insertSymbol').disabled=!symbolLibrary.length}
 $('insertSymbol').onclick=()=>{const def=symbolLibrary.find(x=>x.id===$('symbolSelect').value);if(!def){toast('Choose a symbol first');return}makeObject('symbol',{name:def.name,symbolId:def.id,x:W/2,y:H/2,width:def.width,height:def.height})};
-function renderAll(full=true){if(full){renderExposureSheet();const cb=$('cameraModeBtn');if(cb){cb.classList.toggle('active',cameraMode);cb.disabled=!!symbolEditId}renderLayers();renderInspector();renderTimeline();renderScenePicker();renderSymbolLibrary();renderResourceLibrary();$('selectionLabel').textContent=selectedIds.length>1?selectedIds.length+' layers selected':selected()?selected().name+' selected':'No selection';$('sceneSelect').disabled=!!symbolEditId;['addScene','renameScene','duplicateScene','deleteScene','fpsSelect','durationInput','exportVideo','exportPngSequence'].forEach(id=>{const el=$(id);if(el)el.disabled=!!symbolEditId});renderSymbolEditBanner()}draw();updatePlayhead();if(!restoringHistory)recordHistory()}
+function renderAll(full=true){if(full){renderExposureSheet();const cb=$('cameraModeBtn');if(cb){cb.classList.toggle('active',cameraMode);cb.disabled=!!symbolEditId}renderLayers();renderInspector();renderTimeline();renderScenePicker();renderSymbolLibrary();renderResourceLibrary();$('selectionLabel').textContent=selectedIds.length>1?selectedIds.length+' layers selected':selected()?selected().name+' selected':'No selection';$('sceneSelect').disabled=!!symbolEditId;['addScene','renameScene','duplicateScene','deleteScene','fpsSelect','durationInput','exportVideo','exportPngSequence','exportStill','exportGif'].forEach(id=>{const el=$(id);if(el)el.disabled=!!symbolEditId});renderSymbolEditBanner()}draw();updatePlayhead();if(!restoringHistory)recordHistory()}
 function projectSnapshot(){return {format:'geed-hardwin-project',version:24,resourceLibrary,fps:FPS,duration:DURATION,sceneIndex,nextId,nextGroupId,selectedId,selectedIds,frame,frameByFrame,nextSymbolId,symbolLibrary:symbolLibrary.map(def=>({...def,objects:(def.objects||[]).map(o=>({...o,img:undefined}))})),symbolEditId,symbolEditStack:symbolEditStack.map(x=>({...x,selectedIds:[...(x.selectedIds||[])]})),scenes:scenes.map(sc=>({...sc,workArea:normalizeWorkArea(sc.workArea,MAX),objects:sc.objects.map(o=>({...o,img:undefined}))}))}}
 function recordHistory(){if(restoringHistory)return;const snap=JSON.stringify(projectSnapshot());if(history[historyIndex]===snap)return;history=history.slice(0,historyIndex+1);history.push(snap);if(history.length>60)history.shift();historyIndex=history.length-1;updateHistoryButtons();if(appReady)scheduleAutosave(snap)}
 function updateHistoryButtons(){const u=$('undoBtn'),r=$('redoBtn');if(u)u.disabled=historyIndex<=0;if(r)r.disabled=historyIndex<0||historyIndex>=history.length-1}
@@ -1281,34 +1281,42 @@ $('saveProject').onclick=()=>{const data=projectSnapshot();const blob=new Blob([
 $('openProject').onclick=()=>$('projectInput').click();
 $('projectInput').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());pause();applyProject(data);renderAll();toast('Project opened')}catch(err){console.error(err);toast('Could not open this project file')}e.target.value=''};
 function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+function exportScale(){return Math.max(.5,Math.min(2,Number($('exportScale')?.value)||1))}
+function exportQuality(){return $('exportQuality')?.value||'high'}
+function exportCanvasSurface(scale=1){const target=document.createElement('canvas');target.width=Math.round(W*scale);target.height=Math.round(H*scale);return {canvas:target,context:target.getContext('2d',{willReadFrequently:true})}}
+function renderExportFrame(targetContext,sceneNumber,frameNumber,scale=1,transparent=false){const previousContext=ctx,previousScene=sceneIndex,previousFrame=frame;try{sceneIndex=sceneNumber;frame=frameNumber;ctx=targetContext;draw(true,transparent,scale)}finally{ctx=previousContext;sceneIndex=previousScene;frame=previousFrame}}
+function blobFromCanvas(target,type,quality){return new Promise((resolve,reject)=>target.toBlob(blob=>blob?resolve(blob):reject(new Error('The browser could not encode this image format')),type,quality))}
+async function exportStillFrame(){
+ if(symbolEditId){toast('Finish editing the MovieClip before exporting');return}
+ const scale=exportScale(),mime=$('exportImageFormat').value,quality=exportQuality(),transparent=mime!=='image/jpeg',q=quality==='high'?.95:quality==='compact'?.65:.84;
+ pause();const surface=exportCanvasSurface(scale),button=$('exportStill');button.disabled=true;
+ try{renderExportFrame(surface.context,sceneIndex,frame,scale,transparent);let blob=await blobFromCanvas(surface.canvas,mime,q),extension=mime==='image/jpeg'?'jpg':mime==='image/webp'?'webp':'png';if(blob.type!==mime){blob=await blobFromCanvas(surface.canvas,'image/png');extension='png';toast('This browser does not support that format · exported PNG instead')}download(blob,'geed-hardwin-frame-'+String(frame+1).padStart(5,'0')+'.'+extension);if(blob.type===mime)toast('Current frame exported · '+extension.toUpperCase()+' · '+surface.canvas.width+'×'+surface.canvas.height)}
+ catch(err){console.error(err);toast(err?.message||'Frame export failed')}finally{button.disabled=!!symbolEditId;draw();renderInspector()}
+}
+$('exportStill').onclick=exportStillFrame;
 $('exportVideo').onclick=async()=>{
- pause();
- if(!window.MediaRecorder||!canvas.captureStream){toast('Video export is not supported in this browser');return}
- const originalScene=sceneIndex,originalFrame=frame,sceneCount=scenes.length;
- toast('Rendering '+sceneCount+' scene(s) · '+(DURATION*sceneCount)+' seconds…');
- const stream=canvas.captureStream(FPS),audioTracks=[];
+ if(symbolEditId){toast('Finish editing the MovieClip before exporting');return}
+ pause();if(!window.MediaRecorder){toast('Video export is not supported in this browser');return}
+ const scale=exportScale(),quality=exportQuality(),fps=Math.max(1,Math.min(60,Number($('exportVideoFps').value)||FPS)),preference=$('exportVideoFormat').value;
+ const originalScene=sceneIndex,originalFrame=frame,sceneCount=scenes.length,framesPerScene=Math.ceil((MAX+1)*fps/FPS),surface=exportCanvasSurface(scale),exportCanvas=surface.canvas,exportContext=surface.context;
+ if(!exportCanvas.captureStream){toast('Canvas video capture is not supported in this browser');return}
+ const stream=exportCanvas.captureStream(fps),audioTracks=[];
  for(const sc of scenes)for(const o of sc.objects.filter(x=>x.type==='audio')){const player=createAudioPlayer(o),capture=player&&(player.captureStream||player.mozCaptureStream);if(capture){const audioStream=capture.call(player);audioStream.getAudioTracks().forEach(t=>{if(!audioTracks.includes(t)){stream.addTrack(t);audioTracks.push(t)}})}}
  let chunks=[],recorder,finished=false,renderTimer=null;
- const mimeCandidates=['video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
- const mime=typeof MediaRecorder.isTypeSupported==='function'?mimeCandidates.find(t=>MediaRecorder.isTypeSupported(t)):null;
- try{recorder=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream)}catch(err){stream.getTracks().forEach(t=>t.stop());toast('This browser cannot start video export');return}
+ const mp4=['video/mp4;codecs=avc1.42E01E','video/mp4'],webm=['video/webm;codecs=vp9','video/webm;codecs=vp8'];
+ const preferred=preference==='mp4'?mp4:preference==='webm'?webm:[...mp4,...webm],mime=preferred.find(type=>MediaRecorder.isTypeSupported?.(type));
+ if(preference==='mp4'&&!mime){stream.getTracks().forEach(track=>track.stop());toast('MP4 is not supported here · choose Auto or WebM');return}
+ const bitrate=quality==='high'?10000000:quality==='compact'?2500000:5000000;
+ try{recorder=mime?new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:bitrate}):new MediaRecorder(stream,{videoBitsPerSecond:bitrate})}
+ catch(err){stream.getTracks().forEach(track=>track.stop());toast('This browser cannot start video export');return}
  const outputType=recorder.mimeType||mime||'video/webm',isMp4=outputType.toLowerCase().includes('mp4');
- const finish=()=>{if(finished)return;finished=true;if(renderTimer)clearTimeout(renderTimer);pause();sceneIndex=originalScene;frame=originalFrame;renderAll();stream.getTracks().forEach(t=>t.stop());download(new Blob(chunks,{type:outputType}),isMp4?'geed-hardwin-animation.mp4':'geed-hardwin-animation.webm');toast('All scenes exported as '+(isMp4?'MP4':'WebM')+(audioTracks.length?' with audio':' · video only'))};
+ toast('Rendering '+sceneCount+' scene(s) · '+fps+' FPS · '+exportCanvas.width+'×'+exportCanvas.height+'…');
+ const finish=()=>{if(finished)return;finished=true;if(renderTimer)clearTimeout(renderTimer);pause();sceneIndex=originalScene;frame=originalFrame;renderAll();stream.getTracks().forEach(track=>track.stop());download(new Blob(chunks,{type:outputType}),isMp4?'geed-hardwin-animation.mp4':'geed-hardwin-animation.webm');toast('Exported '+(isMp4?'MP4':'WebM')+' · '+quality+' quality'+(audioTracks.length?' with audio':' · video only'))};
  recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
  recorder.onerror=()=>{toast('Video export encountered an error');if(recorder.state!=='inactive'){try{recorder.stop()}catch(err){finish()}}else finish()};
- recorder.onstop=finish;
- recorder.start();
+ recorder.onstop=finish;recorder.start();
  let sceneCursor=0,frameCursor=0;
- const renderNext=()=>{
-  if(finished)return;
-  if(sceneCursor>=sceneCount){if(recorder.state!=='inactive')recorder.stop();return}
-  sceneIndex=sceneCursor;frame=frameCursor;
-  if(frameCursor===0)audioPlayers.forEach(p=>{p.pause();try{p.currentTime=0}catch(err){}});
-  syncAudioPlayback(frameCursor===0);draw(true,false);
-  frameCursor++;
-  if(frameCursor>MAX){sceneCursor++;frameCursor=0}
-  renderTimer=setTimeout(renderNext,1000/FPS);
- };
+ const renderNext=()=>{if(finished)return;if(sceneCursor>=sceneCount){if(recorder.state!=='inactive')recorder.stop();return}const sourceFrame=Math.min(MAX,Math.round(frameCursor*FPS/fps));if(frameCursor===0)audioPlayers.forEach(player=>{player.pause();try{player.currentTime=0}catch(err){}});frame=sourceFrame;sceneIndex=sceneCursor;if(frameCursor===0)syncAudioPlayback(true);const previous=ctx;ctx=exportContext;try{draw(true,false,scale)}finally{ctx=previous}frameCursor++;if(frameCursor>=framesPerScene){sceneCursor++;frameCursor=0}renderTimer=setTimeout(renderNext,1000/fps)};
  renderNext();
 };
 
