@@ -87,7 +87,7 @@ Repository công khai để theo dõi tiến độ. Chưa gắn giấy phép mã
 
 ## AI và điều khiển trình duyệt
 
-Bản AI Bridge nằm trong Geed Hardwin v1.12. Bộ công cụ cục bộ cho hai hướng kết nối (MCP để ghép với trợ lý ChatGPT sau khi có endpoint được bảo vệ; chatbot riêng dùng Browser Use + Ollama để thao tác Opera qua CDP) được ghi tại [browser-agent/README.md](browser-agent/README.md). Đây mới là bộ khung thử nghiệm; README nêu rõ các bước chạy, yêu cầu và những phần chưa được kết nối/xác minh.
+Bản AI Bridge trong trình biên tập vẫn giữ bộ lệnh mẫu. Từ v1.29, bảng này có nút mở **Local AI Agent** chạy trên máy người dùng. Agent cục bộ ghép Browser Use (điều khiển Opera/CDP), LiteLLM (định tuyến và chuyển mô hình), LangGraph (quy trình có checkpoint) và SQLite (ký ức tác vụ cục bộ). Hướng dẫn cài đặt, bật gateway, cấu hình provider và giới hạn an toàn nằm tại [browser-agent/README.md](browser-agent/README.md). Đây là dịch vụ chạy trên máy cá nhân; không tự động kết nối với cuộc trò chuyện ChatGPT hoặc đám mây.
 
 
 ## Cập nhật v1.13
@@ -166,3 +166,13 @@ Bản AI Bridge nằm trong Geed Hardwin v1.12. Bộ công cụ cục bộ cho h
 - **Preserve originals:** Apply tạo một tài nguyên ảnh đã chỉnh sửa mới trong Resource Library, giữ nguyên tài nguyên gốc; kích thước và vị trí layer được hiệu chỉnh theo vùng ảnh đã crop để giữ tâm hiển thị qua các keyframe.
 - **Project persistence:** ảnh đã chỉnh sửa được lưu cùng dữ liệu dự án hiện tại và được khôi phục khi mở lại project.
 - **Giới hạn hiện tại:** Eraser là xóa pixel thủ công, không phải AI inpainting. Xóa vật thể và tự tái tạo nền phía sau cần dịch vụ AI riêng, sẽ tích hợp ở giai đoạn sau.
+
+## Cập nhật v1.29
+
+- **Local AI Agent launcher:** AI Bridge có nút mở bảng điều khiển AI cục bộ tại `http://127.0.0.1:8765` sau khi người dùng cài và khởi chạy agent.
+- **Browser automation foundation:** Browser Use điều khiển Opera qua CDP trên profile tách biệt; danh sách website được phép cấu hình trong `.env`.
+- **Multi-model routing:** LiteLLM có các route cho Ollama, OpenAI, Anthropic và Gemini; cấu hình fallback chuyển tiếp khi provider gặp lỗi hoặc rate limit. Cloud routes chỉ dùng được sau khi người dùng tự thêm API key vào `.env`.
+- **Stateful workflow:** LangGraph điều phối recall → browser task → persist và ghi checkpoint theo thread.
+- **Local memory:** SQLite lưu tóm tắt các tác vụ hoàn thành, khôi phục ngữ cảnh trong cùng phiên và có nút xóa bộ nhớ cục bộ.
+- **Safety gates:** thao tác xóa/gửi/đăng/mua/thanh toán và một số thay đổi tài khoản yêu cầu xác nhận; dịch vụ chỉ lắng nghe trên loopback. Không đưa API key, mật khẩu, cookie hoặc tunnel token vào GitHub.
+- Vercel tiếp tục lưu trang biên tập tĩnh; browser runtime và model gateway chạy trên máy cục bộ vì một trang tĩnh trên đám mây không thể tự kết nối vào cổng CDP trên máy người dùng.
