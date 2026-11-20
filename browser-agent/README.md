@@ -26,12 +26,12 @@ After the authenticated endpoint exists, a private ChatGPT MCP plugin/connector 
 
 The local assistant combines four open-source layers:
 
-- **Browser Use (MIT):** performs browser interaction over Chromium DevTools Protocol (CDP).
+- **Browser Use 1.0.2 (MIT, exact pin):** performs browser interaction over Chromium DevTools Protocol (CDP). The 1.0 API is intentionally pinned because the project moves quickly.
 - **LiteLLM (MIT):** model gateway with provider routing, retries, cooldowns, and ordered fallbacks.
 - **LangGraph (MIT):** runs recall → browser execution → save and checkpoints state by session/thread.
 - **SQLite:** stores successful task summaries locally and recalls relevant task history in the same session.
 
-The default model is local Ollama. OpenAI, Anthropic, and Gemini are configured as optional fallback routes after provider keys and supported model IDs are added to `.env`. This local assistant is a separate process; it is not a copy of this ChatGPT conversation.
+The default model is local Ollama. Optional provider IDs in `.env.example` currently use OpenAI `gpt-6.2-sol`, Anthropic `claude-haiku-5-5`, and Gemini `gemini-3.8-flash`; availability depends on the provider account, region and API access. Change them to any currently enabled model ID if needed. This local assistant is a separate process; it is not a copy of this ChatGPT conversation.
 
 ### MCP local-client setup
 
@@ -46,7 +46,7 @@ To let ChatGPT cloud connect, configure an authenticated tunnel first. No public
 - The in-editor AI Bridge remains a limited local command demo; generative browser control runs in the separate Local AI Agent at `127.0.0.1:8765`.
 - Path 1 still needs an authenticated public MCP route before ChatGPT cloud can call local tools.
 - SQLite memory is local to this computer and is not synchronized with ChatGPT or other devices.
-- Browser agents can make mistakes. Inspect actions and results; never give the agent passwords, payment details, or unrestricted access to unrelated private tabs.
+- Browser agents can make mistakes. Inspect actions and results; never give the agent passwords, payment details, or unrestricted access to unrelated private tabs. Domain allowlists are guardrails, not an operating-system sandbox; use the dedicated Opera profile and keep ports on loopback.
 ## Sources
 
 - Browser Use source and license: https://github.com/browser-use/browser-use
@@ -58,7 +58,7 @@ To let ChatGPT cloud connect, configure an authenticated tunnel first. No public
 
 1. Install Python 3.11 or newer and install Ollama from https://ollama.com/.
 2. Run `setup_windows.bat`. It installs the pinned browser agent, LangGraph, LiteLLM Proxy and supporting packages, then copies `.env.example` to `.env`.
-3. Edit `.env` and change `LITELLM_MASTER_KEY` to a private random value. Never commit the real `.env` file.
+3. Edit `.env` and change `LITELLM_MASTER_KEY` to a private random value. Keep `LANGGRAPH_STRICT_MSGPACK=true`. Never commit the real `.env` file.
 4. Run `ollama pull llama3.1:8b`.
 5. Start `start_model_gateway.bat` in a terminal; it listens on `127.0.0.1:4000`.
 6. Start `start_opera_debug.bat` in another terminal. It opens a separate Opera profile with CDP on `127.0.0.1:9222`. Sign in to Geed Hardwin in that window.
@@ -78,7 +78,7 @@ Set the desired alias in `GEED_LLM_MODEL`. Add each provider's API key and an ac
 - Successful task summaries are stored in `browser-agent/data/geed-agent.sqlite`.
 - LangGraph checkpoints are stored in `browser-agent/data/geed-workflow.sqlite`.
 - The browser chat page stores a session/thread ID in local storage. Related task history can be recalled in later tasks within that session.
-- Secret-like values and email addresses are redacted before saving; no screenshots or cookies are stored. A local control clears memory.
+- Common secret-like values and email addresses are redacted before task summaries are saved; the API also blocks common credential patterns in prompts. No screenshots or cookies are stored. A local control clears both task memory and LangGraph checkpoints.
 
 ### Safety
 
