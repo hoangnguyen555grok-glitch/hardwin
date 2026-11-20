@@ -1,8 +1,12 @@
 # Geed Hardwin — 2D Animation Studio
 
-**Editor v1.26** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
+**Editor v1.27** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
 
 ## Công cụ hiện có
+
+- Resource Library v1.27: thư viện ảnh và font riêng của project; ảnh có thể lưu làm tài nguyên rồi thêm lại vào bất kỳ cảnh nào; font TTF/OTF/WOFF/WOFF2 được nhúng vào project, nạp lại khi mở và chọn trực tiếp cho từng layer chữ. Không cho xóa font đang được layer sử dụng.
+- Export v1.27: xuất frame hiện tại PNG/JPEG/WebP; chọn độ phân giải 50–200% và chất lượng; xuất PNG Sequence trong ZIP kèm manifest và nền trong suốt; xuất GIF động nhiều cảnh với FPS, bảng màu 3-3-2 và dithering tùy chất lượng; xuất video với FPS, bitrate theo chất lượng và chọn Auto/WebM/MP4 tùy khả năng MediaRecorder.
+
 
 - AI Bridge v1.12: bảng điều khiển thử nghiệm bên trong editor, có bộ lệnh cục bộ giới hạn và API qua \`window["GeedHardwinBridge"]\` cho trạng thái dự án, danh sách layer, tạo hình tròn, tạo chuyển động theo keyframe, phát/dừng, chọn frame, xóa layer đang chọn và yêu cầu xuất video. Bảng này chưa kết nối ChatGPT hay mô hình AI; giao diện hiển thị rõ hai trạng thái chưa ghép nối.
 
