@@ -1,0 +1,60 @@
+name: Local AI Agent checks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "browser-agent/**"
+      - ".github/workflows/local-agent-checks.yml"
+  pull_request:
+    paths:
+      - "browser-agent/**"
+      - ".github/workflows/local-agent-checks.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  python-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: browser-agent/requirements.txt
+      - name: Install local agent dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r browser-agent/requirements.txt
+      - name: Compile Python modules
+        run: python -m compileall -q browser-agent
+      - name: Run local memory and safety tests
+        working-directory: browser-agent
+        run: python -m unittest discover -s tests -v
+      - name: Verify Browser Use, LangGraph and LiteLLM imports
+        working-directory: browser-agent
+        run: |
+          python - <<'PY'
+          from browser_use import Agent, Browser, ChatOpenAI
+          from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+          from litellm import Router
+          from assistant_app import app
+          print("Browser Use, LangGraph, LiteLLM and FastAPI app imports: OK")
+          PY
+      - name: Validate LiteLLM YAML routes
+        run: |
+          python - <<'PY'
+          import yaml
+          with open("browser-agent/litellm_config.yaml", encoding="utf-8") as file:
+              config = yaml.safe_load(file)
+          models = {item["model_name"] for item in config["model_list"]}
+          assert {"geed-agent", "geed-agent-openai", "geed-agent-anthropic", "geed-agent-gemini"} <= models
+          assert config["general_settings"]["master_key"] == "os.environ/LITELLM_MASTER_KEY"
+          assert config["router_settings"]["fallbacks"]
+          print("LiteLLM routes and fallback configuration: OK")
+          PY
