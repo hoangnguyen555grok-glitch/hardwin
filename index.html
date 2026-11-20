@@ -386,6 +386,29 @@ function acquireMaskSurface(){
  const context=canvas.getContext('2d');context.setTransform(1,0,0,1,0,0);context.globalAlpha=1;context.globalCompositeOperation='source-over';context.filter='none';context.shadowBlur=0;context.shadowColor='transparent';context.clearRect(0,0,W,H);
  return {canvas,context,release:()=>{maskSurfaceCursor=Math.max(0,maskSurfaceCursor-1)}};
 }
+function maskParentOpacity(o,f,siblings){
+ let alpha=1,id=o.parentId,guard=new Set();
+ while(id&&!guard.has(id)){
+  guard.add(id);const parent=siblings.find(layer=>layer.id===id);if(!parent||!parent.visible||f<(parent.inFrame??0)||f>(parent.outFrame??MAX))return 0;
+  const value=stateAt(parent,f).opacity;alpha*=Math.max(0,Math.min(1,Number.isFinite(value)?value:1));id=parent.parentId;
+ }
+ return alpha;
+}
+function maskSourceTransform(target,mask,f,siblings,baseTransform){
+ const targetParent=target.parentId&&siblings.find(layer=>layer.id===target.parentId),maskParent=mask.parentId&&siblings.find(layer=>layer.id===mask.parentId);
+ const targetParentMatrix=targetParent?objectWorldMatrix(targetParent,f,siblings):identityMatrix();
+ const maskParentMatrix=maskParent?objectWorldMatrix(maskParent,f,siblings):identityMatrix();
+ let result=multiplyMatrix(baseTransform,multiplyMatrix(invertMatrix(targetParentMatrix),maskParentMatrix));
+ if(!symbolEditId&&siblings===objects()){
+  const rootOf=(layer)=>{let root=layer,guard=new Set();while(root.parentId&&!guard.has(root.id)){guard.add(root.id);const parent=siblings.find(item=>item.id===root.parentId);if(!parent)break;root=parent}return root};
+  const targetRoot=rootOf(target),maskRoot=rootOf(mask),targetFactor=Math.max(0,Math.min(2,Number(stateAt(targetRoot,f).parallax??targetRoot.parallax??1))),maskFactor=Math.max(0,Math.min(2,Number(stateAt(maskRoot,f).parallax??maskRoot.parallax??1))),delta=maskFactor-targetFactor;
+  if(Math.abs(delta)>1e-6){
+   const camera=cameraAt(f),rad=camera.rotation*Math.PI/180,dx=camera.x*delta,dy=camera.y*delta,z=Math.max(.1,camera.zoom),x=(dx*Math.cos(rad)-dy*Math.sin(rad))/z,y=(dx*Math.sin(rad)+dy*Math.cos(rad))/z;
+   result=multiplyMatrix(result,{a:1,b:0,c:0,d:1,e:x,f:y});
+  }
+ }
+ return result;
+}
 function drawObjectWithMasks(o,f,editing,ghostAlpha,stateOverride,depth,siblings,entries,maskSource,maskGuard){
  const base=ctx,transform=base.getTransform(),contentSurface=acquireMaskSurface(),content=contentSurface.canvas,contentCtx=contentSurface.context;
  contentCtx.setTransform(transform);contentCtx.filter=base.filter||'none';
@@ -398,11 +421,11 @@ function drawObjectWithMasks(o,f,editing,ghostAlpha,stateOverride,depth,siblings
   const mask=entry.source;if(!mask||maskGuard.has(mask.id)||mask.id===o.id){contentCtx.save();contentCtx.setTransform(1,0,0,1,0,0);contentCtx.clearRect(0,0,W,H);contentCtx.restore();break;}
   const maskSurface=acquireMaskSurface(),maskCanvas=maskSurface.canvas,maskCtx=maskSurface.context;
   try{
-   maskCtx.setTransform(transform);maskCtx.filter=base.filter||'none';
+   const maskTransform=maskSourceTransform(o,mask,f,siblings,transform);maskCtx.setTransform(maskTransform.a,maskTransform.b,maskTransform.c,maskTransform.d,maskTransform.e,maskTransform.f);maskCtx.filter=base.filter||'none';
    const maskState=stateAt(mask,f);if(entry.mode==='clip')maskState.opacity=1;
    const guardForMask=new Set(guardForContent);
    ctx=maskCtx;
-   try{drawObject(mask,f,false,ghostAlpha,maskState,depth+1,siblings,true,false,guardForMask)}
+   try{drawObject(mask,f,false,ghostAlpha*maskParentOpacity(mask,f,siblings),maskState,depth+1,siblings,true,false,guardForMask)}
    finally{ctx=base}
    if(entry.mode==='luma'){
     try{
