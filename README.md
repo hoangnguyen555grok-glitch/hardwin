@@ -1,6 +1,6 @@
 # Geed Hardwin — 2D Animation Studio
 
-**Editor v1.25** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
+**Editor v1.26** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
 
 ## Công cụ hiện có
 
@@ -27,7 +27,7 @@
 - Vector Path Morph: nội suy Bézier bằng lấy mẫu theo độ dài cung (tối đa 96 anchor), giữ hướng tiếp tuyến, tự căn điểm bắt đầu/chiều đi cho path đóng và đảo thứ tự path mở khi phù hợp; hỗ trợ hai keyframe có số anchor khác nhau và chuyển trạng thái open/closed theo keyframe. Chưa phải Shape Tween có shape hints/topology constraints như phần mềm chuyên dụng.
 - Motion Tween: keyframe vị trí, kích thước, tỷ lệ, xoay, opacity, cỡ chữ, nét vẽ, hiệu ứng, âm lượng và điểm vector.
 - Easing theo từng keyframe: Linear, Ease In/Out, Cubic, Sine, Smooth Step, Back, Bounce, Elastic và Hold/Step.
-- **Camera Layer v1.3:** camera riêng theo từng cảnh; pan bằng kéo sân khấu, chỉnh zoom/rotation, đặt keyframe, xem keyframe trên timeline, điều hướng và xóa keyframe. Camera được áp dụng khi preview và render video.
+- **Camera & Parallax v1.26:** camera riêng theo từng cảnh; kéo sân khấu để pan, lăn chuột để zoom bám con trỏ, Shift + lăn chuột để xoay; chỉnh chính xác Pan X/Y, Zoom và Rotation trong Inspector. Nội suy zoom theo log-scale, góc xoay theo cung ngắn, easing tùy chọn cho từng camera keyframe. Camera keyframe được cập nhật khi pan/zoom/xoay và dùng chung trong preview, video và PNG sequence. Parallax 0–2 điều khiển mức phản hồi của từng layer với pan, zoom và rotation (0 cố định màn hình, 1 theo camera, 2 tăng chiều sâu); căn chỉnh lại transform của Mask giữa các layer có độ sâu khác nhau.
 - Motion path cong: điều chỉnh độ uốn đường đi và xem đường dẫn trực tiếp trên sân khấu.
 - Hiệu ứng cơ bản: Brightness, Contrast, Saturation, Blur và Glow.
 - Blend modes: Normal, Multiply, Screen, Overlay, Darken, Lighten, Color Dodge/Burn, Soft/Hard Light, Difference và Exclusion.
