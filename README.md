@@ -1,6 +1,6 @@
 # Geed Hardwin — 2D Animation Studio
 
-**Editor v1.21** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
+**Editor v1.22** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
 
 ## Công cụ hiện có
 
@@ -20,7 +20,7 @@
 - MovieClip / Graphic Symbols: chuyển một hoặc nhiều layer đã animate thành MovieClip; mở Edit MovieClip để chỉnh sửa layer và keyframe trên timeline nội bộ; đặt độ dài clip; lồng symbol trong symbol; mỗi instance có tốc độ, phase offset, Loop / Once / Ping-pong và Single Frame.
 - Graphic Symbol Frame Picker: chọn frame nội bộ của Symbol tại một frame trên timeline chính, tạo keyframe riêng để đổi hình miệng, mắt, tay hoặc tư thế; các Frame Picker keys có marker riêng trên timeline và được lưu trong project.
 - Swap Symbol / Symbol Variants v1.9: thay Graphic Symbol của một instance mà vẫn giữ vị trí, tỷ lệ, góc xoay và các keyframe trên timeline; nhân bản định nghĩa Symbol thành một biến thể độc lập để tạo phiên bản nhân vật/biểu cảm mà không sửa bản gốc.
-- Mask layer: chọn nhiều layer, dùng Rectangle/Circle/Pencil path làm mask cho các layer khác; có thể gỡ liên kết mask.
+- Advanced Mask v1.22: chọn nguồn mask và layer đích; Alpha Mask dùng độ trong suốt (hỗ trợ hình, chữ, ảnh và Symbol), Luma Mask dùng độ sáng trắng/đen/xám làm mức che; một layer có thể nhận nhiều mask theo stack để tạo mask lồng nhau; hỗ trợ gỡ stack, ngăn vòng tham chiếu và giữ tương thích maskId của project cũ.
 - Exposure Sheet / Cel Animation: bảng ô hình theo từng layer, xem 48 frame mỗi trang; Insert Keyframe, Blank Keyframe, Hold +1, Duplicate Cel; kéo mép đầu/cuối của cel để rút ngắn hoặc kéo dài exposure theo từng frame; Shift-click chọn vùng chữ nhật nhiều layer và nhiều frame; Copy range / Paste range sao chép đồng thời nhiều layer, giữ trạng thái từng frame và không ghi đè cel nguồn. Thay đổi thời lượng cel được lưu trong project và hỗ trợ Undo/Redo. Work Area riêng theo từng cảnh cho phép đặt In/Out tại playhead, tô dấu vùng trong Exposure Sheet/Timeline và giới hạn preview playback theo vùng; Loop On lặp trong vùng, Loop Off dừng ở cuối vùng. Clear khôi phục toàn bộ timeline. Work Area tương thích ngược với project cũ và được lưu trong project.
 - Chế độ Frame-by-frame: vẽ tại frame hiện tại; đối tượng mới được phơi sáng đúng một frame; có nút đi từng frame và Duplicate artwork → next frame để sao chép toàn bộ artwork đang hiện sang frame kế tiếp, giữ liên kết nhóm/mask và dữ liệu ảnh.
 - Path point editor: kéo các điểm vector trực tiếp trên sân khấu.
@@ -55,7 +55,7 @@ Geed Hardwin v1.9 đã có nhiều công cụ cốt lõi nhưng chưa phải b�
 - Exposure Sheet đã có chọn/copy/paste dải frame nhiều layer, kéo mép cel để đổi thời lượng và Advanced Onion Skin với số frame/opacity/màu trước-sau; vẫn cần drawing layers chuyên dụng và thao tác biên tập cel hàng loạt chuyên sâu hơn.
 - Shape Tween tương đương Adobe với shape hints/topology correspondence vẫn chưa có; Vector Path Morph hiện nội suy đường tự do bằng lấy mẫu lại, chưa morph trực tiếp mọi loại primitive.
 - Symbol/MovieClip hiện có timeline nội bộ, nested playback, chỉnh sửa tại chỗ và Frame Picker; vẫn cần nâng cấp thư viện symbol chuyên sâu, tween lồng nhau, swap sets/trigger nâng cao và quản lý asset.
-- Mask alpha/luma, mask lồng nhau và clipping groups nâng cao.
+- Mask đã có Alpha/Luma, nested mask stack và hỗ trợ nguồn ảnh/chữ/Symbol; các phần còn có thể phát triển thêm gồm feather/blur, invert mask và công cụ chỉnh vùng mask trực quan.
 - Bone Rigging + IK hai xương đã có; vẫn còn thiếu mesh deformation, skin weights, IK nhiều khớp, constraints và công cụ rig tự động.
 - Layer Parenting + Pivot Editor đã có nền tảng phân cấp; vẫn cần thêm công cụ rig chuyên sâu.
 - Camera keyframe hiện điều khiển pan/zoom/rotation cơ bản; chưa có nhiều camera, lens/focus hay parallax theo layer.
@@ -135,3 +135,11 @@ Bản AI Bridge nằm trong Geed Hardwin v1.12. Bộ công cụ cục bộ cho h
 
 - **Work Area / Playback Range:** đặt điểm In/Out theo playhead, hiển thị vùng làm việc trên Exposure Sheet và Timeline, phát preview giới hạn trong vùng, Loop On lặp lại từ In và Loop Off dừng tại Out.
 - Work Area được lưu riêng theo từng scene, theo dõi khi đổi FPS/thời lượng timeline, hỗ trợ project cũ không có trường này; Clear dùng toàn bộ timeline. Không cắt bỏ hoặc thay đổi nội dung layer nằm ngoài Work Area và không giới hạn phạm vi Export.
+
+
+## Cập nhật v1.22
+
+- **Alpha Mask / Luma Mask:** alpha compositing giữ độ trong suốt của nguồn mask; luma mask dùng luminance (trắng che hoàn toàn, đen trong suốt, xám che một phần). Có thể dùng shape, path, text, image hoặc Symbol làm nguồn mask.
+- **Nested Mask Stack:** mỗi target có thể xếp nhiều mask; một mask cũng có thể mang mask riêng. Hệ thống chặn chu trình tham chiếu để tránh đệ quy vô hạn.
+- **Symbol / MovieClip compatibility:** khi đóng gói layer thành MovieClip, các mask dependency cần thiết được đưa vào timeline nội bộ và giữ liên kết; duplicate scene, duplicate artwork và Exposure Sheet range paste remap mask references.
+- Legacy `maskId` được đọc như một mask kiểu clip/alpha tương thích với project cũ. Luma readback có fallback an toàn về alpha khi canvas không thể đọc pixel.
