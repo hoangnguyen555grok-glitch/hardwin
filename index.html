@@ -105,9 +105,9 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
 <body>
 <header class="topbar">
   <div class="brand"><img class="brandlogo" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRYHE1V2gwMtLSOzrCNG-C3zeWnRj-i1GtkR8pLxDeUJQ&amp;s=10" alt="Geed Hardwin brand image" referrerpolicy="no-referrer" onerror="this.style.display='none'" /><span>GEED HARDWIN</span></div>
-  <span class="topmeta">2D Animation Editor · v1.28</span>
+  <span class="topmeta">2D Animation Editor · v1.29</span>
   <div class="topspacer"></div>
-  <span class="status">Animation workspace · v1.28</span>
+  <span class="status">Animation workspace · v1.29</span>
   <button class="ghost" id="undoBtn" title="Undo (Ctrl+Z)">↶</button>
   <button class="ghost" id="redoBtn" title="Redo (Ctrl+Shift+Z)">↷</button>
   <button class="ghost" id="openProject">Open project</button>
@@ -222,6 +222,7 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
     <div class="ai-bridge-message agent">Xin chào! Bảng này là bản thử nghiệm cầu nối điều khiển bên trong Geed Hardwin. Nó đã có thể gọi một số thao tác biên tập được giới hạn sẵn, nhưng chưa kết nối ChatGPT hay mô hình AI. Hãy thử: “Tạo hoạt cảnh hình tròn 10 giây”, “Phát”, “Dừng”, hoặc “Trạng thái”.</div>
   </div>
   <div class="ai-bridge-examples">
+    <button type="button" id="openLocalBrowserAgent" class="primary">↗ Open Local AI Agent</button>
     <button type="button" data-ai-cmd="Tạo hoạt cảnh hình tròn 10 giây">Tạo chuyển động 10 giây</button>
     <button type="button" data-ai-cmd="Trạng thái">Kiểm tra dự án</button>
     <button type="button" data-ai-cmd="Phát">Phát</button>
@@ -231,7 +232,7 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
     <input id="aiBridgeInput" type="text" autocomplete="off" placeholder="Nhập lệnh thử bằng tiếng Việt…" aria-label="AI Bridge command" />
     <button class="primary" type="submit">Gửi</button>
   </form>
-  <div class="ai-bridge-foot">Bản hiện tại dùng bộ lệnh cục bộ cố định, chưa phải chatbot tạo sinh. Không có API key nào được lưu trong trang này. Kết nối mô hình và MCP sẽ được bổ sung qua cầu nối chạy trên máy của bạn.</div>
+  <div class="ai-bridge-foot">AI Bridge trong trình biên tập vẫn là bộ lệnh mẫu. Để điều khiển Opera bằng AI tạo sinh, hãy cài và chạy Local AI Agent trên máy của bạn, sau đó nhấn Open Local AI Agent. Không có API key nào được lưu trong trang web này.</div>
 </section>
 
 
@@ -1642,7 +1643,7 @@ selectedId=title.id;renderAll();appReady=true;restoreAutosave();
 function bridgeStatus(){
  const all=objects(),sel=selected();
  return {
-  app:'Geed Hardwin',version:'v1.28',scene:scene()?.name||'Scene',sceneIndex,
+  app:'Geed Hardwin',version:'v1.29',scene:scene()?.name||'Scene',sceneIndex,
   fps:FPS,durationSeconds:DURATION,maxFrame:MAX,currentFrame:frame,playing,
   layerCount:all.length,selected:sel?{id:sel.id,name:sel.name,type:sel.type}:null,
   layers:all.map(o=>({id:o.id,name:o.name,type:o.type,visible:o.visible!==false,locked:!!o.locked})),
@@ -1725,7 +1726,7 @@ function aiBridgeCommand(raw){
   return 'Mình chưa có bộ xử lý AI tự do trong bản thử này. Có thể thử: “Tạo hoạt cảnh hình tròn 10 giây”, “Tạo hình tròn”, “Trạng thái”, “Phát”, “Dừng”, “Xuất video”, hoặc “Xóa layer đang chọn”.';
  }catch(err){return 'Không thực hiện được: '+(err?.message||String(err))}
 }
-$('aiBridgeOpen').onclick=()=>{$('aiBridgePanel').hidden=false;$('aiBridgeInput').focus()};
+$('aiBridgeOpen').onclick=()=>{$('aiBridgePanel').hidden=false;$('aiBridgeInput').focus()};$('openLocalBrowserAgent').onclick=()=>window.open('http://127.0.0.1:8765/','_blank','noopener');
 $('aiBridgeClose').onclick=()=>$('aiBridgePanel').hidden=true;
 $('aiBridgeForm').onsubmit=e=>{e.preventDefault();const input=$('aiBridgeInput'),value=input.value.trim();if(!value)return;aiBridgeAppend(value,'user');input.value='';const result=aiBridgeCommand(value);aiBridgeAppend(result,'agent')};
 document.querySelectorAll('[data-ai-cmd]').forEach(button=>button.addEventListener('click',()=>{const value=button.dataset.aiCmd;aiBridgeAppend(value,'user');aiBridgeAppend(aiBridgeCommand(value),'agent')}));
