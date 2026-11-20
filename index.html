@@ -81,9 +81,9 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
 <body>
 <header class="topbar">
   <div class="brand"><img class="brandlogo" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRYHE1V2gwMtLSOzrCNG-C3zeWnRj-i1GtkR8pLxDeUJQ&amp;s=10" alt="Geed Hardwin brand image" referrerpolicy="no-referrer" onerror="this.style.display='none'" /><span>GEED HARDWIN</span></div>
-  <span class="topmeta">2D Animation Editor · v1.23</span>
+  <span class="topmeta">2D Animation Editor · v1.24</span>
   <div class="topspacer"></div>
-  <span class="status">Animation workspace · v1.23</span>
+  <span class="status">Animation workspace · v1.24</span>
   <button class="ghost" id="undoBtn" title="Undo (Ctrl+Z)">↶</button>
   <button class="ghost" id="redoBtn" title="Redo (Ctrl+Shift+Z)">↷</button>
   <button class="ghost" id="openProject">Open project</button>
@@ -656,14 +656,7 @@ function renderInspector(){const o=selected(),box=$('inspector');if(cameraMode){
  <div class="field"><label>Parent</label><select id="p_parent"><option value="">No parent · Root</option>${objects().filter(item=>item.id!==o.id&&!isDescendant(item.id,o.id,objects())&&item.type!=='audio').map(item=>'<option value="'+escapeAttr(item.id)+'" '+(o.parentId===item.id?'selected':'')+'>'+escapeHtml(item.name)+'</option>').join('')}</select></div>
  <div class="inspectorActions"><button id="applyParent" class="primary">Apply parent</button><button id="detachParent" ${o.parentId?'':'disabled'}>Detach</button></div>
  <div class="smallmuted">Child layers inherit parent position, rotation and scale. Parent a sprite to a bone to attach it to that joint.</div>
- ${o.type==='bone'?`<div class="divider"></div><div class="sectiontitle">Bone controls</div><div class="smallmuted">Length: ${Math.round(s.width??o.width)} px · Parent: ${o.parentId?escapeHtml(objects().find(x=>x.id===o.parentId)?.name||'Bone'):'Root'}</div><div class="inspectorActions"><button id="drawBoneChild" class="primary">Draw child bone</button><button id="activateBoneIK">IK move tool</button></div><div class="smallmuted">Drag from a joint to create a linked segment. Select a two-bone chain, choose IK Move, then drag its end joint.</div>`:''}
- <div class="divider"></div><div class="sectiontitle">Pivot · Rotation point</div>
- <div class="pair"><div class="field"><label>Pivot X</label><input id="p_pivotX" type="number" step="1" value="${Number(o.pivotX)||0}"></div><div class="field"><label>Pivot Y</label><input id="p_pivotY" type="number" step="1" value="${Number(o.pivotY)||0}"></div></div>
- <div class="inspectorActions"><button id="applyPivot" class="primary">Set pivot</button><button id="centerPivot">Center pivot</button></div>
- <div class="smallmuted">Pivot uses local pixels from the artwork centre. Changing it preserves the drawing position across keyframes.</div>
- <div class="divider"></div><div class="sectiontitle">Motion tween</div>
- <div class="field"><label>Easing</label><select id="p_easing">
- <option value="linear" ${activeEase==='linear'?'selected':''}>Linear</option><option value="easeIn" ${activeEase==='easeIn'?'selected':''}>Ease in</option><option value="easeOut" ${activeEase==='easeOut'?'selected':''}>Ease out</option><option value="easeInOut" ${activeEase==='easeInOut'?'selected':''}>Ease in / out</option>
+   ${o.type==='bone'?`<div class="divider"></div><div class="sectiontitle">Bone controls</div><div class="smallmuted">Length: ${Math.round(s.width??o.width)} px · Chain to this joint: ${getBoneChain(o).length} segment(s) · Parent: ${o.parentId?escapeHtml(objects().find(x=>x.id===o.parentId)?.name||'Bone'):'Root'}</div><div class="inspectorActions"><button id="drawBoneChild" class="primary">Draw child bone</button><button id="activateBoneIK">IK move tool</button></div><div class="inspectorActions"><button id="reconnectBoneJoint" ${objects().find(x=>x.id===o.parentId)?.type==='bone'?'':'disabled'}>Reconnect joint</button></div><div class="smallmuted">IK Move supports connected chains of any length. Drag the terminal joint; the root stays anchored and each segment keeps its length and current pose.</div>`:''}}>Linear</option><option value="easeIn" ${activeEase==='easeIn'?'selected':''}>Ease in</option><option value="easeOut" ${activeEase==='easeOut'?'selected':''}>Ease out</option><option value="easeInOut" ${activeEase==='easeInOut'?'selected':''}>Ease in / out</option>
  <option value="easeInCubic" ${activeEase==='easeInCubic'?'selected':''}>Cubic · in</option><option value="easeOutCubic" ${activeEase==='easeOutCubic'?'selected':''}>Cubic · out</option><option value="easeInOutCubic" ${activeEase==='easeInOutCubic'?'selected':''}>Cubic · in/out</option><option value="sine" ${activeEase==='sine'?'selected':''}>Sine smooth</option><option value="smooth" ${activeEase==='smooth'?'selected':''}>Smooth step</option><option value="back" ${activeEase==='back'?'selected':''}>Back overshoot</option><option value="bounce" ${activeEase==='bounce'?'selected':''}>Bounce</option><option value="elastic" ${activeEase==='elastic'?'selected':''}>Elastic</option><option value="step" ${activeEase==='step'?'selected':''}>Hold / step</option></select></div>
  <div class="field"><label>Path bend</label><input id="p_motionBend" type="number" min="-600" max="600" step="10" value="${Number(o.motionBend)||0}"></div><div class="smallmuted">Add start and end keyframes, then set bend to curve the path. A guide appears on the stage.</div>
  <div class="divider"></div><div class="sectiontitle">Camera parallax</div><div class="field"><label>Parallax depth · 0 = fixed, 1 = normal</label><input id="p_parallax" type="number" min="0" max="2" step="0.05" value="${Number(o.parallax??1).toFixed(2)}"></div><div class="smallmuted">Lower values move less than the camera; higher values move more. Animate this value with keyframes for layered depth.</div>
@@ -690,7 +683,7 @@ function renderInspector(){const o=selected(),box=$('inspector');if(cameraMode){
  $('p_blur').onchange=e=>{setProperty('blur',Math.max(0,Math.min(30,Number(e.target.value)||0)))};
  $('p_glow').onchange=e=>{setProperty('glow',Math.max(0,Math.min(40,Number(e.target.value)||0)))};
  $('p_color').oninput=e=>{o.color=e.target.value;draw()};$('p_color').onchange=()=>renderAll();$('p_blendMode').onchange=e=>{o.blendMode=e.target.value;renderAll()};if(o.type==='audio'){$('p_audioStart').onchange=e=>{o.audioStartFrame=Math.max(0,Math.min(MAX,Number(e.target.value)||0));o.inFrame=o.audioStartFrame;renderAll()};$('p_volume').oninput=e=>{const value=Math.max(0,Math.min(1,Number(e.target.value)));const st=currentState(o);st.volume=value;const key=o.keys.find(k=>k.frame===frame);if(key)key.state=st;else o.keys.push({frame,state:st,easing:easingAt(o,frame)});o.volume=value;const player=createAudioPlayer(o);if(player)player.volume=value};$('p_volume').onchange=()=>renderAll()}if(o.type==='text'){$('p_text').onchange=e=>{o.text=e.target.value;renderAll()};$('p_fontSize').onchange=e=>{setProperty('fontSize',Number(e.target.value))}}
- $('applyParent').onclick=()=>setObjectParent(o,$('p_parent').value||null);$('detachParent').onclick=()=>setObjectParent(o,null);if(o.type==='bone'){$('drawBoneChild').onclick=()=>setTool('bone');$('activateBoneIK').onclick=()=>setTool('ik')}$('applyPivot').onclick=()=>setObjectPivot(o,$('p_pivotX').value,$('p_pivotY').value);$('centerPivot').onclick=()=>setObjectPivot(o,0,0);if(o.type==='path'&&$('togglePathClosed'))$('togglePathClosed').onclick=()=>{const st=currentState(o),next=!(st.pathClosed??o.closed);st.pathClosed=next;const key=o.keys.find(k=>k.frame===frame);if(key)key.state=st;else o.keys.push({frame,state:st,easing:easingAt(o,frame)});o.keys.sort((a,b)=>a.frame-b.frame);renderAll();toast(next?'Path closed and filled':'Path opened')};$('createSymbol').onclick=createSymbolFromSelection;if(o.type==='symbol'&&$('editSymbol'))$('editSymbol').onclick=()=>enterSymbolEdit(o.symbolId,o);if(o.type==='symbol'){
+ $('applyParent').onclick=()=>{const id=$('p_parent').value||null,parent=id&&objects().find(x=>x.id===id);if(o.type==='bone'&&parent?.type==='bone'){if(setObjectParent(o,id,false)){reconnectBoneToParent(o,false);renderAll();toast('Bone connected to parent joint')}}else setObjectParent(o,id)};$('detachParent').onclick=()=>setObjectParent(o,null);if(o.type==='bone'){$('drawBoneChild').onclick=()=>setTool('bone');$('activateBoneIK').onclick=()=>setTool('ik');$('reconnectBoneJoint').onclick=()=>{if(reconnectBoneToParent(o))toast('Bone joint reconnected')}}$('applyPivot').onclick=()=>setObjectPivot(o,$('p_pivotX').value,$('p_pivotY').value);$('centerPivot').onclick=()=>setObjectPivot(o,0,0);if(o.type==='path'&&$('togglePathClosed'))$('togglePathClosed').onclick=()=>{const st=currentState(o),next=!(st.pathClosed??o.closed);st.pathClosed=next;const key=o.keys.find(k=>k.frame===frame);if(key)key.state=st;else o.keys.push({frame,state:st,easing:easingAt(o,frame)});o.keys.sort((a,b)=>a.frame-b.frame);renderAll();toast(next?'Path closed and filled':'Path opened')};$('createSymbol').onclick=createSymbolFromSelection;if(o.type==='symbol'&&$('editSymbol'))$('editSymbol').onclick=()=>enterSymbolEdit(o.symbolId,o);if(o.type==='symbol'){
  $('swapSymbol').onclick=()=>swapSymbolInstance(o,$('p_swapSymbol').value);
  $('duplicateSymbolDef').onclick=()=>duplicateSymbolDefinition(o);
  $('p_clipSpeed').onchange=e=>{o.playbackSpeed=Math.max(.1,Math.min(4,Number(e.target.value)||1));renderAll()};
@@ -1021,37 +1014,114 @@ function writeBoneState(bone,patch){
  if(key)key.state=st;else bone.keys.push({frame,state:st,easing:easingAt(bone,frame)});
  bone.keys.sort((a,b)=>a.frame-b.frame);Object.assign(bone,st);
 }
+function getBoneChain(bone,siblings=objects()){
+ if(!bone||bone.type!=='bone')return [];
+ const chain=[];let current=bone;const seen=new Set();
+ while(current&&current.type==='bone'&&!seen.has(current.id)){
+  seen.add(current.id);chain.unshift(current);
+  const parent=current.parentId?siblings.find(item=>item.id===current.parentId):null;
+  current=parent?.type==='bone'?parent:null;
+ }
+ return chain;
+}
+function reconnectBoneToParent(bone,shouldRender=true){
+ const siblings=objects(),parent=bone?.parentId?siblings.find(item=>item.id===bone.parentId):null;
+ if(!bone||bone.type!=='bone'||parent?.type!=='bone')return false;
+ const frames=[...new Set([frame,...(bone.keys||[]).map(key=>key.frame),...(parent.keys||[]).map(key=>key.frame)])].sort((a,b)=>a-b);
+ for(const f of frames){
+  const state=stateAt(bone,f),parentState=stateAt(parent,f);
+  state.x=Math.max(1,Number(parentState.width??parent.width)||1);state.y=0;
+  const key=(bone.keys||[]).find(item=>item.frame===f);
+  if(key)key.state=state;else bone.keys.push({frame:f,state,easing:easingAt(bone,f)});
+ }
+ bone.keys.sort((a,b)=>a.frame-b.frame);Object.assign(bone,stateAt(bone,frame));
+ if(shouldRender)renderAll();
+ return true;
+}
+function boneChainPose(bones,f=frame,siblings=objects()){
+ if(!bones.length)return {points:[],lengths:[]};
+ const rootMatrix=objectWorldMatrix(bones[0],f,siblings),points=[{x:rootMatrix.e,y:rootMatrix.f}],lengths=[];
+ for(const bone of bones){
+  const matrix=objectWorldMatrix(bone,f,siblings),state=stateAt(bone,f);
+  const length=Math.max(1,Number(state.width??bone.width)||1)*Math.hypot(matrix.a,matrix.b);
+  const angle=Math.atan2(matrix.b,matrix.a),start=points[points.length-1];
+  lengths.push(length);
+  points.push({x:start.x+Math.cos(angle)*length,y:start.y+Math.sin(angle)*length});
+ }
+ return {points,lengths};
+}
 function findIKChainAt(point){
+ const siblings=objects(),all=siblings.filter(item=>item.type==='bone');
+ const terminal=all.filter(bone=>!all.some(child=>child.parentId===bone.id));
+ const candidates=(terminal.length?terminal:all).filter(bone=>bone.visible!==false&&frame>=(bone.inFrame??0)&&frame<=(bone.outFrame??MAX));
  let best=null,bestDistance=Infinity;
- const all=objects().filter(o=>o.type==='bone'&&o.visible!==false&&frame>=(o.inFrame??0)&&frame<=(o.outFrame??MAX));
- for(const lower of all){
-  const upper=all.find(o=>o.id===lower.parentId);if(!upper||upper.type!=='bone')continue;
-  const tip=boneTipWorld(lower),distance=Math.hypot(point.x-tip.x,point.y-tip.y);
-  if(distance<bestDistance){bestDistance=distance;best={root:upper,child:lower,tip}}
+ for(const leaf of candidates){
+  const tip=boneTipWorld(leaf),distance=Math.hypot(point.x-tip.x,point.y-tip.y);
+  if(distance<bestDistance){
+   const bones=getBoneChain(leaf,siblings);
+   if(bones.length){bestDistance=distance;best={bones,leaf,tip}}
+  }
  }
  return bestDistance<=34?best:null;
 }
-function solveTwoBoneIK(root,child,target,bendSign=1){
- const siblings=objects(),rootState=stateAt(root,frame),rootParent=root.parentId?siblings.find(o=>o.id===root.parentId):null;
- const parentMatrix=rootParent?objectWorldMatrix(rootParent,frame,siblings):identityMatrix();
- const parentAngle=Math.atan2(parentMatrix.b,parentMatrix.a);
- const rootMatrix=objectWorldMatrix(root,frame,siblings),start={x:rootMatrix.e,y:rootMatrix.f};
- const rootLength=Math.max(1,Number(rootState.width??root.width)||1)*Math.hypot(rootMatrix.a,rootMatrix.b);
- const currentChild=stateAt(child,frame);writeBoneState(child,{x:Number(rootState.width??root.width)||1,y:0});
- const childMatrix=objectWorldMatrix(child,frame,siblings);
- const lowerLength=Math.max(1,Number(currentChild.width??child.width)||1)*Math.hypot(childMatrix.a,childMatrix.b);
- let dx=target.x-start.x,dy=target.y-start.y,d=Math.hypot(dx,dy);
- if(d<1e-5){dx=1;dy=0;d=1}
- const minReach=Math.abs(rootLength-lowerLength)+.001,maxReach=rootLength+lowerLength-.001;
- const reach=Math.max(minReach,Math.min(maxReach,d)),theta=Math.atan2(dy,dx);
- const cosA=Math.max(-1,Math.min(1,(rootLength*rootLength+reach*reach-lowerLength*lowerLength)/(2*rootLength*reach)));
- const angle1=theta+(bendSign>=0?1:-1)*Math.acos(cosA);
- const elbow={x:start.x+rootLength*Math.cos(angle1),y:start.y+rootLength*Math.sin(angle1)};
- const angle2=Math.atan2(target.y-elbow.y,target.x-elbow.x);
- writeBoneState(root,{rotation:(angle1-parentAngle)*180/Math.PI});
- writeBoneState(child,{x:Number(rootState.width??root.width)||1,y:0,rotation:(angle2-angle1)*180/Math.PI});
+function solveFABRIKPoints(pose,lengths,target,iterations=28){
+ const points=pose.map(point=>({x:point.x,y:point.y})),count=lengths.length;
+ if(!count)return points;
+ const root={...points[0]},total=lengths.reduce((sum,length)=>sum+length,0);
+ let dx=target.x-root.x,dy=target.y-root.y,distance=Math.hypot(dx,dy);
+ if(distance<1e-8){
+  dx=points[count].x-root.x;dy=points[count].y-root.y;distance=Math.hypot(dx,dy);
+  if(distance<1e-8){dx=1;dy=0;distance=1}
+ }
+ const direction={x:dx/distance,y:dy/distance};
+ if(distance>=total-1e-6){
+  points[0]=root;
+  for(let i=0;i<count;i++)points[i+1]={x:points[i].x+direction.x*lengths[i],y:points[i].y+direction.y*lengths[i]};
+  return points;
+ }
+ const requestedTarget={x:target.x,y:target.y};
+ if(Math.hypot(requestedTarget.x-root.x,requestedTarget.y-root.y)<1e-8){
+  requestedTarget.x=root.x+direction.x*.001;requestedTarget.y=root.y+direction.y*.001;
+ }
+ const unit=(x,y,fx,fy)=>{const length=Math.hypot(x,y);return length>1e-9?{x:x/length,y:y/length}:{x:fx,y:fy}};
+ for(let pass=0;pass<iterations;pass++){
+  points[count]={...requestedTarget};
+  for(let i=count-1;i>=0;i--){
+   const fallback=unit(pose[i].x-pose[i+1].x,pose[i].y-pose[i+1].y,1,0);
+   const dir=unit(points[i].x-points[i+1].x,points[i].y-points[i+1].y,fallback.x,fallback.y);
+   points[i]={x:points[i+1].x+dir.x*lengths[i],y:points[i+1].y+dir.y*lengths[i]};
+  }
+  points[0]={...root};
+  for(let i=0;i<count;i++){
+   const fallback=unit(pose[i+1].x-pose[i].x,pose[i+1].y-pose[i].y,1,0);
+   const dir=unit(points[i+1].x-points[i].x,points[i+1].y-points[i].y,fallback.x,fallback.y);
+   points[i+1]={x:points[i].x+dir.x*lengths[i],y:points[i].y+dir.y*lengths[i]};
+  }
+  if(Math.hypot(points[count].x-requestedTarget.x,points[count].y-requestedTarget.y)<.01)break;
+ }
+ return points;
 }
-canvas.addEventListener('pointerdown',e=>{if(cameraMode){const p=rawCanvasPoint(e),c=cameraAt(frame);cameraDrag={start:p,origin:c};canvas.setPointerCapture(e.pointerId);return}const p=canvasPoint(e);if(toolMode==='ik'){const chain=findIKChainAt(p);if(!chain){toast('Click the end joint of a connected two-bone chain');return}const rootMatrix=objectWorldMatrix(chain.root,frame,objects()),start={x:rootMatrix.e,y:rootMatrix.f},elbow=matrixPoint(rootMatrix,Number(stateAt(chain.root,frame).width??chain.root.width)||1,0),dx=chain.tip.x-start.x,dy=chain.tip.y-start.y,cross=dx*(elbow.y-start.y)-dy*(elbow.x-start.x);ikDrag={rootId:chain.root.id,childId:chain.child.id,bendSign:Math.abs(cross)<1e-4?1:Math.sign(cross)};selectOne(chain.child.id);canvas.setPointerCapture(e.pointerId);renderInspector();return}if(toolMode==='pen'){if(!drawing){drawing={mode:'pen',points:[{x:p.x,y:p.y,inX:0,inY:0,outX:0,outY:0}],closed:false};penHandleDrag={index:0}}else{const first=drawing.points[0];if(drawing.points.length>=3&&Math.hypot(p.x-first.x,p.y-first.y)<14){drawing.closed=true;penHandleDrag=null;finishDrawing();return}drawing.points.push({x:p.x,y:p.y,inX:0,inY:0,outX:0,outY:0});penHandleDrag={index:drawing.points.length-1}}canvas.setPointerCapture(e.pointerId);draw();return}if(toolMode==='editPoints'){
+function solveBoneChainIK(dragState,target){
+ const siblings=objects(),bones=dragState.boneIds.map(id=>siblings.find(item=>item.id===id));
+ if(!bones.length||bones.some(bone=>!bone||bone.type!=='bone'))return false;
+ const joints=solveFABRIKPoints(dragState.pose,dragState.lengths,target,32);
+ for(let i=0;i<bones.length;i++){
+  const bone=bones[i],parent=bone.parentId?siblings.find(item=>item.id===bone.parentId):null;
+  if(i>0&&parent?.type==='bone'){
+   const parentState=stateAt(parent,frame);
+   writeBoneState(bone,{x:Number(parentState.width??parent.width)||1,y:0});
+  }
+  const parentMatrix=parent?objectWorldMatrix(parent,frame,siblings):identityMatrix();
+  const parentAngle=Math.atan2(parentMatrix.b,parentMatrix.a);
+  const desiredAngle=Math.atan2(joints[i+1].y-joints[i].y,joints[i+1].x-joints[i].x);
+  let localAngle=desiredAngle-parentAngle;
+  while(localAngle>Math.PI)localAngle-=Math.PI*2;
+  while(localAngle< -Math.PI)localAngle+=Math.PI*2;
+  writeBoneState(bone,{rotation:localAngle*180/Math.PI});
+ }
+ return true;
+}
+canvas.addEventListener('pointerdown',e=>{if(cameraMode){const p=rawCanvasPoint(e),c=cameraAt(frame);cameraDrag={start:p,origin:c};canvas.setPointerCapture(e.pointerId);return}const p=canvasPoint(e);if(toolMode==='ik'){const chain=findIKChainAt(p);if(!chain){toast('Click the end joint of a connected bone chain');return}const pose=boneChainPose(chain.bones);if(!pose.lengths.length){toast('This bone chain has no movable segments');return}ikDrag={boneIds:chain.bones.map(bone=>bone.id),pose:pose.points,lengths:pose.lengths};selectOne(chain.leaf.id);canvas.setPointerCapture(e.pointerId);renderInspector();return}if(toolMode==='pen'){if(!drawing){drawing={mode:'pen',points:[{x:p.x,y:p.y,inX:0,inY:0,outX:0,outY:0}],closed:false};penHandleDrag={index:0}}else{const first=drawing.points[0];if(drawing.points.length>=3&&Math.hypot(p.x-first.x,p.y-first.y)<14){drawing.closed=true;penHandleDrag=null;finishDrawing();return}drawing.points.push({x:p.x,y:p.y,inX:0,inY:0,outX:0,outY:0});penHandleDrag={index:drawing.points.length-1}}canvas.setPointerCapture(e.pointerId);draw();return}if(toolMode==='editPoints'){
  let o=selected();if(!o||o.type!=='path'){o=[...objects()].reverse().find(x=>x.type==='path'&&hit(x,p.x,p.y));if(o){selectOne(o.id);renderAll()}}
  if(!o||o.type!=='path'){toast('Select a pencil, line or Pen path first');return}
  const st=currentState(o),pts=(st.points||o.points||[]),world=objectWorldMatrix(o,frame,objects()),threshold=15/Math.max(.1,st.scale);
@@ -1070,11 +1140,11 @@ canvas.addEventListener('pointerdown',e=>{if(cameraMode){const p=rawCanvasPoint(
 }if(['pencil','line','rect','circle','bone'].includes(toolMode)){let start=p,parentId=null;if(toolMode==='bone'&&selected()?.type==='bone'){const parent=selected();start=boneTipWorld(parent);parentId=parent.id}drawing={mode:toolMode,points:[start,p],parentId};canvas.setPointerCapture(e.pointerId);draw();return}
  if(selectedIds.length===1){const chosen=selected(),state=chosen&&stateAt(chosen,frame);if(chosen&&state&&chosen.type!=='audio'&&!chosen.locked){const world=objectWorldMatrix(chosen,frame,objects()),local=matrixPoint(invertMatrix(world),p.x,p.y),w=state.width??chosen.width,h=state.height??chosen.height;if(Math.hypot(local.x-w/2-5,local.y-h/2-5)<13/Math.max(.1,state.scale)){transformDrag={mode:'scale',id:chosen.id};canvas.setPointerCapture(e.pointerId);return}if(Math.hypot(local.x,local.y+h/2+30)<13/Math.max(.1,state.scale)){const parent=chosen.parentId&&objects().find(x=>x.id===chosen.parentId),pm=parent?objectWorldMatrix(parent,frame,objects()):identityMatrix(),pp=matrixPoint(invertMatrix(pm),p.x,p.y);transformDrag={mode:'rotate',id:chosen.id,startAngle:Math.atan2(pp.y-state.y,pp.x-state.x),startRotation:state.rotation};canvas.setPointerCapture(e.pointerId);return}}}
  const o=[...objects()].reverse().find(o=>hit(o,p.x,p.y));if(o){let members=o.groupId?objects().filter(x=>x.groupId===o.groupId).map(x=>x.id):[o.id];if(e.ctrlKey||e.metaKey||e.shiftKey){const set=new Set(selectedIds);if(members.every(id=>set.has(id)))members.forEach(id=>set.delete(id));else members.forEach(id=>set.add(id));selectedIds=[...set];selectedId=selectedIds.includes(o.id)?o.id:(selectedIds[0]||null)}else{selectedIds=members;selectedId=o.id}const items=selectedIds.includes(o.id)?selectedObjects():[];const selectedSet=new Set(selectedIds),dragItems=items.filter(item=>!selectedAncestor(item,selectedSet,objects()));drag=dragItems.length?{items:dragItems.map(item=>{const center=objectWorldCenter(item,frame,objects());return {id:item.id,dx:p.x-center.x,dy:p.y-center.y}})}:null;canvas.setPointerCapture(e.pointerId);renderAll()}else if(!(e.ctrlKey||e.metaKey||e.shiftKey)){selectOne(null);drag=null;renderAll()}});
-canvas.addEventListener('pointermove',e=>{if(penHandleDrag&&drawing?.mode==='pen'){const p=canvasPoint(e),anchor=drawing.points[penHandleDrag.index],dx=p.x-anchor.x,dy=p.y-anchor.y;anchor.outX=dx;anchor.outY=dy;anchor.inX=-dx;anchor.inY=-dy;draw();return}if(ikDrag){const root=objects().find(o=>o.id===ikDrag.rootId),child=objects().find(o=>o.id===ikDrag.childId);if(root&&child)solveTwoBoneIK(root,child,canvasPoint(e),ikDrag.bendSign);draw();updatePlayhead();return}if(transformDrag){const o=objects().find(x=>x.id===transformDrag.id);if(!o){transformDrag=null;return}const p=canvasPoint(e),st=currentState(o);if(transformDrag.mode==='scale'){const local=matrixPoint(invertMatrix(objectWorldMatrix(o,frame,objects())),p.x,p.y);st.width=Math.max(8,Math.abs(local.x)*2);st.height=Math.max(8,Math.abs(local.y)*2)}else{const parent=o.parentId&&objects().find(x=>x.id===o.parentId),pm=parent?objectWorldMatrix(parent,frame,objects()):identityMatrix(),pp=matrixPoint(invertMatrix(pm),p.x,p.y),angle=Math.atan2(pp.y-st.y,pp.x-st.x);let delta=angle-transformDrag.startAngle;while(delta>Math.PI)delta-=Math.PI*2;while(delta< -Math.PI)delta+=Math.PI*2;st.rotation=transformDrag.startRotation+delta*180/Math.PI}const k=o.keys.find(k=>k.frame===frame);if(k)k.state=st;else o.keys.push({frame,state:st,easing:easingAt(o,frame)});Object.assign(o,st);draw();renderInspector();updatePlayhead();return}if(cameraDrag){const p=rawCanvasPoint(e),c=scene().camera||(scene().camera=defaultCamera());c.x=cameraDrag.origin.x+p.x-cameraDrag.start.x;c.y=cameraDrag.origin.y+p.y-cameraDrag.start.y;saveCameraState();draw();renderInspector();updatePlayhead();return}if(pointDrag){const o=objects().find(x=>x.id===pointDrag.id);if(!o){pointDrag=null;return}const p=canvasPoint(e),st=currentState(o),localPoint=matrixPoint(invertMatrix(objectWorldMatrix(o,frame,objects())),p.x,p.y),pts=(st.points||o.points).map(q=>({...q})),point=pts[pointDrag.index];if(!point){pointDrag=null;return}if(pointDrag.part==='anchor'){point.x=localPoint.x;point.y=localPoint.y}else{const dx=localPoint.x-point.x,dy=localPoint.y-point.y,updated=applyPathHandle(point,pointDrag.part,dx,dy);pts[pointDrag.index]=updated}st.points=pts;const key=o.keys.find(k=>k.frame===frame);if(key)key.state=st;else o.keys.push({frame,state:st,easing:easingAt(o,frame)});draw();updatePlayhead();return}if(drawing){if(drawing.mode==='pen'){draw();return}const p=canvasPoint(e),last=drawing.points[drawing.points.length-1];if(['line','rect','circle','polygon','star','bone'].includes(drawing.mode))drawing.points[1]=p;else if(Math.hypot(p.x-last.x,p.y-last.y)>2)drawing.points.push(p);draw();return}if(!drag)return;const p=canvasPoint(e);for(const item of drag.items){const o=objects().find(o=>o.id===item.id);if(!o||o.locked)continue;setObjectWorldCenter(o,p.x-item.dx,p.y-item.dy,frame,objects())}draw();renderInspector();updatePlayhead()});
+canvas.addEventListener('pointermove',e=>{if(penHandleDrag&&drawing?.mode==='pen'){const p=canvasPoint(e),anchor=drawing.points[penHandleDrag.index],dx=p.x-anchor.x,dy=p.y-anchor.y;anchor.outX=dx;anchor.outY=dy;anchor.inX=-dx;anchor.inY=-dy;draw();return}if(ikDrag){solveBoneChainIK(ikDrag,canvasPoint(e));draw();updatePlayhead();return}if(transformDrag){const o=objects().find(x=>x.id===transformDrag.id);if(!o){transformDrag=null;return}const p=canvasPoint(e),st=currentState(o);if(transformDrag.mode==='scale'){const local=matrixPoint(invertMatrix(objectWorldMatrix(o,frame,objects())),p.x,p.y);st.width=Math.max(8,Math.abs(local.x)*2);st.height=Math.max(8,Math.abs(local.y)*2)}else{const parent=o.parentId&&objects().find(x=>x.id===o.parentId),pm=parent?objectWorldMatrix(parent,frame,objects()):identityMatrix(),pp=matrixPoint(invertMatrix(pm),p.x,p.y),angle=Math.atan2(pp.y-st.y,pp.x-st.x);let delta=angle-transformDrag.startAngle;while(delta>Math.PI)delta-=Math.PI*2;while(delta< -Math.PI)delta+=Math.PI*2;st.rotation=transformDrag.startRotation+delta*180/Math.PI}const k=o.keys.find(k=>k.frame===frame);if(k)k.state=st;else o.keys.push({frame,state:st,easing:easingAt(o,frame)});Object.assign(o,st);draw();renderInspector();updatePlayhead();return}if(cameraDrag){const p=rawCanvasPoint(e),c=scene().camera||(scene().camera=defaultCamera());c.x=cameraDrag.origin.x+p.x-cameraDrag.start.x;c.y=cameraDrag.origin.y+p.y-cameraDrag.start.y;saveCameraState();draw();renderInspector();updatePlayhead();return}if(pointDrag){const o=objects().find(x=>x.id===pointDrag.id);if(!o){pointDrag=null;return}const p=canvasPoint(e),st=currentState(o),localPoint=matrixPoint(invertMatrix(objectWorldMatrix(o,frame,objects())),p.x,p.y),pts=(st.points||o.points).map(q=>({...q})),point=pts[pointDrag.index];if(!point){pointDrag=null;return}if(pointDrag.part==='anchor'){point.x=localPoint.x;point.y=localPoint.y}else{const dx=localPoint.x-point.x,dy=localPoint.y-point.y,updated=applyPathHandle(point,pointDrag.part,dx,dy);pts[pointDrag.index]=updated}st.points=pts;const key=o.keys.find(k=>k.frame===frame);if(key)key.state=st;else o.keys.push({frame,state:st,easing:easingAt(o,frame)});draw();updatePlayhead();return}if(drawing){if(drawing.mode==='pen'){draw();return}const p=canvasPoint(e),last=drawing.points[drawing.points.length-1];if(['line','rect','circle','polygon','star','bone'].includes(drawing.mode))drawing.points[1]=p;else if(Math.hypot(p.x-last.x,p.y-last.y)>2)drawing.points.push(p);draw();return}if(!drag)return;const p=canvasPoint(e);for(const item of drag.items){const o=objects().find(o=>o.id===item.id);if(!o||o.locked)continue;setObjectWorldCenter(o,p.x-item.dx,p.y-item.dy,frame,objects())}draw();renderInspector();updatePlayhead()});
 function finishDrawing(){if(!drawing)return;const d=drawing;drawing=null;if(d.points.length<2){draw();return}if(d.mode==='pen'){if(d.points.length<2){draw();return}const xs=d.points.map(p=>p.x),ys=d.points.map(p=>p.y),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),cx=(minX+maxX)/2,cy=(minY+maxY)/2,pts=d.points.map(p=>({...p,x:p.x-cx,y:p.y-cy}));makeObject('path',{name:'Pen path',x:cx,y:cy,width:Math.max(16,maxX-minX),height:Math.max(16,maxY-minY),points:pts,closed:!!d.closed,strokeWidth:5,color:'#24354a',fillColor:'#f2a65a'});setTool('select');return}if(d.mode==='bone'){const a=d.points[0],b=d.points[1],parent=d.parentId&&objects().find(o=>o.id===d.parentId);let x=a.x,y=a.y,rotation=0,length=0;if(parent){const localEnd=matrixPoint(invertMatrix(objectWorldMatrix(parent,frame,objects())),b.x,b.y);x=Number(stateAt(parent,frame).width??parent.width)||1;y=0;const dx=localEnd.x-x,dy=localEnd.y-y;length=Math.hypot(dx,dy);rotation=Math.atan2(dy,dx)*180/Math.PI}else{const dx=b.x-a.x,dy=b.y-a.y;length=Math.hypot(dx,dy);rotation=Math.atan2(dy,dx)*180/Math.PI}if(length<8){toast('Bone is too short');setTool('select');draw();return}const number=objects().filter(o=>o.type==='bone').length+1;makeObject('bone',{name:'Bone '+number,x,y,width:length,height:18,rotation,parentId:parent?parent.id:null,pivotX:0,pivotY:0,color:'#e4b45e'});setTool('select');toast(parent?'Child bone added':'Root bone added');return}const xs=d.points.map(p=>p.x),ys=d.points.map(p=>p.y),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),cx=(minX+maxX)/2,cy=(minY+maxY)/2;if(d.mode==='rect'){makeObject('rect',{name:'Rectangle',x:cx,y:cy,width:Math.max(4,maxX-minX),height:Math.max(4,maxY-minY)})}else if(d.mode==='circle'){const diam=Math.max(4,Math.min(maxX-minX,maxY-minY));makeObject('circle',{name:'Circle',x:cx,y:cy,width:diam,height:diam})}else if(d.mode==='polygon'||d.mode==='star'){const rx=Math.max(4,(maxX-minX)/2),ry=Math.max(4,(maxY-minY)/2),count=d.mode==='star'?10:6,pts=Array.from({length:count},(_,i)=>{const angle=-Math.PI/2+i*Math.PI*2/count,r=d.mode==='star'&&i%2===1?.42:1;return {x:Math.cos(angle)*rx*r,y:Math.sin(angle)*ry*r}});makeObject('path',{name:d.mode==='star'?'Star':'Hexagon',x:cx,y:cy,width:rx*2,height:ry*2,points:pts,closed:true,strokeWidth:4,color:'#e7a84f',fillColor:'#f3b66b'})}else{const pts=d.points.map(p=>({x:p.x-cx,y:p.y-cy}));makeObject('path',{name:d.mode==='line'?'Line':'Pencil stroke',width:Math.max(16,maxX-minX),height:Math.max(16,maxY-minY),x:cx,y:cy,points:pts,strokeWidth:d.mode==='line'?5:8,color:'#24354a'})}setTool('select')}
 canvas.addEventListener('dblclick',e=>{if(drawing?.mode==='pen'){e.preventDefault();penHandleDrag=null;finishDrawing()}});canvas.addEventListener('pointerup',()=>{if(penHandleDrag){penHandleDrag=null;return}if(ikDrag){ikDrag=null;renderAll();return}if(transformDrag){transformDrag=null;renderAll();return}if(cameraDrag){cameraDrag=null;renderAll();return}if(pointDrag){pointDrag=null;renderAll()}if(drag){drag=null;renderAll()}if(drawing&&drawing.mode!=='pen')finishDrawing()});canvas.addEventListener('pointercancel',()=>{cameraDrag=null;pointDrag=null;drag=null;transformDrag=null;ikDrag=null;if(drawing&&drawing.mode!=='pen')finishDrawing();else renderAll()});
 function addShape(type){makeObject(type)}
-function setTool(mode){toolMode=mode;ikDrag=null;const modes={addSelect:'select',addRect:'rect',addCircle:'circle',addPencil:'pencil',addLine:'line',addPolygon:'polygon',addStar:'star',addBone:'bone',ikTool:'ik',addPen:'pen',editPoints:'editPoints'};Object.entries(modes).forEach(([id,m])=>$(id).classList.toggle('active',m===mode));canvas.style.cursor=mode==='select'?'default':'crosshair';if($('stageHint'))$('stageHint').textContent=mode==='editPoints'?'Edit path points · Vector paths morph across keyframes; different point counts are resampled':mode==='bone'?'Bone tool · Drag from a joint to create a connected bone':mode==='ik'?'IK tool · Drag the end joint of a connected two-bone chain':mode==='pen'?'Pen tool · Click to add anchors, drag to set Bézier handles, click the first point to close':'Select and drag objects · Add keyframes to animate'}
+function setTool(mode){toolMode=mode;ikDrag=null;const modes={addSelect:'select',addRect:'rect',addCircle:'circle',addPencil:'pencil',addLine:'line',addPolygon:'polygon',addStar:'star',addBone:'bone',ikTool:'ik',addPen:'pen',editPoints:'editPoints'};Object.entries(modes).forEach(([id,m])=>$(id).classList.toggle('active',m===mode));canvas.style.cursor=mode==='select'?'default':'crosshair';if($('stageHint'))$('stageHint').textContent=mode==='editPoints'?'Edit path points · Vector paths morph across keyframes; different point counts are resampled':mode==='bone'?'Bone tool · Drag from a joint to create a connected bone':mode==='ik'?'IK tool · Drag the end joint of a connected chain (any number of bones)':mode==='pen'?'Pen tool · Click to add anchors, drag to set Bézier handles, click the first point to close':'Select and drag objects · Add keyframes to animate'}
 function moveLayer(direction){const arr=objects(),i=arr.findIndex(o=>o.id===selectedId);if(i<0)return;const j=direction>0?Math.min(arr.length-1,i+1):Math.max(0,i-1);if(i===j)return;[arr[i],arr[j]]=[arr[j],arr[i]];renderAll()}
 $('addSelect').onclick=()=>setTool('select');$('addRect').onclick=()=>setTool(toolMode==='rect'?'select':'rect');$('addCircle').onclick=()=>setTool(toolMode==='circle'?'select':'circle');$('addText').onclick=()=>{setTool('select');makeObject('text',{name:'Text layer'})};$('uploadImage').onclick=()=>$('imageInput').click();$('addPencil').onclick=()=>setTool(toolMode==='pencil'?'select':'pencil');$('addPen').onclick=()=>setTool(toolMode==='pen'?'select':'pen');$('editPoints').onclick=()=>setTool(toolMode==='editPoints'?'select':'editPoints');$('addLine').onclick=()=>setTool(toolMode==='line'?'select':'line');$('addPolygon').onclick=()=>setTool(toolMode==='polygon'?'select':'polygon');$('addStar').onclick=()=>setTool(toolMode==='star'?'select':'star');$('addBone').onclick=()=>setTool(toolMode==='bone'?'select':'bone');$('ikTool').onclick=()=>setTool(toolMode==='ik'?'select':'ik');
 $('imageInput').onchange=e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{const dataUrl=reader.result,img=new Image();img.onload=()=>{const scale=Math.min(520/img.width,420/img.height,1);makeObject('image',{name:file.name,width:img.width*scale,height:img.height*scale,src:file.name,img,dataUrl})};img.onerror=()=>toast('Image could not be loaded');img.src=dataUrl};reader.onerror=()=>toast('Image could not be read');reader.readAsDataURL(file);e.target.value=''};
