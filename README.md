@@ -1,6 +1,6 @@
 # Geed Hardwin — 2D Animation Studio
 
-**Editor v1.20** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
+**Editor v1.21** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
 
 ## Công cụ hiện có
 
@@ -21,7 +21,7 @@
 - Graphic Symbol Frame Picker: chọn frame nội bộ của Symbol tại một frame trên timeline chính, tạo keyframe riêng để đổi hình miệng, mắt, tay hoặc tư thế; các Frame Picker keys có marker riêng trên timeline và được lưu trong project.
 - Swap Symbol / Symbol Variants v1.9: thay Graphic Symbol của một instance mà vẫn giữ vị trí, tỷ lệ, góc xoay và các keyframe trên timeline; nhân bản định nghĩa Symbol thành một biến thể độc lập để tạo phiên bản nhân vật/biểu cảm mà không sửa bản gốc.
 - Mask layer: chọn nhiều layer, dùng Rectangle/Circle/Pencil path làm mask cho các layer khác; có thể gỡ liên kết mask.
-- Exposure Sheet / Cel Animation: bảng ô hình theo từng layer, xem 48 frame mỗi trang; Insert Keyframe, Blank Keyframe, Hold +1, Duplicate Cel; kéo mép đầu/cuối của cel để rút ngắn hoặc kéo dài exposure theo từng frame; Shift-click chọn vùng chữ nhật nhiều layer và nhiều frame; Copy range / Paste range sao chép đồng thời nhiều layer, giữ trạng thái từng frame và không ghi đè cel nguồn. Thay đổi thời lượng cel được lưu trong project và hỗ trợ Undo/Redo.
+- Exposure Sheet / Cel Animation: bảng ô hình theo từng layer, xem 48 frame mỗi trang; Insert Keyframe, Blank Keyframe, Hold +1, Duplicate Cel; kéo mép đầu/cuối của cel để rút ngắn hoặc kéo dài exposure theo từng frame; Shift-click chọn vùng chữ nhật nhiều layer và nhiều frame; Copy range / Paste range sao chép đồng thời nhiều layer, giữ trạng thái từng frame và không ghi đè cel nguồn. Thay đổi thời lượng cel được lưu trong project và hỗ trợ Undo/Redo. Work Area riêng theo từng cảnh cho phép đặt In/Out tại playhead, tô dấu vùng trong Exposure Sheet/Timeline và giới hạn preview playback theo vùng; Loop On lặp trong vùng, Loop Off dừng ở cuối vùng. Clear khôi phục toàn bộ timeline. Work Area tương thích ngược với project cũ và được lưu trong project.
 - Chế độ Frame-by-frame: vẽ tại frame hiện tại; đối tượng mới được phơi sáng đúng một frame; có nút đi từng frame và Duplicate artwork → next frame để sao chép toàn bộ artwork đang hiện sang frame kế tiếp, giữ liên kết nhóm/mask và dữ liệu ảnh.
 - Path point editor: kéo các điểm vector trực tiếp trên sân khấu.
 - Vector Path Morph: nội suy các đường vector ở hai keyframe kể cả khi số điểm khác nhau; đường được lấy mẫu lại tối đa 96 điểm. Có thể đóng/mở path và tô màu vùng khép kín.
@@ -129,3 +129,9 @@ Bản AI Bridge nằm trong Geed Hardwin v1.12. Bộ công cụ cục bộ cho h
 
 - **Draggable Cel Exposure:** kéo mép trái/phải của cel trong Exposure Sheet để thay đổi frame bắt đầu/kết thúc; thao tác snap theo từng frame, giới hạn trong timeline và hỗ trợ Undo/Redo + autosave.
 - **Advanced Onion Skin:** số frame trước/sau độc lập 0–5, opacity độc lập, màu phân biệt trước/sau và chế độ chỉ hiển thị layer được chọn; chỉ xuất hiện trong preview, không ảnh hưởng render/export.
+
+
+## Cập nhật v1.21
+
+- **Work Area / Playback Range:** đặt điểm In/Out theo playhead, hiển thị vùng làm việc trên Exposure Sheet và Timeline, phát preview giới hạn trong vùng, Loop On lặp lại từ In và Loop Off dừng tại Out.
+- Work Area được lưu riêng theo từng scene, theo dõi khi đổi FPS/thời lượng timeline, hỗ trợ project cũ không có trường này; Clear dùng toàn bộ timeline. Không cắt bỏ hoặc thay đổi nội dung layer nằm ngoài Work Area và không giới hạn phạm vi Export.
