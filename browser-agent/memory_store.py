@@ -76,7 +76,7 @@ class MemoryStore:
         if clauses:
             sql += " AND (" + " OR ".join(clauses) + ")"
         sql += " ORDER BY id DESC LIMIT ?"
-        params.append(str(max(1, min(10, limit))))
+        params.append(max(1, min(10, limit)))
         with self._connect() as db:
             rows = db.execute(sql, params).fetchall()
         return [dict(row) for row in rows]
