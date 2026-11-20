@@ -175,6 +175,15 @@ async def status():
 def _requires_approval(task: str) -> bool:
     return any(re.search(pattern, task, flags=re.IGNORECASE) for pattern in APPROVAL_PATTERNS)
 
+SENSITIVE_INPUT_PATTERNS = [
+    r"(?i)\\b(api[_ -]?key|password|passwd|secret|access[_ -]?token|refresh[_ -]?token)\\s*[:=]\\s*[^\\s,;]+",
+    r"(?i)\\b(my password is|my api key is|mật khẩu của tôi là|api key của tôi là)\\s+[^\\s,;]+",
+]
+
+
+def _contains_secret(task: str) -> bool:
+    return any(re.search(pattern, task) for pattern in SENSITIVE_INPUT_PATTERNS)
+
 
 def _purge_expired_approvals() -> None:
     now = time.time()
@@ -189,6 +198,8 @@ async def run_task(body: TaskRequest):
     thread_id = body.thread_id.strip()
     if len(task) < 3:
         raise HTTPException(status_code=400, detail="Please enter a task.")
+    if _contains_secret(task):
+        raise HTTPException(status_code=400, detail="Do not enter passwords, API keys, tokens, or other credentials. The agent does not handle secrets.")
     if not ALLOWED_DOMAINS:
         raise HTTPException(status_code=503, detail="No browser domains are allowed. Configure GEED_ALLOWED_DOMAINS first.")
 
