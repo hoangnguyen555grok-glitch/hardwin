@@ -398,16 +398,17 @@ function maskSourceTransform(target,mask,f,siblings,baseTransform){
  const targetParent=target.parentId&&siblings.find(layer=>layer.id===target.parentId),maskParent=mask.parentId&&siblings.find(layer=>layer.id===mask.parentId);
  const targetParentMatrix=targetParent?objectWorldMatrix(targetParent,f,siblings):identityMatrix();
  const maskParentMatrix=maskParent?objectWorldMatrix(maskParent,f,siblings):identityMatrix();
- let result=multiplyMatrix(baseTransform,multiplyMatrix(invertMatrix(targetParentMatrix),maskParentMatrix));
+ const inverseTargetParent=invertMatrix(targetParentMatrix);
+ let relation=multiplyMatrix(inverseTargetParent,maskParentMatrix);
  if(!symbolEditId&&siblings===objects()){
   const rootOf=(layer)=>{let root=layer,guard=new Set();while(root.parentId&&!guard.has(root.id)){guard.add(root.id);const parent=siblings.find(item=>item.id===root.parentId);if(!parent)break;root=parent}return root};
   const targetRoot=rootOf(target),maskRoot=rootOf(mask),targetFactor=Math.max(0,Math.min(2,Number(stateAt(targetRoot,f).parallax??targetRoot.parallax??1))),maskFactor=Math.max(0,Math.min(2,Number(stateAt(maskRoot,f).parallax??maskRoot.parallax??1))),delta=maskFactor-targetFactor;
   if(Math.abs(delta)>1e-6){
    const camera=cameraAt(f),rad=camera.rotation*Math.PI/180,dx=camera.x*delta,dy=camera.y*delta,z=Math.max(.1,camera.zoom),x=(dx*Math.cos(rad)-dy*Math.sin(rad))/z,y=(dx*Math.sin(rad)+dy*Math.cos(rad))/z;
-   result=multiplyMatrix(result,{a:1,b:0,c:0,d:1,e:x,f:y});
+   relation=multiplyMatrix(inverseTargetParent,multiplyMatrix({a:1,b:0,c:0,d:1,e:x,f:y},maskParentMatrix));
   }
  }
- return result;
+ return multiplyMatrix(baseTransform,relation);
 }
 function drawObjectWithMasks(o,f,editing,ghostAlpha,stateOverride,depth,siblings,entries,maskSource,maskGuard){
  const base=ctx,transform=base.getTransform(),contentSurface=acquireMaskSurface(),content=contentSurface.canvas,contentCtx=contentSurface.context;
