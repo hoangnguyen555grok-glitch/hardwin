@@ -267,13 +267,35 @@ async def list_memory():
     }
 
 
+async def _clear_workflow_checkpoints() -> int:
+    checkpointer = app.state.checkpointer
+    try:
+        async with checkpointer.conn.execute(
+            "SELECT DISTINCT thread_id FROM checkpoints"
+        ) as cursor:
+            rows = await cursor.fetchall()
+    except Exception:
+        # A brand-new database may not have checkpoint tables yet.
+        return 0
+    removed = 0
+    for row in rows:
+        await checkpointer.adelete_thread(str(row[0]))
+        removed += 1
+    return removed
+
+
 @app.delete("/api/memory")
 async def clear_memory(request: Request):
     origin = request.headers.get("origin")
     if origin and origin not in {"http://127.0.0.1:8765", "http://localhost:8765"}:
         raise HTTPException(status_code=403, detail="Origin not allowed.")
     removed = await asyncio.to_thread(app.state.memory.clear)
-    return {"ok": True, "removed": removed}
+    checkpoints_removed = await _clear_workflow_checkpoints()
+    return {
+        "ok": True,
+        "removed": removed,
+        "checkpoints_removed": checkpoints_removed,
+    }
 
 
 PAGE = r'''<!doctype html>
@@ -355,7 +377,7 @@ form.addEventListener('submit',async e=>{
 });
 document.querySelector('#clearMemory').addEventListener('click',async()=>{
  if(!window.confirm('Xóa toàn bộ trí nhớ và lịch sử tác vụ đã lưu trên máy này?'))return;
- try{const r=await fetch('/api/memory',{method:'DELETE'});const data=await r.json();add('Đã xóa '+data.removed+' bản ghi bộ nhớ cục bộ.','agent');refresh()}
+ try{const r=await fetch('/api/memory',{method:'DELETE'});const data=await r.json();add('Đã xóa '+data.removed+' bản ghi bộ nhớ và '+data.checkpoints_removed+' checkpoint quy trình.','agent');refresh()}
  catch(err){add('Không xóa được bộ nhớ: '+err,'agent')}
 });
 refresh();setInterval(refresh,8000);
