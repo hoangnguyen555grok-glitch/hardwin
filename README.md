@@ -156,3 +156,13 @@ Bản AI Bridge nằm trong Geed Hardwin v1.12. Bộ công cụ cục bộ cho h
 - **Anchor editing:** click đoạn path để chèn anchor bằng chia Bézier chính xác (de Casteljau); thêm anchor theo đoạn dài nhất, xóa anchor được chọn (giữ tối thiểu 2 điểm cho path mở / 3 điểm cho path đóng); chỉnh X/Y và In/Out offsets bằng số.
 - **Curve-aware Morph:** resample theo độ dài cung của đường Bézier thay vì nối thẳng các anchor; closed paths tự căn pha điểm bắt đầu và chiều đi, open paths tự chọn chiều tương ứng; số điểm khác nhau được chuẩn hóa tối đa 96 anchor.
 - **Animated path closure:** trạng thái Open/Closed được lưu cùng keyframe path để thay đổi hình dạng theo timeline. Project cũ tiếp tục tương thích vì `pathClosed` có giá trị mặc định từ `closed`.
+
+
+## Cập nhật v1.28
+
+- **Image Editor:** mở trình chỉnh sửa raster trực tiếp từ Inspector của một layer ảnh; không cần rời Geed Hardwin.
+- **Crop Tool:** kéo vùng cắt tự do hoặc chọn tỷ lệ Original, 1:1, 4:3, 16:9 và 9:16; có Reset crop để quay lại toàn bộ ảnh trước khi áp dụng.
+- **Pixel Eraser:** dùng cọ tròn để xóa pixel thành vùng trong suốt; có thể thay đổi kích thước cọ, Undo/Redo theo từng nét vẽ.
+- **Preserve originals:** Apply tạo một tài nguyên ảnh đã chỉnh sửa mới trong Resource Library, giữ nguyên tài nguyên gốc; kích thước và vị trí layer được hiệu chỉnh theo vùng ảnh đã crop để giữ tâm hiển thị qua các keyframe.
+- **Project persistence:** ảnh đã chỉnh sửa được lưu cùng dữ liệu dự án hiện tại và được khôi phục khi mở lại project.
+- **Giới hạn hiện tại:** Eraser là xóa pixel thủ công, không phải AI inpainting. Xóa vật thể và tự tái tạo nền phía sau cần dịch vụ AI riêng, sẽ tích hợp ở giai đoạn sau.
