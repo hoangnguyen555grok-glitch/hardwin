@@ -22,6 +22,7 @@ from memory_store import MemoryStore
 from workflow import build_workflow
 
 load_dotenv()
+os.environ.setdefault("LANGGRAPH_STRICT_MSGPACK", "true")
 
 APP_URL = os.getenv("GEED_APP_URL", "https://geed-hardwin.vercel.app/")
 CDP_URL = os.getenv("GEED_CDP_URL", "http://127.0.0.1:9222")
@@ -67,7 +68,6 @@ async def run_browser_task(task: str) -> str:
         LLM_MODEL,
         base_url=LLM_BASE_URL,
         api_key=LLM_API_KEY,
-        timeout=120,
     )
     policy = (
         "You are Geed Hardwin's careful browser operator. Work only on domains explicitly "
@@ -83,7 +83,14 @@ async def run_browser_task(task: str) -> str:
     )
     agent = Agent(task=policy, llm=llm, browser=browser)
     result = await agent.run()
-    final_result = result.final_result() if callable(getattr(result, "final_result", None)) else str(result)
+    status = getattr(result, "status", None)
+    error = getattr(result, "error", None)
+    if status == "error" or error:
+        detail = str(error or "Browser Use reported an error")
+        raise RuntimeError(f"Browser task failed ({status or 'error'}): {detail[:1500]}")
+    final_result = result.final_result() if callable(getattr(result, "final_result", None)) else None
+    if not final_result:
+        raise RuntimeError("Browser Use did not return a verifiable final result; the task was not saved as successful.")
     return str(final_result)[:7000]
 
 
