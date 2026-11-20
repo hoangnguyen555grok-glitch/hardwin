@@ -140,7 +140,7 @@ Bản AI Bridge nằm trong Geed Hardwin v1.12. Bộ công cụ cục bộ cho h
 ## Cập nhật v1.22
 
 - **Alpha Mask / Luma Mask:** alpha compositing giữ độ trong suốt của nguồn mask; luma mask dùng luminance (trắng che hoàn toàn, đen trong suốt, xám che một phần). Có thể dùng shape, path, text, image hoặc Symbol làm nguồn mask.
-- **Nested Mask Stack:** mỗi target có thể xếp nhiều mask; một mask cũng có thể mang mask riêng. Hệ thống chặn chu trình tham chiếu; tham chiếu hỏng/thiếu được xử lý theo hướng fail-closed để layer đích không bất ngờ hiện nguyên hình.
+- **Nested Mask Stack:** mỗi target có thể xếp nhiều mask; một mask cũng có thể mang mask riêng. Inspector cho đổi Alpha/Luma từng mục, gỡ từng mask hoặc xóa cả stack. Hệ thống chặn chu trình tham chiếu; tham chiếu hỏng/thiếu được xử lý theo hướng fail-closed để layer đích không bất ngờ hiện nguyên hình.
 - **Parent / Camera integration:** mask source tuân theo transform, opacity, visibility và thời lượng của cây Parent; parallax nguồn mask được tính tương đối với target để giữ đúng vị trí khi camera di chuyển.
 - **Symbol / MovieClip compatibility:** khi đóng gói layer thành MovieClip, các mask dependency được đưa vào timeline nội bộ và giữ liên kết; mask stack cục bộ tiếp tục hoạt động trong Symbol/MovieClip. Duplicate scene, duplicate artwork và Exposure Sheet range paste remap mask references.
 - Legacy `maskId` được phục hồi thành mask kiểu clip tương thích với project cũ. Luma readback có fallback an toàn về alpha khi canvas không thể đọc pixel.
