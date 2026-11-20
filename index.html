@@ -364,7 +364,7 @@ function setObjectMaskStack(o,entries){
  else{delete o.maskStack;delete o.maskId;delete o.maskMode}
 }
 function resolveMaskStack(o,siblings){
- return rawMaskEntries(o).map(entry=>({...entry,source:siblings.find(candidate=>candidate.id===entry.id)})).filter(entry=>entry.source&&entry.source.id!==o.id&&entry.source.visible!==false);
+ return rawMaskEntries(o).map(entry=>({...entry,source:siblings.find(candidate=>candidate.id===entry.id)}));
 }
 function wouldMaskCreateCycle(target,mask,siblings){
  const visit=(current,seen)=>{
@@ -395,7 +395,7 @@ function drawObjectWithMasks(o,f,editing,ghostAlpha,stateOverride,depth,siblings
  try{drawObject({...o,blendMode:'source-over'},f,editing,ghostAlpha,stateOverride,depth,siblings,maskSource,true,guardForContent)}
  finally{ctx=base}
  for(const entry of entries){
-  const mask=entry.source;if(!mask||maskGuard.has(mask.id)||mask.id===o.id)continue;
+  const mask=entry.source;if(!mask||maskGuard.has(mask.id)||mask.id===o.id){contentCtx.save();contentCtx.setTransform(1,0,0,1,0,0);contentCtx.clearRect(0,0,W,H);contentCtx.restore();break;}
   const maskSurface=acquireMaskSurface(),maskCanvas=maskSurface.canvas,maskCtx=maskSurface.context;
   try{
    maskCtx.setTransform(transform);maskCtx.filter=base.filter||'none';
@@ -420,7 +420,7 @@ function drawObjectWithMasks(o,f,editing,ghostAlpha,stateOverride,depth,siblings
 }
 function drawObject(o,f=frame,editing=true,ghostAlpha=1,stateOverride=null,depth=0,siblings=objects(),maskSource=false,skipOwnMasks=false,maskGuard=new Set()){
  if(depth>20||!o)return;
- if(o.type==='audio'||!o.visible||(!maskSource&&(f<(o.inFrame??0)||f>(o.outFrame??MAX))))return;
+ if(o.type==='audio'||!o.visible||f<(o.inFrame??0)||f>(o.outFrame??MAX))return;
  const s=stateOverride||stateAt(o,f),w=s.width??o.width,h=s.height??o.height,px=Number(o.pivotX)||0,py=Number(o.pivotY)||0;
  if(o.isMask&&!maskSource){
   if(editing&&selectedIds.includes(o.id))drawMaskOutline(o,f);
