@@ -1,6 +1,6 @@
 # Geed Hardwin — 2D Animation Studio
 
-**Editor v1.22** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
+**Editor v1.23** · Trình biên tập hoạt hình 2D chạy trực tiếp trên trình duyệt.
 
 ## Công cụ hiện có
 
@@ -23,8 +23,8 @@
 - Advanced Mask v1.22: chọn nguồn mask và layer đích; Alpha Mask dùng độ trong suốt (hỗ trợ hình, chữ, ảnh và Symbol), Luma Mask dùng độ sáng trắng/đen/xám làm mức che; một layer có thể nhận nhiều mask theo stack để tạo mask lồng nhau; hỗ trợ gỡ stack, ngăn vòng tham chiếu và giữ tương thích maskId của project cũ.
 - Exposure Sheet / Cel Animation: bảng ô hình theo từng layer, xem 48 frame mỗi trang; Insert Keyframe, Blank Keyframe, Hold +1, Duplicate Cel; kéo mép đầu/cuối của cel để rút ngắn hoặc kéo dài exposure theo từng frame; Shift-click chọn vùng chữ nhật nhiều layer và nhiều frame; Copy range / Paste range sao chép đồng thời nhiều layer, giữ trạng thái từng frame và không ghi đè cel nguồn. Thay đổi thời lượng cel được lưu trong project và hỗ trợ Undo/Redo. Work Area riêng theo từng cảnh cho phép đặt In/Out tại playhead, tô dấu vùng trong Exposure Sheet/Timeline và giới hạn preview playback theo vùng; Loop On lặp trong vùng, Loop Off dừng ở cuối vùng. Clear khôi phục toàn bộ timeline. Work Area tương thích ngược với project cũ và được lưu trong project.
 - Chế độ Frame-by-frame: vẽ tại frame hiện tại; đối tượng mới được phơi sáng đúng một frame; có nút đi từng frame và Duplicate artwork → next frame để sao chép toàn bộ artwork đang hiện sang frame kế tiếp, giữ liên kết nhóm/mask và dữ liệu ảnh.
-- Path point editor: kéo các điểm vector trực tiếp trên sân khấu.
-- Vector Path Morph: nội suy các đường vector ở hai keyframe kể cả khi số điểm khác nhau; đường được lấy mẫu lại tối đa 96 điểm. Có thể đóng/mở path và tô màu vùng khép kín.
+- Vector / Pen Tool v1.23: tạo path Bézier bằng thao tác click-kéo để đặt tay nắm; Edit path points cho phép kéo riêng anchor, tay nắm In/Out; chế độ Corner, Smooth và Symmetric điều khiển quan hệ hai tay nắm. Click trực tiếp lên đoạn cong để chèn anchor bằng phép chia Bézier de Casteljau, giữ nguyên hình dạng đường cong trước khi chỉnh sửa. Có thể thêm anchor trên đoạn dài nhất, xóa anchor đang chọn, nhập chính xác tọa độ anchor và offset từng tay nắm; đóng/mở path có thể đặt keyframe.
+- Vector Path Morph: nội suy Bézier bằng lấy mẫu theo độ dài cung (tối đa 96 anchor), giữ hướng tiếp tuyến, tự căn điểm bắt đầu/chiều đi cho path đóng và đảo thứ tự path mở khi phù hợp; hỗ trợ hai keyframe có số anchor khác nhau và chuyển trạng thái open/closed theo keyframe. Chưa phải Shape Tween có shape hints/topology constraints như phần mềm chuyên dụng.
 - Motion Tween: keyframe vị trí, kích thước, tỷ lệ, xoay, opacity, cỡ chữ, nét vẽ, hiệu ứng, âm lượng và điểm vector.
 - Easing theo từng keyframe: Linear, Ease In/Out, Cubic, Sine, Smooth Step, Back, Bounce, Elastic và Hold/Step.
 - **Camera Layer v1.3:** camera riêng theo từng cảnh; pan bằng kéo sân khấu, chỉnh zoom/rotation, đặt keyframe, xem keyframe trên timeline, điều hướng và xóa keyframe. Camera được áp dụng khi preview và render video.
@@ -53,7 +53,7 @@
 Geed Hardwin v1.9 đã có nhiều công cụ cốt lõi nhưng chưa phải bản thay thế đầy đủ Adobe Animate hoặc Alight Motion. Các hạng mục lớn còn thiếu hoặc chưa đạt mức chuyên nghiệp gồm:
 
 - Exposure Sheet đã có chọn/copy/paste dải frame nhiều layer, kéo mép cel để đổi thời lượng và Advanced Onion Skin với số frame/opacity/màu trước-sau; vẫn cần drawing layers chuyên dụng và thao tác biên tập cel hàng loạt chuyên sâu hơn.
-- Shape Tween tương đương Adobe với shape hints/topology correspondence vẫn chưa có; Vector Path Morph hiện nội suy đường tự do bằng lấy mẫu lại, chưa morph trực tiếp mọi loại primitive.
+- Shape Tween tương đương Adobe với shape hints/topology correspondence và morph trực tiếp giữa primitive (rectangle/circle/polygon) vẫn chưa có; Vector Path Morph hiện là nội suy Bézier tự do có căn chỉnh topology cơ bản.
 - Symbol/MovieClip hiện có timeline nội bộ, nested playback, chỉnh sửa tại chỗ và Frame Picker; vẫn cần nâng cấp thư viện symbol chuyên sâu, tween lồng nhau, swap sets/trigger nâng cao và quản lý asset.
 - Mask đã có Alpha/Luma, nested mask stack và hỗ trợ nguồn ảnh/chữ/Symbol; các phần còn có thể phát triển thêm gồm feather/blur, invert mask và công cụ chỉnh vùng mask trực quan.
 - Bone Rigging + IK hai xương đã có; vẫn còn thiếu mesh deformation, skin weights, IK nhiều khớp, constraints và công cụ rig tự động.
@@ -144,3 +144,11 @@ Bản AI Bridge nằm trong Geed Hardwin v1.12. Bộ công cụ cục bộ cho h
 - **Parent / Camera integration:** mask source tuân theo transform, opacity, visibility và thời lượng của cây Parent; parallax nguồn mask được tính tương đối với target để giữ đúng vị trí khi camera di chuyển.
 - **Symbol / MovieClip compatibility:** khi đóng gói layer thành MovieClip, các mask dependency được đưa vào timeline nội bộ và giữ liên kết; mask stack cục bộ tiếp tục hoạt động trong Symbol/MovieClip. Duplicate scene, duplicate artwork và Exposure Sheet range paste remap mask references.
 - Legacy `maskId` được phục hồi thành mask kiểu clip tương thích với project cũ. Luma readback có fallback an toàn về alpha khi canvas không thể đọc pixel.
+
+
+## Cập nhật v1.23
+
+- **Bézier editing:** kéo anchor giữ nguyên toàn bộ tay nắm; có thể kéo tay nắm In/Out riêng. Corner cho phép hai phía độc lập, Smooth giữ tiếp tuyến và độ dài tay nắm đối diện, Symmetric phản chiếu hai phía.
+- **Anchor editing:** click đoạn path để chèn anchor bằng chia Bézier chính xác (de Casteljau); thêm anchor theo đoạn dài nhất, xóa anchor được chọn (giữ tối thiểu 2 điểm cho path mở / 3 điểm cho path đóng); chỉnh X/Y và In/Out offsets bằng số.
+- **Curve-aware Morph:** resample theo độ dài cung của đường Bézier thay vì nối thẳng các anchor; closed paths tự căn pha điểm bắt đầu và chiều đi, open paths tự chọn chiều tương ứng; số điểm khác nhau được chuẩn hóa tối đa 96 anchor.
+- **Animated path closure:** trạng thái Open/Closed được lưu cùng keyframe path để thay đổi hình dạng theo timeline. Project cũ tiếp tục tương thích vì `pathClosed` có giá trị mặc định từ `closed`.
