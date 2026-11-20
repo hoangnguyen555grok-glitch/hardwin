@@ -42,3 +42,6 @@ litellm_settings:
   request_timeout: 120
   num_retries: 1
   drop_params: true
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
