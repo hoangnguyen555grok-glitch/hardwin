@@ -22,8 +22,14 @@ if errorlevel 1 (
   exit /b 1
 )
 echo.
-echo Setup complete. Install Ollama separately, then run:
-echo   ollama pull llama3.1:8b
+if not exist ".env" copy ".env.example" ".env" >nul
+if not exist "data" mkdir "data"
+echo Setup complete.
+echo 1. Edit .env and set a private LITELLM_MASTER_KEY.
+echo 2. Install and start Ollama, then run: ollama pull llama3.1:8b
+echo 3. Run start_model_gateway.bat in one terminal.
+echo 4. Run start_opera_debug.bat in another terminal.
+echo 5. Run start_assistant.bat, then open http://127.0.0.1:8765.
 echo.
-echo Next: run start_opera_debug.bat, then start_assistant.bat.
+echo Cloud provider keys are optional; add them to .env to enable automatic fallback.
 pause
