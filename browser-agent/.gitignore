@@ -1,0 +1,8 @@
+# Local AI agent secrets, virtualenv, databases and downloads
+.env
+.venv/
+__pycache__/
+*.py[cod]
+data/
+downloads/
+*.log
