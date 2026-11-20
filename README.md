@@ -173,6 +173,6 @@ Bản AI Bridge trong trình biên tập vẫn giữ bộ lệnh mẫu. Từ v1.
 - **Browser automation foundation:** Browser Use điều khiển Opera qua CDP trên profile tách biệt; danh sách website được phép cấu hình trong `.env`.
 - **Multi-model routing:** LiteLLM có các route cho Ollama, OpenAI, Anthropic và Gemini; cấu hình fallback chuyển tiếp khi provider gặp lỗi hoặc rate limit. Cloud routes chỉ dùng được sau khi người dùng tự thêm API key vào `.env`.
 - **Stateful workflow:** LangGraph điều phối recall → browser task → persist và ghi checkpoint theo thread.
-- **Local memory:** SQLite lưu tóm tắt các tác vụ hoàn thành, khôi phục ngữ cảnh trong cùng phiên và có nút xóa bộ nhớ cục bộ.
+- **Local memory:** SQLite lưu tóm tắt tác vụ thành công, khôi phục ngữ cảnh trong cùng phiên; LangGraph checkpoint tiến trình và nút xóa dọn cả hai kho dữ liệu.
 - **Safety gates:** thao tác xóa/gửi/đăng/mua/thanh toán và một số thay đổi tài khoản yêu cầu xác nhận; dịch vụ chỉ lắng nghe trên loopback. Không đưa API key, mật khẩu, cookie hoặc tunnel token vào GitHub.
 - Vercel tiếp tục lưu trang biên tập tĩnh; browser runtime và model gateway chạy trên máy cục bộ vì một trang tĩnh trên đám mây không thể tự kết nối vào cổng CDP trên máy người dùng.
