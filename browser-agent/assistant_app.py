@@ -176,8 +176,8 @@ def _requires_approval(task: str) -> bool:
     return any(re.search(pattern, task, flags=re.IGNORECASE) for pattern in APPROVAL_PATTERNS)
 
 SENSITIVE_INPUT_PATTERNS = [
-    r"(?i)\\b(api[_ -]?key|password|passwd|secret|access[_ -]?token|refresh[_ -]?token)\\s*[:=]\\s*[^\\s,;]+",
-    r"(?i)\\b(my password is|my api key is|mật khẩu của tôi là|api key của tôi là)\\s+[^\\s,;]+",
+    r"(?i)\b(api[_ -]?key|password|passwd|secret|access[_ -]?token|refresh[_ -]?token)\s*[:=]\s*[^\s,;]+",
+    r"(?i)\b(my password is|my api key is|mật khẩu của tôi là|api key của tôi là)\s+[^\s,;]+",
 ]
 
 
