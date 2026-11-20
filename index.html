@@ -392,7 +392,7 @@ function drawObjectWithMasks(o,f,editing,ghostAlpha,stateOverride,depth,siblings
  try{
  const guardForContent=new Set(maskGuard);guardForContent.add(o.id);
  ctx=contentCtx;
- try{drawObject(o,f,editing,ghostAlpha,stateOverride,depth,siblings,maskSource,true,guardForContent)}
+ try{drawObject({...o,blendMode:'source-over'},f,editing,ghostAlpha,stateOverride,depth,siblings,maskSource,true,guardForContent)}
  finally{ctx=base}
  for(const entry of entries){
   const mask=entry.source;if(!mask||maskGuard.has(mask.id)||mask.id===o.id)continue;
@@ -415,7 +415,7 @@ function drawObjectWithMasks(o,f,editing,ghostAlpha,stateOverride,depth,siblings
    }
   }finally{ctx=base;maskSurface.release()}
  }
- base.save();base.setTransform(1,0,0,1,0,0);base.globalAlpha=1;base.globalCompositeOperation='source-over';base.filter='none';base.drawImage(content,0,0);base.restore();
+ base.save();base.setTransform(1,0,0,1,0,0);base.globalAlpha=1;base.globalCompositeOperation=o.blendMode||'source-over';base.filter='none';base.drawImage(content,0,0);base.restore();
  }finally{ctx=base;contentSurface.release()}
 }
 function drawObject(o,f=frame,editing=true,ghostAlpha=1,stateOverride=null,depth=0,siblings=objects(),maskSource=false,skipOwnMasks=false,maskGuard=new Set()){
