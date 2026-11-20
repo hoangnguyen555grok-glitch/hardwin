@@ -378,33 +378,45 @@ function reconcileMaskFlags(siblings=objects()){
  const used=new Set();siblings.forEach(target=>rawMaskEntries(target).forEach(entry=>used.add(entry.id)));
  siblings.forEach(layer=>{if(used.has(layer.id))layer.isMask=true;else if(layer.isMask)delete layer.isMask});
 }
+const maskSurfacePool=[];let maskSurfaceCursor=0;
+function acquireMaskSurface(){
+ const index=maskSurfaceCursor++;let canvas=maskSurfacePool[index];
+ if(!canvas){canvas=document.createElement('canvas');maskSurfacePool[index]=canvas}
+ if(canvas.width!==W)canvas.width=W;if(canvas.height!==H)canvas.height=H;
+ const context=canvas.getContext('2d');context.setTransform(1,0,0,1,0,0);context.globalAlpha=1;context.globalCompositeOperation='source-over';context.filter='none';context.shadowBlur=0;context.shadowColor='transparent';context.clearRect(0,0,W,H);
+ return {canvas,context,release:()=>{maskSurfaceCursor=Math.max(0,maskSurfaceCursor-1)}};
+}
 function drawObjectWithMasks(o,f,editing,ghostAlpha,stateOverride,depth,siblings,entries,maskSource,maskGuard){
- const base=ctx,transform=base.getTransform(),content=document.createElement('canvas');content.width=W;content.height=H;
- const contentCtx=content.getContext('2d');contentCtx.setTransform(transform);contentCtx.filter=base.filter||'none';
+ const base=ctx,transform=base.getTransform(),contentSurface=acquireMaskSurface(),content=contentSurface.canvas,contentCtx=contentSurface.context;
+ contentCtx.setTransform(transform);contentCtx.filter=base.filter||'none';
+ try{
  const guardForContent=new Set(maskGuard);guardForContent.add(o.id);
  ctx=contentCtx;
  try{drawObject(o,f,editing,ghostAlpha,stateOverride,depth,siblings,maskSource,true,guardForContent)}
  finally{ctx=base}
  for(const entry of entries){
   const mask=entry.source;if(!mask||maskGuard.has(mask.id)||mask.id===o.id)continue;
-  const maskCanvas=document.createElement('canvas');maskCanvas.width=W;maskCanvas.height=H;
-  const maskCtx=maskCanvas.getContext('2d');maskCtx.setTransform(transform);maskCtx.filter=base.filter||'none';
-  const maskState=stateAt(mask,f);if(entry.mode==='clip')maskState.opacity=1;
-  const guardForMask=new Set(guardForContent);
-  ctx=maskCtx;
-  try{drawObject(mask,f,false,ghostAlpha,maskState,depth+1,siblings,true,false,guardForMask)}
-  finally{ctx=base}
-  if(entry.mode==='luma'){
-   try{
-    const pixels=contentCtx.getImageData(0,0,W,H),maskPixels=maskCtx.getImageData(0,0,W,H),data=pixels.data,md=maskPixels.data;
-    for(let i=0;i<data.length;i+=4){const luminance=(.2126*md[i]+.7152*md[i+1]+.0722*md[i+2])/255,coverage=luminance*(md[i+3]/255);data[i+3]=Math.round(data[i+3]*coverage)}
-    contentCtx.putImageData(pixels,0,0);
-   }catch(err){contentCtx.save();contentCtx.setTransform(1,0,0,1,0,0);contentCtx.globalCompositeOperation='destination-in';contentCtx.globalAlpha=1;contentCtx.filter='none';contentCtx.drawImage(maskCanvas,0,0);contentCtx.restore()}
-  }else{
-   contentCtx.save();contentCtx.setTransform(1,0,0,1,0,0);contentCtx.globalCompositeOperation='destination-in';contentCtx.globalAlpha=1;contentCtx.filter='none';contentCtx.drawImage(maskCanvas,0,0);contentCtx.restore();
-  }
+  const maskSurface=acquireMaskSurface(),maskCanvas=maskSurface.canvas,maskCtx=maskSurface.context;
+  try{
+   maskCtx.setTransform(transform);maskCtx.filter=base.filter||'none';
+   const maskState=stateAt(mask,f);if(entry.mode==='clip')maskState.opacity=1;
+   const guardForMask=new Set(guardForContent);
+   ctx=maskCtx;
+   try{drawObject(mask,f,false,ghostAlpha,maskState,depth+1,siblings,true,false,guardForMask)}
+   finally{ctx=base}
+   if(entry.mode==='luma'){
+    try{
+     const pixels=contentCtx.getImageData(0,0,W,H),maskPixels=maskCtx.getImageData(0,0,W,H),data=pixels.data,md=maskPixels.data;
+     for(let i=0;i<data.length;i+=4){const luminance=(.2126*md[i]+.7152*md[i+1]+.0722*md[i+2])/255,coverage=luminance*(md[i+3]/255);data[i+3]=Math.round(data[i+3]*coverage)}
+     contentCtx.putImageData(pixels,0,0);
+    }catch(err){contentCtx.save();contentCtx.setTransform(1,0,0,1,0,0);contentCtx.globalCompositeOperation='destination-in';contentCtx.globalAlpha=1;contentCtx.filter='none';contentCtx.drawImage(maskCanvas,0,0);contentCtx.restore()}
+   }else{
+    contentCtx.save();contentCtx.setTransform(1,0,0,1,0,0);contentCtx.globalCompositeOperation='destination-in';contentCtx.globalAlpha=1;contentCtx.filter='none';contentCtx.drawImage(maskCanvas,0,0);contentCtx.restore();
+   }
+  }finally{ctx=base;maskSurface.release()}
  }
  base.save();base.setTransform(1,0,0,1,0,0);base.globalAlpha=1;base.globalCompositeOperation='source-over';base.filter='none';base.drawImage(content,0,0);base.restore();
+ }finally{ctx=base;contentSurface.release()}
 }
 function drawObject(o,f=frame,editing=true,ghostAlpha=1,stateOverride=null,depth=0,siblings=objects(),maskSource=false,skipOwnMasks=false,maskGuard=new Set()){
  if(depth>20||!o)return;
