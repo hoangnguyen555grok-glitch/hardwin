@@ -1,0 +1,44 @@
+# Geed Hardwin model gateway.
+# This runs locally only (127.0.0.1:4000). Never expose it without authentication.
+#
+# The default model is local Ollama. Configure cloud keys in .env to activate
+# the ordered fallback providers. Change GEED_LLM_MODEL in .env to choose a
+# cloud-first alias after its provider credentials have been added.
+
+model_list:
+  - model_name: geed-agent
+    litellm_params:
+      model: ollama_chat/llama3.1:8b
+      api_base: http://127.0.0.1:11434
+      api_key: ollama
+
+  - model_name: geed-agent-openai
+    litellm_params:
+      model: os.environ/GEED_OPENAI_MODEL
+      api_key: os.environ/OPENAI_API_KEY
+
+  - model_name: geed-agent-anthropic
+    litellm_params:
+      model: os.environ/GEED_ANTHROPIC_MODEL
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  - model_name: geed-agent-gemini
+    litellm_params:
+      model: os.environ/GEED_GEMINI_MODEL
+      api_key: os.environ/GEMINI_API_KEY
+
+router_settings:
+  num_retries: 1
+  allowed_fails: 1
+  cooldown_time: 90
+  max_fallbacks: 3
+  fallbacks:
+    - geed-agent: ["geed-agent-openai", "geed-agent-anthropic", "geed-agent-gemini"]
+    - geed-agent-openai: ["geed-agent-anthropic", "geed-agent-gemini", "geed-agent"]
+    - geed-agent-anthropic: ["geed-agent-gemini", "geed-agent-openai", "geed-agent"]
+    - geed-agent-gemini: ["geed-agent-openai", "geed-agent-anthropic", "geed-agent"]
+
+litellm_settings:
+  request_timeout: 120
+  num_retries: 1
+  drop_params: true
