@@ -1320,6 +1320,74 @@ $('exportVideo').onclick=async()=>{
  renderNext();
 };
 
+function gifLzw(indices,minCodeSize=8){
+ const clear=1<<minCodeSize,end=clear+1;let next=end+1,codeSize=minCodeSize+1;const dictionary=new Map(),bytes=[];let bitBuffer=0,bitCount=0;
+ const emit=code=>{bitBuffer|=code<<bitCount;bitCount+=codeSize;while(bitCount>=8){bytes.push(bitBuffer&255);bitBuffer>>>=8;bitCount-=8}};
+ const reset=()=>{dictionary.clear();next=end+1;codeSize=minCodeSize+1};
+ emit(clear);if(!indices.length){emit(end);if(bitCount)bytes.push(bitBuffer&255);return Uint8Array.from(bytes)}
+ let prefix=indices[0];
+ for(let i=1;i<indices.length;i++){const value=indices[i],key=(prefix<<8)|value,found=dictionary.get(key);if(found!==undefined){prefix=found;continue}emit(prefix);if(next<4096){dictionary.set(key,next++);if(next>(1<<codeSize)&&codeSize<12)codeSize++}else{emit(clear);reset()}prefix=value}
+ emit(prefix);emit(end);if(bitCount)bytes.push(bitBuffer&255);return Uint8Array.from(bytes);
+}
+function gifQuantize(rgba,width,height,quality='balanced'){
+ const count=width*height,indices=new Uint8Array(count);
+ if(quality!=='high'){for(let i=0,p=0;i<count;i++,p+=4)indices[i]=((rgba[p]>>5)<<5)|((rgba[p+1]>>5)<<2)|(rgba[p+2]>>6);return indices}
+ let cr=new Float32Array(width+2),cg=new Float32Array(width+2),cb=new Float32Array(width+2),nr=new Float32Array(width+2),ng=new Float32Array(width+2),nb=new Float32Array(width+2);
+ for(let y=0;y<height;y++){
+  for(let x=0;x<width;x++){
+   const i=y*width+x,p=i*4,r=Math.max(0,Math.min(255,rgba[p]+cr[x+1])),g=Math.max(0,Math.min(255,rgba[p+1]+cg[x+1])),b=Math.max(0,Math.min(255,rgba[p+2]+cb[x+1]));
+   const qr=Math.round(r/255*7)*255/7,qg=Math.round(g/255*7)*255/7,qb=Math.round(b/255*3)*255/3;
+   indices[i]=(Math.round(r/255*7)<<5)|(Math.round(g/255*7)<<2)|Math.round(b/255*3);
+   const er=r-qr,eg=g-qg,eb=b-qb;
+   cr[x+2]+=er*7/16;cg[x+2]+=eg*7/16;cb[x+2]+=eb*7/16;
+   nr[x]+=er*3/16;ng[x]+=eg*3/16;nb[x]+=eb*3/16;
+   nr[x+1]+=er*5/16;ng[x+1]+=eg*5/16;nb[x+1]+=eb*5/16;
+   nr[x+2]+=er/16;ng[x+2]+=eg/16;nb[x+2]+=eb/16;
+  }
+  cr=nr;cg=ng;cb=nb;nr=new Float32Array(width+2);ng=new Float32Array(width+2);nb=new Float32Array(width+2);
+ }
+ return indices;
+}
+function encodeGif(width,height,frames,delayCs=8,quality='balanced'){
+ if(!frames.length)throw new Error('GIF needs at least one frame');
+ if(width>65535||height>65535)throw new Error('GIF dimensions exceed the format limit');
+ const parts=[],push=value=>parts.push(value instanceof Uint8Array?value:Uint8Array.from(value)),u16=n=>[n&255,(n>>>8)&255];
+ push([...new TextEncoder().encode('GIF89a'),...u16(width),...u16(height),0xF7,0,0]);
+ const palette=new Uint8Array(768);
+ for(let i=0;i<256;i++){palette[i*3]=Math.round(((i>>5)&7)*255/7);palette[i*3+1]=Math.round(((i>>2)&7)*255/7);palette[i*3+2]=Math.round((i&3)*255/3)}
+ push(palette);push([0x21,0xff,0x0b,...new TextEncoder().encode('NETSCAPE2.0'),0x03,0x01,0,0,0]);
+ for(const rgba of frames){
+  if(rgba.length!==width*height*4)throw new Error('GIF frame dimensions do not match');
+  const indexed=gifQuantize(rgba,width,height,quality),compressed=gifLzw(indexed,8);
+  push([0x21,0xf9,0x04,0x04,...u16(Math.max(2,Math.min(65535,delayCs))),0,0]);
+  push([0x2c,0,0,0,0,...u16(width),...u16(height),0,8]);
+  for(let offset=0;offset<compressed.length;offset+=255){const chunk=compressed.subarray(offset,Math.min(compressed.length,offset+255));push([chunk.length]);push(chunk)}
+  push([0]);
+ }
+ push([0x3b]);return new Blob(parts,{type:'image/gif'});
+}
+async function exportAnimatedGif(){
+ if(symbolEditId){toast('Finish editing the MovieClip before exporting');return}
+ const scale=exportScale(),fps=Math.max(1,Math.min(24,Number($('exportGifFps').value)||12)),quality=exportQuality(),framesPerScene=Math.ceil((MAX+1)*fps/FPS),total=scenes.length*framesPerScene,surface=exportCanvasSurface(scale),totalPixels=surface.canvas.width*surface.canvas.height*total;
+ if(total>300){toast('GIF is limited to 300 frames · lower GIF FPS or shorten the project');return}
+ if(totalPixels>65000000){toast('GIF is too large at this resolution · choose a lower export resolution');return}
+ const button=$('exportGif'),pngButton=$('exportPngSequence'),videoButton=$('exportVideo'),stillButton=$('exportStill'),oldLabel=button.textContent,frames=[];let done=0;
+ pause();[button,pngButton,videoButton,stillButton].forEach(el=>el.disabled=true);
+ try{
+  toast('Rendering GIF · '+total+' frames…');
+  for(let si=0;si<scenes.length;si++)for(let i=0;i<framesPerScene;i++){
+   const sourceFrame=Math.min(MAX,Math.round(i*(MAX+1)/framesPerScene));
+   renderExportFrame(surface.context,si,sourceFrame,scale,false);
+   frames.push(surface.context.getImageData(0,0,surface.canvas.width,surface.canvas.height).data);
+   done++;button.textContent='GIF '+done+'/'+total;if(done%2===0)await new Promise(resolve=>setTimeout(resolve,0));
+  }
+  const gif=encodeGif(surface.canvas.width,surface.canvas.height,frames,Math.max(2,Math.round(100/fps)),quality);
+  download(gif,'geed-hardwin-animation.gif');toast('Animated GIF exported · '+total+' frames · '+fps+' FPS');
+ }catch(err){console.error(err);toast(err?.message||'GIF export failed')}
+ finally{frames.length=0;button.textContent=oldLabel;[button,pngButton,videoButton,stillButton].forEach(el=>el.disabled=!!symbolEditId);draw();renderInspector()}
+}
+$('exportGif').onclick=exportAnimatedGif;
+
 const ZIP_CRC_TABLE=(()=>{const table=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1);table[n]=c>>>0}return table})();
 function zipCrc32(bytes){let crc=0xffffffff;for(let i=0;i<bytes.length;i++)crc=(crc>>>8)^ZIP_CRC_TABLE[(crc^bytes[i])&255];return (crc^0xffffffff)>>>0}
 function zipStoredBlob(entries){
@@ -1340,40 +1408,29 @@ function zipStoredBlob(entries){
 }
 async function exportPngSequence(){
  if(symbolEditId){toast('Finish editing the MovieClip before exporting the scene sequence');return}
- const totalFrames=scenes.length*(MAX+1),maxFrames=2400,maxBytes=512*1024*1024;
+ const scale=exportScale(),totalFrames=scenes.length*(MAX+1),maxFrames=2400,maxBytes=512*1024*1024;
  if(totalFrames>maxFrames){toast('PNG export is limited to 2,400 frames per ZIP · shorten the timeline or export fewer scenes');return}
- const button=$('exportPngSequence'),videoButton=$('exportVideo'),oldLabel=button.textContent;
- const originalScene=sceneIndex,originalFrame=frame,entries=[];let totalBytes=0,done=0;
- pause();button.disabled=true;videoButton.disabled=true;
+ const button=$('exportPngSequence'),videoButton=$('exportVideo'),stillButton=$('exportStill'),oldLabel=button.textContent,surface=exportCanvasSurface(scale),entries=[];let totalBytes=0,done=0;
+ pause();button.disabled=true;videoButton.disabled=true;stillButton.disabled=true;
  try{
-  toast('Preparing transparent PNG sequence…');
-  for(let si=0;si<scenes.length;si++){
-   sceneIndex=si;
-   for(let f=0;f<=MAX;f++){
-    frame=f;draw(true,true);
-    const png=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
-    if(!png)throw new Error('The browser could not encode a PNG frame');
-    const bytes=new Uint8Array(await png.arrayBuffer()),crc=zipCrc32(bytes);
-    totalBytes+=png.size;if(totalBytes>maxBytes)throw new Error('PNG sequence exceeded the 512 MB safety limit; export fewer frames at a time');
-    const folder='scene-'+String(si+1).padStart(2,'0');
-    entries.push({name:folder+'/frame-'+String(f+1).padStart(6,'0')+'.png',blob:png,size:png.size,crc});
-    done++;button.textContent='PNG '+done+'/'+totalFrames;
-    if(done%4===0)await new Promise(resolve=>setTimeout(resolve,0));
-   }
+  toast('Preparing '+totalFrames+' PNG frames · '+Math.round(scale*100)+'%…');
+  for(let si=0;si<scenes.length;si++)for(let f=0;f<=MAX;f++){
+   renderExportFrame(surface.context,si,f,scale,true);
+   const png=await blobFromCanvas(surface.canvas,'image/png'),bytes=new Uint8Array(await png.arrayBuffer()),crc=zipCrc32(bytes);
+   totalBytes+=png.size;if(totalBytes>maxBytes)throw new Error('PNG sequence exceeded the 512 MB limit; lower resolution or export fewer frames');
+   const folder='scene-'+String(si+1).padStart(2,'0');
+   entries.push({name:folder+'/frame-'+String(f+1).padStart(6,'0')+'.png',blob:png,size:png.size,crc});
+   done++;button.textContent='PNG '+done+'/'+totalFrames;if(done%3===0)await new Promise(resolve=>setTimeout(resolve,0));
   }
-  const manifest={format:'geed-hardwin-png-sequence',version:1,width:W,height:H,fps:FPS,frameCountPerScene:MAX+1,durationSeconds:(MAX+1)/FPS,background:'transparent',scenes:scenes.map((sc,i)=>({folder:'scene-'+String(i+1).padStart(2,'0'),name:sc.name}))};
+  const manifest={format:'geed-hardwin-png-sequence',version:2,width:surface.canvas.width,height:surface.canvas.height,scale,fps:FPS,frameCountPerScene:MAX+1,durationSeconds:(MAX+1)/FPS,background:'transparent',scenes:scenes.map((sc,i)=>({folder:'scene-'+String(i+1).padStart(2,'0'),name:sc.name}))};
   const manifestBlob=new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'}),manifestBytes=new Uint8Array(await manifestBlob.arrayBuffer());
   entries.push({name:'manifest.json',blob:manifestBlob,size:manifestBlob.size,crc:zipCrc32(manifestBytes)});
-  const archive=zipStoredBlob(entries);
-  download(archive,'geed-hardwin-png-sequence.zip');
-  toast('PNG sequence exported · '+done+' transparent frames in ZIP');
+  download(zipStoredBlob(entries),'geed-hardwin-png-sequence.zip');toast('PNG sequence exported · '+done+' transparent frames in ZIP');
  }catch(err){console.error(err);toast(err?.message||'PNG sequence export failed')}
- finally{
-  sceneIndex=originalScene;frame=originalFrame;draw();updatePlayhead();renderInspector();renderTimeline();
-  button.disabled=!!symbolEditId;button.textContent=oldLabel;videoButton.disabled=!!symbolEditId;
- }
+ finally{draw();updatePlayhead();renderInspector();renderTimeline();button.disabled=!!symbolEditId;button.textContent=oldLabel;videoButton.disabled=!!symbolEditId;stillButton.disabled=!!symbolEditId}
 }
 $('exportPngSequence').onclick=exportPngSequence;
+
 
 // Start with one editable title-card object so the canvas is not empty.
 const title=makeObject('text',{name:'Title',text:'My first animation',fontSize:74,color:'#26384f',x:W/2,y:H/2,width:850,height:110});
