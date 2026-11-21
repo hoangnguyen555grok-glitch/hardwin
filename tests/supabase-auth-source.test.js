@@ -79,7 +79,7 @@ test('AI memory requires an explicit remember intent and is not saved by default
   assert.match(html, /aiAgentMemoryRequested=explicitlyAskedToRemember\\(prompt\\)/);
   assert.match(html, /if\\(!aiAgentMemoryRequested\\)/);
   assert.match(html, /<option value="0" selected>Không lưu/);
-  assert.match(authSource, /new Date/ .source); // The memory list formats database timestamps; expiry is set by SQL.
+  assert.match(authSource, /new Date\\(\\)\\.toISOString\\(\\)/);
   assert.doesNotMatch(authSource.slice(authSource.indexOf('async function saveAiMemory'), authSource.indexOf('async function listAiMemories')), /expires_at\\s*:/);
 });
 
