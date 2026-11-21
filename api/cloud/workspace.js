@@ -240,6 +240,52 @@ async function prepareOpen(config, r2, userId, body) {
   };
 }
 
+
+async function prepareDelete(config, r2, userId, body) {
+  const projectKey = String(body.projectKey || '');
+  if (!UUID_RE.test(projectKey)) throw Object.assign(new Error('Invalid project identifier.'), { status: 400 });
+  const path = '/rest/v1/project_metadata?select=local_project_key,cloud_object_key' +
+    '&user_id=eq.' + encodeURIComponent(userId) +
+    '&local_project_key=eq.' + encodeURIComponent(projectKey) +
+    '&cloud_object_key=not.is.null&limit=1';
+  const rows = await supabaseRequest(config, path);
+  const project = Array.isArray(rows) ? rows[0] : null;
+  const expectedKey = objectKeyFor(userId, projectKey);
+  if (!project || project.cloud_object_key !== expectedKey) {
+    throw Object.assign(new Error('Cloud project not found.'), { status: 404, code: 'CLOUD_PROJECT_NOT_FOUND' });
+  }
+  return { deleteUrl: signedUrl(r2, 'DELETE', expectedKey, 120), expiresIn: 120 };
+}
+
+async function confirmDelete(config, r2, userId, body) {
+  const projectKey = String(body.projectKey || '');
+  if (!UUID_RE.test(projectKey)) throw Object.assign(new Error('Invalid project identifier.'), { status: 400 });
+  const key = objectKeyFor(userId, projectKey);
+  const headUrl = signedUrl(r2, 'HEAD', key, 120);
+  const response = await fetch(headUrl, { method: 'HEAD', cache: 'no-store' });
+  if (response.ok) {
+    throw Object.assign(new Error('The cloud object is still present; metadata and quota were not changed.'), {
+      status: 409, code: 'CLOUD_OBJECT_STILL_EXISTS'
+    });
+  }
+  if (response.status !== 404) {
+    throw Object.assign(new Error('Could not verify deletion in cloud storage.'), {
+      status: 503, code: 'CLOUD_DELETE_VERIFICATION_FAILED'
+    });
+  }
+  const result = await callSupabaseRpc({
+    config,
+    functionName: 'geed_delete_cloud_project',
+    payload: { p_user_id: userId, p_local_project_key: projectKey }
+  });
+  if (result !== true) {
+    throw Object.assign(new Error('Cloud project metadata could not be deleted.'), {
+      status: 409, code: 'CLOUD_PROJECT_DELETE_REJECTED'
+    });
+  }
+  return { deleted: true };
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('allow', 'POST');
@@ -267,7 +313,7 @@ module.exports = async function handler(req, res) {
   try {
     body = parseBody(req);
     const action = String(body.action || '');
-    if (!['list', 'prepare-save', 'complete-save', 'prepare-open', 'cancel-save'].includes(action)) {
+    if (!['list', 'prepare-save', 'complete-save', 'prepare-open', 'cancel-save', 'prepare-delete', 'confirm-delete'].includes(action)) {
       return send(res, 400, { error: 'Unsupported cloud workspace action.', code: 'INVALID_ACTION' });
     }
     if (action === 'list') {
@@ -292,6 +338,12 @@ module.exports = async function handler(req, res) {
       code: 'CLOUD_STORAGE_NOT_CONFIGURED'
     });
 
+    if (action === 'prepare-delete') {
+      return send(res, 200, await prepareDelete(config, r2, user.id, body));
+    }
+    if (action === 'confirm-delete') {
+      return send(res, 200, await confirmDelete(config, r2, user.id, body));
+    }
     if (action === 'prepare-save') {
       return send(res, 200, await prepareSave(config, r2, user.id, body));
     }
