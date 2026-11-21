@@ -19,7 +19,7 @@ test('community GIF export uses a single palette and returns an animated GIF Blo
           calls.frames.push({ indexed, w, h, options });
         },
         finish() { calls.finished = true; },
-        bytes() { return new Uint8Array([...'GIF89a'].map(char => char.charCodeAt(0)).concat(new Array(20).fill(0))); }
+        bytes() { return Uint8Array.from([...'GIF89a'].map(char => char.charCodeAt(0)).concat(new Array(20).fill(0))); }
       };
     },
     quantize(sample, maxColors, options) {
