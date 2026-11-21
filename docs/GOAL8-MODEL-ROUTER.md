@@ -15,6 +15,7 @@ The default order is:
 1. **OpenRouter** — model `openrouter/free` or a specific model ending in `:free`. The dynamic `openrouter/free` route selects an eligible free model. Current documented free-model limits are 20 requests/minute and 50 requests/day. The higher daily limit requires buying credits, so this project must not buy credits just to raise the limit.
 2. **Groq Free** — uses the OpenAI-compatible endpoint `https://api.groq.com/openai/v1`. It is included only after the owner explicitly confirms that the account is still on the Free tier with `GEED_AI_GROQ_FREE_TIER_CONFIRMED=true`.
 3. **Cloudflare Workers AI Free** — uses the account-scoped OpenAI-compatible endpoint `https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1`. It is included only when `GEED_AI_CLOUDFLARE_FREE_TIER_CONFIRMED=true` and `GEED_AI_CLOUDFLARE_BASE_URL` is set. The Workers Free plan currently documents 10,000 Neurons/day; model availability and plan eligibility must be checked in the account before enabling it.
+4. **Gemini Developer API Free** — uses the existing native Gemini adapter. It is included only when both `GEED_AI_GEMINI_FREE_TIER_CONFIRMED=true` and `GEED_AI_GEMINI_BILLING_DISABLED=true` are set. The selected model must be shown as Free in Google AI Studio. Keep billing disabled on the API project so quota exhaustion fails instead of crossing into paid usage. Grounding and some model/features have separate charges; do not use them in this free-only route.
 
 Free quotas, eligible models, regional availability, and provider terms can change. A free tier is not unlimited capacity and can be exhausted or rate-limited. The router may move to the next explicitly enabled free provider after a clear provider error or rate-limit response. An ambiguous network timeout stops the chain because the first provider may already have processed the request.
 
@@ -23,7 +24,8 @@ Free quotas, eligible models, regional availability, and provider terms can chan
 - OpenRouter accepts only `openrouter/free` or model IDs ending in `:free` by default. A paid OpenRouter model is rejected by the default eligibility check.
 - Groq is not enabled until its Free-tier confirmation flag is set.
 - Cloudflare is not enabled until its Free-plan confirmation flag and account-specific base URL are both present.
-- Existing direct integrations for OpenAI, Anthropic, Gemini, xAI, DeepSeek, Qwen, and GLM are **disabled by default**. They require the explicit server-side switch `GEED_AI_ALLOW_PAID_PROVIDERS=true`.
+- Gemini has a separate free-only lane requiring both the Free-tier confirmation and disabled-billing flags. If those flags are absent, Gemini is disabled like the other direct-provider integrations.
+- Existing direct integrations for OpenAI, Anthropic, xAI, DeepSeek, Qwen, and GLM are **disabled by default**. They require the explicit server-side switch `GEED_AI_ALLOW_PAID_PROVIDERS=true`.
 - The configured provider order is an allow-list. The router no longer silently appends every configured provider. A provider key being present does not, by itself, authorize it as a fallback.
 - No provider key or confirmation flag is embedded in browser code.
 
@@ -53,9 +55,18 @@ For Cloudflare Workers AI Free:
 | `GEED_AI_CLOUDFLARE_BASE_URL` | `https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1` |
 | `GEED_AI_CLOUDFLARE_FREE_TIER_CONFIRMED` | `true` only after confirming the account is on Workers Free |
 
+For Gemini Developer API Free:
+
+| Variable | Value |
+|---|---|
+| `GEED_AI_GEMINI_API_KEY` | Gemini API key from Google AI Studio's Free-tier project |
+| `GEED_AI_GEMINI_MODEL` | A model explicitly shown as Free in that project |
+| `GEED_AI_GEMINI_FREE_TIER_CONFIRMED` | `true` only after checking the selected model's current Free-tier eligibility |
+| `GEED_AI_GEMINI_BILLING_DISABLED` | `true` only when billing is disabled on the Google API project; required to prevent paid overage |
+
 Common routing controls:
 
-- `GEED_AI_PROVIDER_ORDER`: explicit comma-separated provider allow-list and fallback order. Default: `openrouter,groq,cloudflare`.
+- `GEED_AI_PROVIDER_ORDER`: explicit comma-separated provider allow-list and fallback order. Default: `openrouter,groq,cloudflare,gemini`.
 - `GEED_AI_PROVIDER_ORDER_CODING`, `_REASONING`, `_CREATIVE`, `_GENERAL`: optional task-specific allow-lists.
 - `GEED_AI_TIMEOUT_MS`: request timeout (1,000–60,000 ms).
 - `GEED_AI_MAX_OUTPUT_TOKENS`: server-controlled response ceiling (64–4,096; default 1,200).
@@ -63,7 +74,7 @@ Common routing controls:
 
 Existing direct provider variables remain available only for an owner-approved paid configuration:
 
-- `GEED_AI_ALLOW_PAID_PROVIDERS=true` is required before any direct provider such as OpenAI, Anthropic, Gemini, xAI, DeepSeek, Qwen, or GLM can be selected.
+- `GEED_AI_ALLOW_PAID_PROVIDERS=true` is required before direct providers such as OpenAI, Anthropic, xAI, DeepSeek, Qwen, or GLM can be selected outside Gemini's separately gated Free lane.
 - Each enabled provider needs its own server-only API key and model ID.
 - Do not enable this flag merely to make a provider fallback succeed.
 
@@ -81,7 +92,7 @@ Existing direct provider variables remain available only for an owner-approved p
 
 ## Why we are not adding another gateway stack right now
 
-OpenRouter, Groq, and Cloudflare already expose compatible hosted inference endpoints. The existing adapter can call them directly without adding a persistent Python/Go service. LiteLLM and Bifrost are valuable community projects, but self-hosting either would add another service, deployment, and maintenance burden without solving a current need. The Vercel AI SDK is also a useful open-source option; it can be evaluated later if streaming, structured outputs, or more complex tool orchestration become a concrete requirement. Do not add dependencies just to duplicate the current working path.
+OpenRouter, Groq, Cloudflare and Gemini already expose hosted inference endpoints that can reuse the existing adapters. The existing adapter can call them directly without adding a persistent Python/Go service. LiteLLM and Bifrost are valuable community projects, but self-hosting either would add another service, deployment, and maintenance burden without solving a current need. The Vercel AI SDK is also a useful open-source option; it can be evaluated later if streaming, structured outputs, or more complex tool orchestration become a concrete requirement. Do not add dependencies just to duplicate the current working path.
 
 ## Operational rules
 
@@ -100,6 +111,7 @@ OpenRouter, Groq, and Cloudflare already expose compatible hosted inference endp
 - Groq rate limits: https://console.groq.com/docs/rate-limits
 - Cloudflare Workers AI pricing and Free plan limits: https://developers.cloudflare.com/workers-ai/platform/pricing/
 - Cloudflare OpenAI-compatible endpoint: https://developers.cloudflare.com/workers-ai/configuration/open-ai-compatibility/
+- Gemini Developer API Free/paid tiers: https://ai.google.dev/gemini-api/docs/pricing
 - Vercel AI SDK: https://github.com/vercel/ai
 - LiteLLM: https://github.com/BerriAI/litellm
 - Bifrost: https://github.com/maximhq/bifrost
