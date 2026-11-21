@@ -1600,8 +1600,16 @@ async function exportAnimatedGif(){
    frames.push(surface.context.getImageData(0,0,surface.canvas.width,surface.canvas.height).data);
    done++;button.textContent='GIF '+done+'/'+total;if(done%2===0)await new Promise(resolve=>setTimeout(resolve,0));
   }
-  const gif=encodeGif(surface.canvas.width,surface.canvas.height,frames,Math.max(2,Math.round(100/fps)),quality);
-  download(gif,'geed-hardwin-animation.gif');toast('Animated GIF exported · '+total+' frames · '+fps+' FPS');
+  let gif,encoder='gifenc community encoder';
+  try{
+   const {encodeGifWithCommunity}=await import('./lib/gif-export.mjs');
+   gif=await encodeGifWithCommunity({width:surface.canvas.width,height:surface.canvas.height,frames,delayCs:Math.max(2,Math.round(100/fps)),quality});
+  }catch(communityError){
+   console.warn('Community GIF encoder unavailable; using the built-in offline fallback.',communityError);
+   encoder='built-in offline fallback';
+   gif=encodeGif(surface.canvas.width,surface.canvas.height,frames,Math.max(2,Math.round(100/fps)),quality);
+  }
+  download(gif,'geed-hardwin-animation.gif');toast('Animated GIF exported · '+encoder+' · '+total+' frames · '+fps+' FPS');
  }catch(err){console.error(err);toast(err?.message||'GIF export failed')}
  finally{frames.length=0;button.textContent=oldLabel;[button,pngButton,videoButton,stillButton].forEach(el=>el.disabled=!!symbolEditId);draw();renderInspector()}
 }
