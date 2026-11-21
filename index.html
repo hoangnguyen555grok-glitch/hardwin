@@ -76,12 +76,6 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
 .ai-bridge-form input{min-width:0;flex:1;border:1px solid #3a485a;border-radius:8px;background:#0f141c;color:#edf2f8;padding:10px 11px;outline:none}
 .ai-bridge-form input:focus{border-color:#709de7}
 .ai-bridge-foot{padding:0 13px 11px;color:#9da9b8;font-size:10px;line-height:1.45;background:#141a23}
-.ai-image-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;padding:9px 12px 0;border-top:1px solid #2e3949;background:#141a23}
-.ai-image-form textarea{min-width:0;min-height:52px;max-height:100px;resize:vertical;border:1px solid #3a485a;border-radius:8px;background:#0f141c;color:#edf2f8;padding:8px 10px;font-family:inherit;font-size:11px;line-height:1.45;outline:none}
-.ai-image-form textarea:focus{border-color:#709de7}
-.ai-image-form button{align-self:stretch;font-size:11px;padding:7px 10px}
-.ai-image-note{padding:4px 13px 7px;background:#141a23;color:#8190a3;font-size:9px;line-height:1.4}
-@media(max-width:420px){.ai-image-form{grid-template-columns:1fr}.ai-image-form button{min-height:34px}}
 @media(max-width:700px){.ai-bridge{right:8px;top:64px;width:calc(100vw - 16px);height:calc(100vh - 76px)}}
 
 
@@ -241,11 +235,6 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
     <button type="button" data-ai-prompt="Phát timeline hiện tại.">Phát</button>
     <button type="button" data-ai-prompt="Dừng timeline hiện tại.">Dừng</button>
   </div>
-  <form id="aiImageForm" class="ai-image-form">
-    <textarea id="aiImagePrompt" maxlength="2048" rows="2" placeholder="Mô tả nhân vật, đạo cụ hoặc bối cảnh 2D…" aria-label="Mô tả ảnh cần tạo"></textarea>
-    <button id="aiImageGenerate" class="primary" type="submit" disabled>Tạo ảnh</button>
-  </form>
-  <div class="ai-image-note">FLUX.1 Schnell · Cloudflare Workers AI · Chỉ bật khi tài khoản Free và khóa thanh toán đã được xác nhận. Ảnh lưu vào project trên thiết bị.</div>
   <form id="aiBridgeForm" class="ai-bridge-form">
     <input id="aiBridgeInput" type="text" autocomplete="off" placeholder="Mô tả việc bạn muốn AI thực hiện…" aria-label="Yêu cầu cho Geed Hardwin AI Agent" />
     <button id="aiBridgeSend" class="primary" type="submit">Gửi</button>
@@ -1745,7 +1734,6 @@ function aiBridgeAppend(text,who='agent'){
  log.appendChild(node);log.scrollTop=log.scrollHeight;
 }
 let aiAgentBusy=false;
-let aiImageBusy=false;
 let aiAgentConversation=[];
 let aiAgentUserId=null;
 let aiAgentMemoryRequested=false;
@@ -1763,9 +1751,6 @@ function updateAgentStatus(authenticated){
  const retention=$('aiMemoryRetention'),manage=$('aiMemoryManage');
  if(retention)retention.disabled=!authenticated;
  if(manage)manage.disabled=!authenticated;
- const imagePrompt=$('aiImagePrompt'),imageButton=$('aiImageGenerate');
- if(imagePrompt)imagePrompt.disabled=!authenticated||aiImageBusy;
- if(imageButton)imageButton.disabled=!authenticated||aiImageBusy;
 }
 window.addEventListener('geed-auth-change',event=>{
  const nextUserId=event.detail?.user?.id||null;
@@ -1791,82 +1776,7 @@ window.addEventListener('geed-auth-change',event=>{
 });
 updateAgentStatus(false);
 
-async function generateAiImage(event){
- event.preventDefault();
- const prompt=String($('aiImagePrompt').value||'').trim();
- if(!prompt||aiImageBusy)return;
- if(prompt.length>2048){aiBridgeAppend('Mô tả ảnh tối đa 2.048 ký tự.','agent');return}
- if(symbolEditId){aiBridgeAppend('Hãy thoát chế độ chỉnh sửa MovieClip trước khi thêm ảnh vào sân khấu chính.','agent');return}
- if(!window.GeedHardwinAuth||typeof window.GeedHardwinAuth.getAccessToken!=='function'){
-  aiBridgeAppend('Thành phần đăng nhập chưa sẵn sàng. Hãy tải lại trang rồi đăng nhập Google.','agent');return;
- }
- aiImageBusy=true;
- $('aiImagePrompt').disabled=true;
- $('aiImageGenerate').disabled=true;
- $('aiImageGenerate').textContent='Đang tạo…';
- aiBridgeAppend('Đang tạo ảnh bằng FLUX.1 Schnell. Yêu cầu sẽ dùng quota AI của tài khoản; không tự chuyển sang dịch vụ trả phí.','agent');
- try{
-  const token=await window.GeedHardwinAuth.getAccessToken();
-  if(!token)throw new Error('Bạn cần đăng nhập Google trước khi tạo ảnh.');
-  const response=await fetch('/api/ai/image',{
-   method:'POST',
-   headers:{'content-type':'application/json',authorization:'Bearer '+token},
-   body:JSON.stringify({prompt})
-  });
-  const data=await response.json().catch(()=>({}));
-  if(!response.ok){
-   const messages={
-    401:'Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Hãy đăng nhập Google lại.',
-    403:'Tài khoản chưa được cấp quyền hoặc quota AI chưa được bật.',
-    429:'Quota tháng của tài khoản hoặc giới hạn Free của nhà cung cấp đã đạt. Không có dịch vụ trả phí nào được gọi.',
-    503:'Dịch vụ tạo ảnh chưa được chủ dự án cấu hình hoặc model không khả dụng trên gói Free.',
-    504:'Kết nối tạo ảnh không rõ trạng thái. Hệ thống không tự thử lại để tránh tạo ảnh/lượt dùng trùng.'
-   };
-   throw new Error(messages[response.status]||data.error||'Tạo ảnh chưa thành công.');
-  }
-  if(typeof data.image!=='string'||!/^data:image\/(?:jpeg|png|webp);base64,/i.test(data.image)||data.image.length>16*1024*1024){
-   throw new Error('Dữ liệu ảnh trả về không hợp lệ. Chưa thêm tài nguyên vào project.');
-  }
-  const image=await new Promise((resolve,reject)=>{
-   const img=new Image();
-   img.onload=()=>resolve(img);
-   img.onerror=()=>reject(new Error('Trình duyệt không đọc được ảnh do model trả về.'));
-   img.src=data.image;
-  });
-  const asset={
-   id:'img-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),
-   name:'AI · '+prompt.slice(0,42),
-   dataUrl:data.image,
-   width:image.naturalWidth||image.width,
-   height:image.naturalHeight||image.height,
-   size:Number(data.image_bytes)||Math.round(data.image.length*.75)
-  };
-  resourceLibrary.images.push(asset);
-  renderResourceLibrary();
-  const scale=Math.min(520/asset.width,420/asset.height,1);
-  makeObject('image',{
-   name:asset.name,
-   width:asset.width*scale,
-   height:asset.height*scale,
-   src:asset.name,
-   img:image,
-   dataUrl:asset.dataUrl,
-   assetId:asset.id
-  });
-  $('aiImagePrompt').value='';
-  aiBridgeAppend('Đã tạo ảnh và thêm vào canvas cùng thư viện tài nguyên. Project được lưu trên thiết bị; ảnh không được tải lên Supabase.','agent');
-  if(data.usage_recorded!==true)aiBridgeAppend('Lưu ý: ảnh đã tạo nhưng sổ theo dõi quota chưa xác nhận được. Không tự gửi lại yêu cầu này.','agent');
- }catch(error){
-  aiBridgeAppend(error?.message||'Không thể tạo ảnh. Không có thao tác editor nào được tiếp tục.','agent');
- }finally{
-  aiImageBusy=false;
-  $('aiImageGenerate').textContent='Tạo ảnh';
-  const authenticated=$('accountButton').dataset.authenticated==='true';
-  $('aiImagePrompt').disabled=!authenticated;
-  $('aiImageGenerate').disabled=!authenticated;
- }
-}
-$('aiImageForm').addEventListener('submit',generateAiImage);
+
 
 function agentSnapshot(){
  const status=window.GeedHardwinBridge.getStatus();
