@@ -80,31 +80,6 @@ Existing direct provider variables remain available only for an owner-approved p
 - Each enabled provider needs its own server-only API key and model ID.
 - Do not enable this flag merely to make a provider fallback succeed.
 
-## FLUX.1 Schnell image generation (community model, Cloudflare-hosted)
-
-The editor exposes `POST /api/ai/image` from the AI Bridge. It reuses Black Forest Labs' **FLUX.1 Schnell** model under Apache-2.0 through Cloudflare Workers AI; Geed Hardwin does not host model weights or run inference locally.
-
-- Fixed model: `@cf/black-forest-labs/flux-1-schnell`; the browser cannot choose another model, set inference steps, or request a paid fallback.
-- Fixed inference setting: 4 steps. Prompt length is limited to 2,048 characters.
-- Server checks a valid Supabase/Google session, reserves one per-account monthly AI request, calls Cloudflare once, and records the outcome.
-- The model returns an image as base64; after successful decoding the browser adds it to the resource library and canvas. The image bytes stay in the local project/IndexedDB, not Supabase.
-- Provider usage cost is recorded as unknown rather than falsely assumed to be zero. Cloudflare's 10,000 Neurons/day Free allocation is shared at account level and resets at 00:00 UTC. On Workers Free, operations fail after that allowance; on Workers Paid, usage above the free allowance is billed. The owner must verify the account is on Workers Free and has not enabled a paid Workers plan before enabling this feature.
-- No automatic retry or provider fallback is made for image generation. If a timeout occurs, the account ledger records an uncertain outcome so the user is not prompted to retry automatically.
-
-Required server environment:
-
-| Variable | Value |
-|---|---|
-| `GEED_AI_CLOUDFLARE_API_KEY` | Cloudflare API token with Workers AI Run permission |
-| `GEED_AI_CLOUDFLARE_ACCOUNT_ID` | 32-character Cloudflare account ID |
-| `GEED_AI_CLOUDFLARE_IMAGE_ENABLED` | `true` only after owner setup and smoke tests |
-| `GEED_AI_CLOUDFLARE_FREE_TIER_CONFIRMED` | `true` only after verifying the account is Workers Free |
-| `GEED_AI_CLOUDFLARE_BILLING_DISABLED` | `true` only after verifying no paid Workers plan/overage is enabled |
-
-All variables stay in Vercel server-side environment. Leave the image feature disabled until every flag and secret is configured. These switches are owner assertions; they do not replace checking the Cloudflare dashboard.
-
-Sources: https://github.com/black-forest-labs/flux (Apache-2.0 model), https://developers.cloudflare.com/ai/models/@cf/black-forest-labs/flux-1-schnell/, https://developers.cloudflare.com/workers-ai/platform/pricing/
-
 ## Authentication, quota, and safety
 
 - Endpoint: `POST /api/ai/chat`.
