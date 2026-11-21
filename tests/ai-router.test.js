@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { classifyTask, normalizeMessages, configuredProviders, providerOrder, routeChat } = require('../lib/ai-router');
+const { classifyTask, normalizeMessages, configuredProviders, providerOrder, resolveMaxTokens, routeChat } = require('../lib/ai-router');
 
 const baseEnv = {
   GEED_AI_OPENAI_API_KEY: 'test-openai-key',
@@ -58,4 +58,35 @@ test('does not expose configured secrets in provider status', () => {
   const names = configuredProviders(baseEnv);
   assert.deepEqual(names, ['openai', 'deepseek']);
   assert.equal(JSON.stringify(names).includes('test-openai-key'), false);
+});
+
+
+test('server-side output token cap cannot be raised by the client', () => {
+  assert.equal(resolveMaxTokens(4096, { GEED_AI_MAX_OUTPUT_TOKENS: '300' }), 300);
+  assert.equal(resolveMaxTokens(128, { GEED_AI_MAX_OUTPUT_TOKENS: '300' }), 128);
+  assert.equal(resolveMaxTokens(4096, {}), 1200);
+  assert.equal(resolveMaxTokens(4096, { GEED_AI_MAX_OUTPUT_TOKENS: 'not-a-number' }), 1200);
+});
+
+test('stops provider fallback after an ambiguous timeout to avoid duplicate billing', async () => {
+  const calls = [];
+  const fakeFetch = async (url) => {
+    calls.push(url);
+    const error = new Error('timed out');
+    error.name = 'AbortError';
+    throw error;
+  };
+  await assert.rejects(
+    routeChat({
+      env: baseEnv,
+      fetchImpl: fakeFetch,
+      messages: [{ role: 'user', content: 'Xin chào' }]
+    }),
+    (error) => {
+      assert.equal(error.code, 'UPSTREAM_TIMEOUT_UNCERTAIN');
+      assert.equal(error.attempts[0].outcome, 'uncertain_timeout');
+      return true;
+    }
+  );
+  assert.equal(calls.length, 1);
 });
