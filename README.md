@@ -85,10 +85,11 @@ Repository công khai để theo dõi tiến độ. Chưa gắn giấy phép mã
 - **Polygon & Star vector tools (v1.10):** vẽ trực tiếp trên Stage bằng thao tác kéo để tạo lục giác và ngôi sao 5 cánh dạng vector path khép kín, có fill/stroke, chỉnh sửa được bằng Edit path points và hỗ trợ keyframe/morph theo nền tảng path hiện có.
 
 
-## AI và điều khiển trình duyệt
+## AI Automation — trạng thái triển khai
 
-Bản AI Bridge trong trình biên tập vẫn giữ bộ lệnh mẫu. Từ v1.29, bảng này có nút mở **Local AI Agent** chạy trên máy người dùng. Agent cục bộ ghép Browser Use (điều khiển Opera/CDP), LiteLLM (định tuyến và chuyển mô hình), LangGraph (quy trình có checkpoint) và SQLite (ký ức tác vụ cục bộ). Hướng dẫn cài đặt, bật gateway, cấu hình provider và giới hạn an toàn nằm tại [browser-agent/README.md](browser-agent/README.md). Đây là dịch vụ chạy trên máy cá nhân; không tự động kết nối với cuộc trò chuyện ChatGPT hoặc đám mây.
+AI Bridge hiện chỉ là bảng lệnh mẫu trong editor, **chưa kết nối mô hình AI**. Nút mở Local AI Agent và hướng dẫn điều khiển Opera đã được gỡ khỏi giao diện. Các tệp thử nghiệm trong `browser-agent/` vẫn còn trong repository để kiểm tra phụ thuộc trước khi quyết định loại bỏ; chúng không phải dịch vụ cloud và không thuộc luồng chạy của editor.
 
+Kiến trúc mục tiêu và kế hoạch dọn dẹp được ghi tại [docs/GOAL8-CLOUD-AI-PLAN.md](docs/GOAL8-CLOUD-AI-PLAN.md). Mục tiêu là chatbot AI chạy trong Geed Hardwin, gọi mô hình qua API cloud, có định tuyến/fallback, agent tools và bộ nhớ dự án có thời hạn. Chưa có backend AI cloud hoặc provider API key nào được triển khai.
 
 ## Cập nhật v1.13
 
@@ -167,12 +168,6 @@ Bản AI Bridge trong trình biên tập vẫn giữ bộ lệnh mẫu. Từ v1.
 - **Project persistence:** ảnh đã chỉnh sửa được lưu cùng dữ liệu dự án hiện tại và được khôi phục khi mở lại project.
 - **Giới hạn hiện tại:** Eraser là xóa pixel thủ công, không phải AI inpainting. Xóa vật thể và tự tái tạo nền phía sau cần dịch vụ AI riêng, sẽ tích hợp ở giai đoạn sau.
 
-## Cập nhật v1.29
+## Ghi chú phiên bản AI thử nghiệm cũ
 
-- **Local AI Agent launcher:** AI Bridge có nút mở bảng điều khiển AI cục bộ tại `http://127.0.0.1:8765` sau khi người dùng cài và khởi chạy agent.
-- **Browser automation foundation:** Browser Use điều khiển Opera qua CDP trên profile tách biệt; danh sách website được phép cấu hình trong `.env`.
-- **Multi-model routing:** LiteLLM có các route cho Ollama, OpenAI, Anthropic và Gemini; cấu hình fallback chuyển tiếp khi provider gặp lỗi hoặc rate limit. Cloud routes chỉ dùng được sau khi người dùng tự thêm API key vào `.env`.
-- **Stateful workflow:** LangGraph điều phối recall → browser task → persist và ghi checkpoint theo thread.
-- **Local memory:** SQLite lưu tóm tắt tác vụ thành công, khôi phục ngữ cảnh trong cùng phiên; LangGraph checkpoint tiến trình và nút xóa dọn cả hai kho dữ liệu.
-- **Safety gates:** thao tác xóa/gửi/đăng/mua/thanh toán và một số thay đổi tài khoản yêu cầu xác nhận; dịch vụ chỉ lắng nghe trên loopback. Không đưa API key, mật khẩu, cookie hoặc tunnel token vào GitHub.
-- Vercel tiếp tục lưu trang biên tập tĩnh; browser runtime và model gateway chạy trên máy cục bộ vì một trang tĩnh trên đám mây không thể tự kết nối vào cổng CDP trên máy người dùng.
+Các ghi chú Local AI Agent v1.29 bên dưới lịch sử phát triển không còn là hướng dẫn sử dụng hiện hành. Không cần cài Ollama, mở Opera debug, chạy Python hay tải mô hình để dùng editor. Những tệp thử nghiệm cũ sẽ chỉ được xóa sau khi hoàn tất rà soát tham chiếu và xác nhận không ảnh hưởng công cụ biên tập/hoạt hình.
