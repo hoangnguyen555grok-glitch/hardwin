@@ -1,6 +1,6 @@
 # Goal 8 — Cloud AI, accounts and data protection
 
-Status: Google-only account foundation, per-account AI quota enforcement, bounded AI Agent, opt-in AI memory, free-first text routing and community GIF export remain on `goal8-cloud-ai-cleanup`. The priority is now Google Sign-In. Supabase Auth logs on 2026-11-21 confirmed `/authorize` returns HTTP 400 `validation_failed` / `provider is not enabled`; Google Provider must be enabled in Supabase and configured with a Web OAuth Client ID/Secret. No image generation feature is included. The Preview will be refreshed after this auth-only cleanup.
+Status: Google-only account foundation and the auth-focused UI fix are on `goal8-cloud-ai-cleanup`; AI image generation has been fully removed. Supabase Auth logs on 2026-11-21 confirmed `/authorize` returns HTTP 400 `validation_failed` / `provider is not enabled`, proving the Google Provider is disabled in the Supabase dashboard. GitHub Actions run `44870482989` passed **51/51 tests** with zero failures. Vercel Preview is READY from commit `c2733ab5926c0da18b616238fc4061ce517752ad`: https://geed-hardwin-git-goal8-cloud-ai-cleanup-hoangnguyen555grok-1529.vercel.app/. The remaining blocker is the owner enabling Google in Supabase and entering the OAuth Web Client credentials; no code change can substitute for those credentials.
 Branch: `goal8-cloud-ai-cleanup`
 Production branch: unchanged. No merge or production deployment has been performed.
 
@@ -75,8 +75,8 @@ Supported actions: inspect project, create circle, animate circle, play, stop, s
 
 ## F. Remaining release gates
 
-1. Owner configures Google OAuth and Vercel Preview server environment variables (instructions in `docs/GOAL8-ACCOUNT-SECURITY.md`). The current Preview has no environment variables; provider keys and secrets must be added by the owner through Vercel settings, never committed or pasted into chat.
-2. The previous Preview predates the latest auth-only changes. After Google Provider is enabled and its OAuth credentials are configured, verify Google login, callback/redirect, session restoration and sign-out on both `http://localhost:3000` and the production URL.
+1. Owner opens [Supabase Google Provider settings](https://supabase.com/dashboard/project/rdzitdoarrfjugzogkrf/auth/providers?provider=Google), switches **Enable Sign in with Google** ON, enters the Google Web Client ID and Client Secret, then saves. Do not send the Client Secret through chat. Exact Google OAuth origins, Supabase callback URL and redirect allow-list are documented in `docs/GOAL8-ACCOUNT-SECURITY.md`.
+2. Once the provider is enabled, test sign-in at `http://localhost:3000` and the [new Preview](https://geed-hardwin-git-goal8-cloud-ai-cleanup-hoangnguyen555grok-1529.vercel.app/): confirm Google account chooser, redirect/callback, session restoration and sign-out. The code's production branch remains untouched.
 3. With an owner-configured test account/provider, exercise AI disabled, quota boundaries, real provider response, usage ledger, cost estimate, tool actions, confirmation prompt and post-action verification.
 4. Test memory write/read/delete and automatic expiry using a test note; ensure project/media remain untouched.
 5. Compare usage ledger estimates with actual provider invoices before deciding any Free allowance or paid plan. Payments remain out of scope.
