@@ -32,6 +32,8 @@ test('cloud API verifies the Google session and derives its owner from Supabase 
   assert.match(api, /user\.id/);
   assert.doesNotMatch(api, /body\.userId|body\.user_id/);
   assert.match(api, /CLOUD_STORAGE_NOT_CONFIGURED/);
+  assert.match(api, /prepare-delete/);
+  assert.match(api, /confirm-delete/);
 });
 
 test('database reserves account quota atomically and locks client cloud metadata writes', () => {
