@@ -50,7 +50,8 @@ test('agent parser accepts a valid JSON response and strips unknown arguments', 
   assert.deepEqual(parsed.data, {
     message: 'Tôi sẽ tạo một chuyển động.',
     action: { tool: 'animateCircle', args: { durationSeconds: 5 } },
-    done: false
+    done: false,
+    memory: null
   });
 });
 
