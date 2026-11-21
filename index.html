@@ -150,6 +150,23 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
 @media(max-width:1120px){.account-status{display:none}.topbar{gap:9px}}
 @media(max-width:700px){.account-button-label{display:none}#accountButton.account-trigger{padding-right:7px}.account-setting-row{grid-template-columns:1fr 120px}}
 
+
+dialog.cloud-workspace-dialog{width:min(680px,calc(100vw - 28px))}
+.cloud-workspace-intro{margin:0 0 14px;color:#aab7c9;font-size:12px;line-height:1.6}
+.cloud-workspace-name{display:grid;gap:6px;margin:12px 0;color:#d8e0ec;font-size:12px}
+.cloud-workspace-name input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #39475a;border-radius:8px;background:#101720;color:#edf2f8}
+.cloud-workspace-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.cloud-workspace-status{min-height:22px;margin:9px 0;color:#b8c7dc;font-size:12px;line-height:1.5}
+.cloud-workspace-status[data-state="error"]{color:#ffb5b5}
+.cloud-workspace-storage{padding:9px 11px;border:1px solid #354153;border-radius:8px;background:#141c27;color:#c9d6e6;font-size:12px}
+.cloud-workspace-projects{display:grid;gap:8px;margin-top:12px}
+.cloud-workspace-project{display:flex;align-items:center;gap:12px;padding:10px;border:1px solid #354153;border-radius:9px;background:#151d28}
+.cloud-workspace-project-details{display:grid;gap:4px;flex:1;min-width:0}
+.cloud-workspace-project-details strong{font-size:13px;overflow-wrap:anywhere}
+.cloud-workspace-project-details small{color:#9eacc0;font-size:10px;line-height:1.4}
+.cloud-workspace-empty{color:#9eacc0;font-size:12px}
+@media(max-width:560px){.cloud-workspace-actions{display:grid}.cloud-workspace-actions button{width:100%}.cloud-workspace-project{align-items:flex-start}}
+
 </style>
 </head>
 <body>
@@ -162,6 +179,7 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
   <button class="ghost" id="redoBtn" title="Redo (Ctrl+Shift+Z)">↷</button>
   <button class="ghost" id="openProject">Open project</button>
   <button class="ghost" id="saveProject">Save project</button>
+  <button class="ghost" id="cloudWorkspaceOpen" type="button" title="Save and open projects across devices">☁ Cloud</button>
   <input id="projectInput" type="file" accept="application/json,.json" hidden />
   <button class="ghost" id="aiBridgeOpen" title="Open AI control bridge">✦ AI Bridge</button>
   <div class="account-area" id="accountArea">
@@ -205,6 +223,29 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
     </div>
     <div class="account-dialog-content" id="accountDialogContent"></div>
     <div class="account-dialog-actions"><button class="primary" id="accountDialogPrimary" type="button">Đóng</button></div>
+  </div>
+
+</dialog>
+
+<dialog class="account-dialog cloud-workspace-dialog" id="cloudWorkspaceDialog" aria-labelledby="cloudWorkspaceTitle">
+  <div class="account-dialog-shell">
+    <div class="account-dialog-head">
+      <div class="account-dialog-heading"><small>GEED HARDWIN CLOUD</small><h2 id="cloudWorkspaceTitle">Cloud Workspace</h2></div>
+      <button class="ghost account-dialog-close" id="cloudWorkspaceClose" type="button" aria-label="Đóng">×</button>
+    </div>
+    <div class="account-dialog-content">
+      <p class="cloud-workspace-intro">Lưu dự án và thư viện hình ảnh, font, âm thanh lên kho riêng để mở lại trên thiết bị khác. Bản tự động lưu cục bộ vẫn được giữ.</p>
+      <label class="cloud-workspace-name" for="cloudProjectName">Tên dự án
+        <input id="cloudProjectName" type="text" maxlength="160" value="Dự án hoạt hình" autocomplete="off"/>
+      </label>
+      <div class="cloud-workspace-actions">
+        <button class="primary" id="cloudSaveCurrent" type="button">Lưu dự án hiện tại</button>
+        <button class="ghost" id="cloudSaveAsNew" type="button">Lưu thành dự án Cloud mới</button>
+      </div>
+      <div class="cloud-workspace-status" id="cloudWorkspaceStatus" role="status" aria-live="polite">Đăng nhập Google để truy cập dự án Cloud của bạn.</div>
+      <div class="cloud-workspace-storage" id="cloudWorkspaceStorage"></div>
+      <div class="cloud-workspace-projects" id="cloudWorkspaceProjects"></div>
+    </div>
   </div>
 </dialog>
 
@@ -1793,6 +1834,14 @@ function bridgeDeleteSelected(){
  removeObjectsByIds(ids);selectOne(null);renderAll();return {ok:true,deletedCount:ids.size,status:bridgeStatus()};
 }
 window["GeedHardwinBridge"] = Object.freeze({
+ getProjectSnapshot:()=>projectSnapshot(),
+ loadProjectSnapshot:data=>{
+  if(!data||data.format!=='geed-hardwin-project'||!Array.isArray(data.scenes)||!data.scenes.length)throw new Error('Invalid Geed Hardwin project snapshot.');
+  pause();restoringHistory=true;
+  try{applyProject(data);renderAll()}finally{restoringHistory=false}
+  history=[];historyIndex=-1;recordHistory();
+  return {ok:true,sceneCount:scenes.length};
+ },
  getStatus:bridgeStatus,
  listLayers:()=>bridgeStatus().layers,
  createCircle:bridgeCreateCircle,
@@ -2166,5 +2215,6 @@ document.querySelectorAll('[data-ai-prompt]').forEach(button=>button.addEventLis
 })();
 </script>
 <script type="module" src="/lib/supabase-auth.js"></script>
+<script type="module" src="/lib/cloud-workspace.js"></script>
 </body>
 </html>
