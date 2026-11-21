@@ -1,9 +1,9 @@
 # Goal 8 — Account, entitlement and data protection
 
-Status: database schema is live in Supabase; Google OAuth credentials and Vercel server secrets still require owner setup.
+Status: Supabase schema, Google-only browser sign-in client, server-side Supabase session verification, and per-account AI quota enforcement are implemented on the working branch. Google OAuth credentials and Vercel server secrets still require owner setup.
 Working branch: `goal8-cloud-ai-cleanup`
 Supabase project: `geed-hardwin-auth` (`rdzitdoarrfjugzogkrf`), region `ap-southeast-1` (Singapore).
-Cost quote for project creation: USD 0/month on 2026-11-21. This is a Supabase project quote, not a guarantee that all future provider usage or storage is free.
+Project creation quote: USD 0/month on 2026-11-21. This quote does not guarantee that future provider API calls, storage or other services are free.
 
 ## Product rules
 
@@ -12,18 +12,18 @@ Cost quote for project creation: USD 0/month on 2026-11-21. This is a Supabase p
 - Free users keep animation project files and media in the browser/device. Existing IndexedDB autosave and JSON export/import remain in place.
 - Supabase stores only account data, entitlements, AI usage measurements, limited AI memory and lightweight project metadata. It does not store animation binaries or media.
 - Payments, paid plans, recurring billing and paid cloud file storage are not enabled in this phase.
-- AI access defaults to disabled for every new account until provider prices, usage quotas and server-side secrets have been configured deliberately.
-- AI-memory retention is restricted to 2, 3, 7 or 30 days. AI-memory expiry must never delete local project files or original media.
+- Every new account receives the `free` entitlement, AI disabled, zero AI request/token allowance and zero cloud-storage allowance. AI cannot call a provider until the owner explicitly configures quotas.
+- AI-memory retention is restricted to 2, 3, 7 or 30 days. Expiration never deletes local project files or original media.
 
-## Database tables
+## Database tables and access controls
 
-- `profiles`: user display name, avatar URL and locale. A database trigger creates the row when an Auth user is created.
-- `entitlements`: server-controlled plan/status, AI enablement and request/token/storage limits. New accounts receive `free`, `active`, AI disabled and zero cloud-storage allowance. Clients can read their own row but cannot change it.
-- `usage_ledger`: provider/model, token counts, outcome and cost status. Clients can read their own rows; they cannot write or modify ledger entries. Cost is nullable and marked `unknown` until a verified provider price is configured. Unknown cost must never be reported as zero/free.
-- `ai_memories`: small text context only, with allowed retention values and expiry timestamp. RLS limits every record to its owner.
+- `profiles`: user display name, avatar URL and locale. An Auth trigger creates the row when a user is created.
+- `entitlements`: server-controlled plan/status, AI enablement and request/token/storage limits. Clients can read their own row but cannot change it.
+- `usage_ledger`: provider/model, provider token usage, request outcome, estimated cost and actual cost (when an authoritative invoice value later becomes available). Clients can read their own rows; they cannot write or modify ledger entries. Unknown cost remains null and is never represented as zero.
+- `ai_memories`: small text context only, with 2/3/7/30-day retention and expiry. RLS limits every record to its owner.
 - `project_metadata`: lightweight project name/summary/version only. Original project JSON, images, audio and exports stay local.
 
-All five exposed public tables have RLS enabled. Policies use `auth.uid()` ownership checks. Internal trigger functions live in the unexposed `private` schema. No service-role key is placed in the browser.
+All five exposed public tables have RLS enabled. Policies use `auth.uid()` ownership checks. Internal trigger, cleanup and reservation tables/functions live in the non-exposed `private` schema. Quota reservation/finalization RPCs are executable only by the server `service_role`, never by `anon` or `authenticated`.
 
 ## Google OAuth owner setup
 
@@ -32,38 +32,63 @@ Google OAuth cannot be activated without a Client ID and Client Secret created b
 1. Open Google Cloud Console → Google Auth Platform → Clients and create an OAuth Client ID of type **Web application**.
 2. Authorized JavaScript origin: `https://geed-hardwin.vercel.app`.
 3. Authorized redirect URI (Supabase callback): `https://rdzitdoarrfjugzogkrf.supabase.co/auth/v1/callback`.
-4. Keep the requested scopes limited to `openid`, `email` and `profile`.
+4. Keep requested scopes limited to `openid`, `email` and `profile`.
 5. In Supabase Dashboard → Authentication → Sign In / Providers → Google, enable Google and enter the Client ID and Client Secret.
-6. In Supabase Dashboard → Authentication → URL Configuration, set Site URL to `https://geed-hardwin.vercel.app` and add the exact production redirect URL `https://geed-hardwin.vercel.app/**`. Add an exact preview URL only after a Vercel preview deployment exists; do not use a broad wildcard for every Vercel project.
-7. Google consent-screen branding and links to the eventual privacy policy/terms should be completed before public launch.
+6. In Supabase Dashboard → Authentication → URL Configuration, set Site URL to `https://geed-hardwin.vercel.app` and add the exact production redirect URL `https://geed-hardwin.vercel.app/**`. Add the exact Vercel preview URL only after the preview exists; do not allow all unrelated Vercel deployment domains.
+7. Complete Google consent-screen branding and add privacy policy/terms links before public launch.
 
-The application client uses the publishable key only and requests Google OAuth using the PKCE flow. The sign-in button will report a setup message until Google Provider and its redirect allow-list are configured.
+The browser client uses only the Supabase publishable key, PKCE flow and Google provider. The sign-in button is optional; the local editor still works if OAuth is not configured. The real login flow cannot be tested until the owner configures these values.
 
-## Server configuration required before AI is enabled
+## Vercel server environment (owner setup)
 
-Configure secrets only in Vercel Project Settings → Environment Variables. Never put them in `index.html`, client-side `NEXT_PUBLIC_*` values, Git, logs or chat.
+Configure these only in Vercel Project Settings → Environment Variables. For initial verification, use the **Preview** environment on this branch. Do not add these to frontend-prefixed variables, Git, logs or chat.
 
-Required backend variables for a future authenticated AI endpoint:
-- `GEED_SUPABASE_URL`: project URL.
-- `GEED_SUPABASE_PUBLISHABLE_KEY`: Supabase publishable key.
-- `GEED_SUPABASE_SERVICE_ROLE_KEY`: service-role secret, server-only.
-- Provider API keys and model IDs documented in `docs/GOAL8-MODEL-ROUTER.md`.
+Supabase:
+- `GEED_SUPABASE_URL=https://rdzitdoarrfjugzogkrf.supabase.co`
+- `GEED_SUPABASE_PUBLISHABLE_KEY`: the project's publishable key.
+- `GEED_SUPABASE_SERVICE_ROLE_KEY`: the legacy service-role secret from the Supabase API Keys dashboard, server-only. This is required for the quota RPCs and must never enter frontend JavaScript.
 
-Do not set AI entitlement flags or nonzero quotas until the server verifies the user's Supabase session, enforces account-level quotas, records token usage, and computes costs from a verified price table. The current AI route remains fail-closed.
+AI provider:
+- At least one provider key and matching model ID from `docs/GOAL8-MODEL-ROUTER.md`.
+- Keep provider credentials in Vercel server environment only. Do not set `GEED_AI_GATEWAY_TOKEN`; the chat endpoint now authenticates the Supabase user session and verifies the user with Supabase Auth.
 
-## Retention and storage policy to implement
+Optional exact-model price map:
+`GEED_AI_TOKEN_PRICES_JSON` may contain JSON entries such as:
+```json
+{
+  "exact-model-id": {
+    "input_per_1m_usd": 0.5,
+    "output_per_1m_usd": 1.5
+  }
+}
+```
+Only an exact model ID match is used. This calculates a **rate-based estimate** from provider token counts; it is not an invoice or authoritative actual charge. The ledger records it as `estimated`. When no verified price map exists, the cost remains `unknown` (null), not zero. Actual invoice cost is intentionally left null until there is a reliable source for it.
 
-- Local project/media: stays on the user's device; recommend JSON export backups because browser storage can be cleared or evicted.
-- Free cloud backup: not enabled in this phase. No local deletion timer exists.
-- AI memory: 2/3/7/30-day expiry; deletion job and expiry-query filtering still need implementation.
-- Paid cloud storage: deferred until costs, quotas and pricing are measured and approved.
-- Subscription expiry/grace-period/deletion: deferred with payments.
+## AI authentication and quota enforcement
+
+The `POST /api/ai/chat` endpoint now:
+1. Requires a bearer access token and verifies it using Supabase Auth `/auth/v1/user`; it never trusts a user ID supplied by the browser.
+2. Reserves monthly request and token allowance under a row lock on that user's entitlement. Concurrent calls cannot all pass the same remaining quota.
+3. Refuses accounts without active status, AI access, and positive configured limits before calling any provider.
+4. Routes through configured provider APIs, records provider token counts and an estimated cost only when an exact price entry exists.
+5. Records ambiguous provider timeouts without retrying another provider, reducing the risk of duplicate generation charges.
+6. Writes usage through a server-only RPC. If the usage write fails after a completed generation, the response explicitly sets `usage_recorded: false` and warns not to automatically retry.
+
+The reservation uses conservative input-character estimates plus the server-enforced output token ceiling. Expired in-flight reservations are cleared on the next reservation after ten minutes. New accounts are intentionally AI-disabled by default. No account has been granted nonzero quotas yet.
+
+## Retention and storage
+
+- Local project/media: remains on the user's device. JSON export is recommended because browser data can be cleared or evicted.
+- Free cloud backup: not enabled. There is no local project deletion timer.
+- AI memory: database accepts only 2/3/7/30 days. A daily `pg_cron` job runs at 03:17 UTC, removes only expired rows from `ai_memories`, and the RLS read policy hides expired rows immediately. It never targets project metadata or local files.
+- Paid cloud storage and subscription-expiry handling: deferred until costs, quotas and pricing are measured and explicitly approved.
 
 ## Verification performed
 
-- Project reports `ACTIVE_HEALTHY`.
-- Migration `initial_account_safety_schema` and `usage_cost_status` applied successfully.
-- Five public tables visible; all five report `rls_enabled = true`.
-- Security Advisor returned zero findings after schema creation.
-- Performance Advisor currently reports five `unused_index` informational notices on newly created indexes. Recheck after real traffic before removing useful query indexes.
+- Supabase project reports `ACTIVE_HEALTHY`.
+- Migrations applied: `initial_account_safety_schema`, `usage_cost_status`, `ai_memory_expiry_cleanup`, `ai_usage_quota_enforcement`, `separate_estimated_and_actual_ai_cost`.
+- All five public tables have RLS enabled.
+- Security Advisor returned zero findings.
+- Reserve/finalize RPCs are executable by `service_role` and not by `anon` or `authenticated`.
+- AI memory cleanup job is present and active; cleanup function is under the private schema with fixed empty search path.
 - No real Google sign-in test is possible until owner-created OAuth credentials are entered.
