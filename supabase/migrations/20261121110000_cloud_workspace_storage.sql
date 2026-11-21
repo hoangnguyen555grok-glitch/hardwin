@@ -161,6 +161,8 @@ as $$
 declare
   v_reservation private.cloud_storage_reservations%rowtype;
   v_project public.project_metadata%rowtype;
+  v_previous_object_key text;
+  v_expected_object_key text;
 begin
   if p_reservation_id is null
      or p_user_id is null
@@ -175,10 +177,14 @@ begin
      or p_uploaded_bytes < 2
      or p_uploaded_bytes > 104857600
      or p_sha256 is null
-     or p_sha256 !~* '^[0-9a-f]{64}$'
-     or p_object_key is null
-     or p_object_key <> (p_user_id::text || '/' || p_local_project_key || '/project.json') then
+     or p_sha256 !~* '^[0-9a-f]{64}$' then
     return pg_catalog.jsonb_build_object('saved', false, 'code', 'INVALID_CLOUD_FINALIZATION');
+  end if;
+
+  v_expected_object_key := p_user_id::text || '/' || p_local_project_key ||
+    '/snapshots/' || p_reservation_id::text || '.json';
+  if p_object_key is null or p_object_key <> v_expected_object_key then
+    return pg_catalog.jsonb_build_object('saved', false, 'code', 'INVALID_CLOUD_OBJECT_KEY');
   end if;
 
   select r.*
@@ -193,6 +199,12 @@ begin
   if not found or v_reservation.requested_bytes <> p_uploaded_bytes then
     return pg_catalog.jsonb_build_object('saved', false, 'code', 'CLOUD_RESERVATION_EXPIRED_OR_MISMATCHED');
   end if;
+
+  select m.cloud_object_key
+    into v_previous_object_key
+    from public.project_metadata m
+   where m.user_id = p_user_id
+     and m.local_project_key = p_local_project_key;
 
   insert into public.project_metadata (
     user_id, local_project_key, name, schema_version,
@@ -217,7 +229,8 @@ begin
 
   return pg_catalog.jsonb_build_object(
     'saved', true,
-    'project', pg_catalog.to_jsonb(v_project)
+    'project', pg_catalog.to_jsonb(v_project),
+    'previous_object_key', v_previous_object_key
   );
 end;
 $$;
@@ -244,7 +257,8 @@ $$;
 
 create or replace function public.geed_delete_cloud_project(
   p_user_id uuid,
-  p_local_project_key text
+  p_local_project_key text,
+  p_object_key text
 )
 returns boolean
 language plpgsql
@@ -256,14 +270,16 @@ declare
 begin
   if p_user_id is null
      or p_local_project_key is null
-     or p_local_project_key !~* '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' then
+     or p_local_project_key !~* '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+     or p_object_key is null
+     or p_object_key !~ ('^' || p_user_id::text || '/' || p_local_project_key || '/snapshots/[0-9a-f-]{36}[.]json$') then
     return false;
   end if;
 
   delete from public.project_metadata
    where user_id = p_user_id
      and local_project_key = p_local_project_key
-     and cloud_object_key = (p_user_id::text || '/' || p_local_project_key || '/project.json');
+     and cloud_object_key = p_object_key;
   get diagnostics v_deleted = row_count;
 
   delete from private.cloud_storage_reservations
@@ -277,9 +293,9 @@ $$;
 revoke all on function public.geed_reserve_cloud_storage(uuid, text, bigint) from public, anon, authenticated;
 revoke all on function public.geed_finalize_cloud_storage(uuid, uuid, text, text, integer, text, bigint, text) from public, anon, authenticated;
 revoke all on function public.geed_cancel_cloud_storage(uuid, uuid) from public, anon, authenticated;
-revoke all on function public.geed_delete_cloud_project(uuid, text) from public, anon, authenticated;
+revoke all on function public.geed_delete_cloud_project(uuid, text, text) from public, anon, authenticated;
 
 grant execute on function public.geed_reserve_cloud_storage(uuid, text, bigint) to service_role;
 grant execute on function public.geed_finalize_cloud_storage(uuid, uuid, text, text, integer, text, bigint, text) to service_role;
 grant execute on function public.geed_cancel_cloud_storage(uuid, uuid) to service_role;
-grant execute on function public.geed_delete_cloud_project(uuid, text) to service_role;
+grant execute on function public.geed_delete_cloud_project(uuid, text, text) to service_role;
