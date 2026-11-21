@@ -1,6 +1,6 @@
 # Goal 8 — Account, entitlement and data protection
 
-Status: Supabase schema, database-enforced Google-only account creation, Google browser sign-in client, server-side Supabase session verification, per-account AI quota enforcement, bounded AI Agent and opt-in AI memory are implemented on the working branch. Vercel Preview is READY from commit `1f68edce761320ff2d3cd38feaf7533578dd9866`; Google OAuth credentials and server secrets still require owner setup.
+Status: Supabase schema, database-enforced Google-only account creation, server-side session verification, per-account AI request quotas, bounded AI Agent, opt-in AI memory, free-first text routing and the FLUX.1 Schnell image endpoint are implemented on `goal8-cloud-ai-cleanup`. The image route remains fail-closed until the owner adds Cloudflare server credentials and confirms the account is on Workers Free with no paid Workers plan. Google OAuth and provider credentials remain unconfigured in Preview.
 Working branch: `goal8-cloud-ai-cleanup`
 Supabase project: `geed-hardwin-auth` (`rdzitdoarrfjugzogkrf`), region `ap-southeast-1` (Singapore).
 Project creation quote: USD 0/month on 2026-11-21. This quote does not guarantee that future provider API calls, storage or other services are free.
@@ -76,6 +76,25 @@ The `POST /api/ai/chat` endpoint now:
 
 The reservation uses conservative input-character estimates plus the server-enforced output token ceiling. Expired in-flight reservations are cleared on the next reservation after ten minutes. New accounts are intentionally AI-disabled by default. No account has been granted nonzero quotas yet.
 
+
+## Community image generation — FLUX.1 Schnell
+
+The AI Bridge includes a small image-generation form. It uses the Apache-2.0 FLUX.1 Schnell model hosted on Cloudflare Workers AI; no model is installed locally and no image is uploaded to Supabase.
+
+The route is intentionally disabled unless all of these server-only Vercel variables are configured:
+
+- `GEED_AI_CLOUDFLARE_API_KEY`: Cloudflare API token with Workers AI Run permission.
+- `GEED_AI_CLOUDFLARE_ACCOUNT_ID`: 32-character account ID.
+- `GEED_AI_CLOUDFLARE_IMAGE_ENABLED=true`: explicit feature switch.
+- `GEED_AI_CLOUDFLARE_FREE_TIER_CONFIRMED=true`: owner verified the account is on the Workers Free plan.
+- `GEED_AI_CLOUDFLARE_BILLING_DISABLED=true`: owner verified the account has no paid Workers plan/overage enabled.
+
+Cloudflare's Free plan includes 10,000 Neurons per day, shared by the account and reset daily at 00:00 UTC. The Free plan rejects further operations after the allowance. Workers Paid accounts can incur charges after the free allowance. The flags above are owner confirmations, not an automatic billing lock; verify the plan in the Cloudflare Dashboard before enabling the feature. The connected Cloudflare OAuth session in this workspace cannot read subscription/billing details because it lacks Billing Read permission, so the account plan has not been independently verified here.
+
+The server fixes the model to `@cf/black-forest-labs/flux-1-schnell`, fixes inference at 4 steps, caps prompt length at 2,048 characters, checks the Google/Supabase user session and reserves one monthly AI request before making a provider call. It records success/provider failure/uncertain timeout in `usage_ledger`. Cost is marked unknown, not assumed to be zero. A timeout is never retried automatically.
+
+When an image succeeds, the browser places it in the local resource library and on the canvas. The image data remains in the project snapshot/IndexedDB and is excluded from Supabase storage. The user can remove it from the local resource library or project as usual.
+
 ## Retention and storage
 
 - Local project/media: remains on the user's device. JSON export is recommended because browser data can be cleared or evicted.
@@ -100,5 +119,5 @@ Optional AI memory is separate from the editor project. It defaults to off, is s
 - AI memories cannot be updated by the client; user insert/delete remains scoped by RLS. The server expiry trigger fixes the create/expiry timestamps and the active-memory trigger caps each account at 20.
 - Memory cleanup job is present and active at 03:17 UTC; it deletes only expired `ai_memories` rows.
 - The Google-only Auth trigger was exercised against temporary test rows: `google` was accepted, `email` and missing provider were rejected. A real OAuth login remains untested until owner credentials are configured.
-- GitHub Actions run `44865631777` passed **38/38 tests** and all syntax checks: https://github.com/hoangnguyen555grok-glitch/hardwin/actions/runs/44865631777
-- Preview build and runtime smoke tests must be refreshed after the latest commit; the production branch and deployment remain untouched.
+- GitHub Actions run `44869081045` passed **58/58 tests**, zero failures, and all server/module syntax checks: https://github.com/hoangnguyen555grok-glitch/hardwin/actions/runs/44869081045. The newer frontend-script syntax test still needs to run in the next workflow execution.
+- Vercel Preview build and real-browser interaction tests must be refreshed after the latest commit; the production branch and deployment remain untouched.
