@@ -1,6 +1,6 @@
 # Goal 8 — Cloud AI, accounts and data protection
 
-Status: repository cleanup, cloud Model Router, Google-only account foundation, per-account quota gate, bounded AI Agent loop and opt-in expiring AI memory are implemented on the working branch. GitHub Actions run `44865868854` passed **38/38 tests** and all syntax checks on commit `1f68edce761320ff2d3cd38feaf7533578dd9866`. A fresh Vercel Preview built READY from the same commit and passed HTTP smoke checks. Real Google OAuth and provider calls remain blocked until the project owner enters credentials and secrets.
+Status: repository cleanup, Google-only account foundation, per-account quota gate, bounded AI Agent loop, opt-in expiring AI memory, and community-first provider routing are implemented on the working branch. GitHub Actions run `44867167763` passed **41/41 tests** and all syntax checks on commit `0ff268f2f364ead465ef356ffb2f5b66352cc4fe`. The updated free-provider routing still needs a fresh Vercel Preview smoke test. Real Google OAuth and provider calls remain blocked until the owner configures credentials and confirms the free-tier provider accounts.
 Branch: `goal8-cloud-ai-cleanup`
 Production branch: unchanged. No merge or production deployment has been performed.
 
@@ -26,13 +26,14 @@ The deleted prototype had a local FastAPI runner, Browser Use/CDP, local Ollama 
 
 Files: `lib/ai-router.js`, `api/ai/chat.js`, `lib/supabase-ai-gateway.js`, tests and `docs/GOAL8-MODEL-ROUTER.md`.
 
-- Supports OpenAI-compatible providers (OpenAI, xAI, DeepSeek, Qwen and GLM), Anthropic Messages and Gemini generateContent.
-- Provider keys/model IDs and provider order are supplied through server environment variables only.
-- Uses configured providers only; can fall back on explicit provider failures such as quota/rate-limit errors.
-- Does not automatically fall back after an ambiguous timeout, to avoid duplicate billable generations.
+- Defaults to hosted community free-tier inference: OpenRouter `openrouter/free`, Groq Free (only after the Free-tier confirmation flag), then Cloudflare Workers AI Free (only after the Free-plan flag and account endpoint are configured).
+- Existing direct integrations for OpenAI, xAI, DeepSeek, Qwen, GLM, Anthropic and Gemini are disabled by default and require the explicit owner-only `GEED_AI_ALLOW_PAID_PROVIDERS=true` switch.
+- Configured provider order is a strict allow-list; configured API keys are never silently appended as fallback options.
+- Uses the shared OpenAI-compatible HTTP protocol where providers support it. No extra self-hosted LiteLLM/Bifrost service is added; those community gateways would create unnecessary hosting and maintenance for the current use case.
+- Falls through to the next explicitly allowed provider after clear errors or quota/rate-limit responses. An ambiguous timeout stops the chain to avoid a possible duplicate billable generation.
 - Enforces request validation, timeout limits, a server-side output-token ceiling, authenticated sessions and atomic account-level monthly request/token reservations.
 - Records provider token usage. Model costs remain unknown unless an exact model price is configured; rate-based calculations are labelled estimates, never invoice actuals.
-- This is a text-agent/chat foundation, not an image/video generation pipeline.
+- Free quotas are limited and may change. This is a text-agent/chat foundation, not an image/video generation pipeline.
 
 ## C. Account and data protection — foundation implemented
 
@@ -66,7 +67,7 @@ Supported actions: inspect project, create circle, animate circle, play, stop, s
 ## F. Remaining release gates
 
 1. Owner configures Google OAuth and Vercel Preview server environment variables (instructions in `docs/GOAL8-ACCOUNT-SECURITY.md`).
-2. The latest Preview currently serves commit `1f68edce761320ff2d3cd38feaf7533578dd9866` and is READY. Re-run the smoke and interactive checks after owner config, especially Auth callback, session restoration and local save/import/export.
+2. The last confirmed Preview served commit `1f68edce761320ff2d3cd38feaf7533578dd9866`; it predates the latest free-first router edits. Create/check a fresh Preview for the current branch before interactive testing. Then verify Auth callback, session restoration and local save/import/export.
 3. With an owner-configured test account/provider, exercise AI disabled, quota boundaries, real provider response, usage ledger, cost estimate, tool actions, confirmation prompt and post-action verification.
 4. Test memory write/read/delete and automatic expiry using a test note; ensure project/media remain untouched.
 5. Compare usage ledger estimates with actual provider invoices before deciding any Free allowance or paid plan. Payments remain out of scope.
