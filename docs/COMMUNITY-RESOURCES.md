@@ -14,9 +14,10 @@ All AI provider credentials remain server-side. A provider is enabled only when 
 |---|---|---|
 | [gifenc](https://github.com/mattdesl/gifenc) | GIF export adapter in `lib/gif-export.mjs`. Loaded only when GIF export is requested. Uses a shared palette across frames. | MIT; package pinned to 1.0.3. Loaded from esm.sh, with the existing offline encoder retained as a fallback if the CDN or library is unavailable. |
 | [OpenRouter](https://openrouter.ai/) | Default AI text route can use `openrouter/free` or a specific model ID ending in `:free`. | Hosted free-model quota is limited. Never fall through to a paid model automatically. |
-| [Groq](https://groq.com/) | OpenAI-compatible free-tier route. | Enabled only with the explicit server flag `GEED_AI_GROQ_FREE_TIER_CONFIRMED=true`. Check the account's current Free-tier model and rate limits first. |
-| [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/) | OpenAI-compatible account endpoint as another optional free-tier route. | Enabled only with the explicit flag and account-specific endpoint. Free-plan allowance/model availability must be checked in the account. |
+| [Groq](https://groq.com/) | OpenAI-compatible free-tier route. | Enabled only with Free-tier and billing-disabled confirmation flags. Check the account's current Free-tier model and rate limits first. |
+| [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/) | OpenAI-compatible account endpoint for optional text inference; fixed FLUX.1 Schnell model for image generation. | Enabled only with Free-tier and billing-disabled confirmations plus account endpoint. Free-plan allowance/model availability must be checked in the account. |
 | [Gemini Developer API](https://ai.google.dev/gemini-api/docs/pricing) | Existing native adapter can use a model on Google's Free tier. | Optional hosted free tier, not an open-source project. Requires both free-tier confirmation and a Google API project with billing disabled; features/model access vary and may change. |
+| [FLUX.1 Schnell](https://github.com/black-forest-labs/flux) via [Cloudflare Workers AI](https://developers.cloudflare.com/ai/models/@cf/black-forest-labs/flux-1-schnell/) | AI Bridge can generate a character/object/background image with the fixed FLUX.1 Schnell model and insert it into the local resource library/canvas. | Model license Apache-2.0. Cloudflare Free allowance is 10,000 Neurons/account/day; Workers Free requests fail after the limit, whereas Workers Paid can incur overage. Requires the owner to verify Free plan/no paid Workers plan and explicitly enable the route. The editor never falls back to paid inference.
 
 ## Evaluated, not adopted wholesale
 
@@ -43,7 +44,8 @@ Pollinations Pay (BYOP) lets an individual user authorize Geed Hardwin to use th
 
 ## Next validation priorities
 
-1. Run the new GIF adapter in a real browser and visually compare palette quality, file size and playback with the offline fallback.
-2. Evaluate Mediabunny against the current MP4/WebM export, including audio, codec support, memory use and browser compatibility.
-3. Keep AI provider configuration free-only until the owner explicitly changes the policy.
-4. Before integrating a new community project, check the exact license, upstream activity, security posture, browser compatibility and whether it can be consumed as a component rather than a whole-app migration.
+1. Run the GIF adapter and FLUX image generator in a real browser; compare output quality, file size, local autosave and fallback behaviour.
+2. Verify Cloudflare account plan, Free Neurons usage and the Workers AI token permissions before setting any image/provider flags.
+3. Evaluate Mediabunny against current MP4/WebM export only if real-browser testing exposes a measurable limitation.
+4. Keep AI provider configuration free-only until the owner explicitly changes the policy.
+5. Before integrating a new community project, check the exact license, upstream activity, security posture, browser compatibility and whether it can be consumed as a component rather than a whole-app migration.
