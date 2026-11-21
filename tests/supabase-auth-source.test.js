@@ -44,3 +44,22 @@ test('AI Bridge uses the authenticated cloud agent loop rather than keyword-only
   assert.doesNotMatch(html, /function aiBridgeCommand\(/);
   assert.doesNotMatch(html, /data-ai-cmd/);
 });
+
+
+test('AI memory is opt-in, owner-scoped, expiring and user-manageable', () => {
+  assert.match(authSource, /async function saveAiMemory/);
+  assert.match(authSource, /async function listAiMemories/);
+  assert.match(authSource, /async function deleteAiMemory/);
+  assert.match(authSource, /\[2, 3, 7, 30\]/);
+  assert.match(authSource, /Credentials and secrets cannot be saved as AI memory/);
+  assert.match(authSource, /client\.from\("ai_memories"\)/);
+  assert.match(html, /<option value="0" selected>Không lưu/);
+  assert.match(html, /<option value="2">2 ngày/);
+  assert.match(html, /<option value="3">3 ngày/);
+  assert.match(html, /<option value="7">7 ngày/);
+  assert.match(html, /<option value="30">30 ngày/);
+  assert.match(html, /id="aiMemoryManage"/);
+  assert.match(html, /id="aiMemoryList"/);
+  assert.match(html, /await persistAgentMemory\(agent\)/);
+  assert.match(html, /aiAgentConversation=\[\]/);
+});
