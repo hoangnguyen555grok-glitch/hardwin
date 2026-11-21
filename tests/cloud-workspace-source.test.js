@@ -42,5 +42,6 @@ test('database reserves account quota atomically and locks client cloud metadata
   assert.match(migration, /CLOUD_STORAGE_QUOTA_EXCEEDED/);
   assert.match(migration, /revoke insert, update, delete on public\.project_metadata from authenticated/i);
   assert.match(migration, /grant execute on function public\.geed_reserve_cloud_storage[\s\S]*to service_role/i);
-  assert.match(migration, /p_object_key <> p_user_id::text \|\| '\/' \|\| p_local_project_key \|\| '\/project\.json'/i);
+  assert.match(migration, /geed_delete_cloud_project/);
+  assert.match(migration, /p_object_key <> \\(p_user_id::text \\|\\| '\\/' \\|\\| p_local_project_key \\|\\| '\\/project\\.json'\\)/i);
 });
