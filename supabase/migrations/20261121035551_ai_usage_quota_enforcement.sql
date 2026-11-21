@@ -88,13 +88,13 @@ returns boolean language plpgsql security definer set search_path = ''
 as $$
 begin
   if p_user_id is null or p_request_id is null
-     or p_provider is null or pg_catalog.char_length(p_provider) not between 1 and 40
-     or p_model is null or pg_catalog.char_length(p_model) not between 1 and 120
-     or p_task_type is null or p_task_type not in ('general', 'coding', 'reasoning', 'creative')
+     or p_provider is null or pg_catalog.char_length(p_provider) > 40
+     or p_model is null or pg_catalog.char_length(p_model) > 120
+     or p_task_type not in ('general', 'coding', 'reasoning', 'creative')
      or p_input_tokens is null or p_input_tokens < 0
      or p_output_tokens is null or p_output_tokens < 0
-     or p_cost_status is null or p_cost_status not in ('unknown', 'estimated', 'actual')
-     or p_outcome is null or p_outcome not in ('success', 'provider_error', 'uncertain', 'rejected') then
+     or p_cost_status not in ('unknown', 'estimated', 'actual')
+     or p_outcome not in ('success', 'provider_error', 'uncertain', 'rejected') then
     return false;
   end if;
   if p_actual_cost_usd is null and p_cost_status <> 'unknown' then return false; end if;
