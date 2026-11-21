@@ -1,6 +1,6 @@
 # Goal 8 — Cloud AI cleanup and implementation plan
 
-Status: architecture reset and repository audit in progress.
+Status: legacy local prototype removed from this working branch; cloud implementation not yet started.
 Branch: goal8-cloud-ai-cleanup
 Production branch is intentionally unchanged.
 
@@ -15,9 +15,11 @@ Production branch is intentionally unchanged.
 - Per-project AI memory retention is configurable: 2, 3, 7, or 30 days. Expiry cleanup must delete only AI memory records, never original project files or media.
 - Risky actions require explicit user confirmation. The agent must verify outcomes before reporting completion.
 
-## Repository audit findings (2026-11-21)
+## Repository audit findings and cleanup (2026-11-21)
 
-The existing `browser-agent/` folder is a local prototype, not a hosted Geed AI service:
+The former `browser-agent/` folder was a local prototype, not a hosted Geed AI service. Its contents and its dedicated local-agent CI workflow have now been removed from this working branch after confirming the production frontend did not depend on them. The production editor's animation tools and in-editor bridge demo remain intact. The original prototype can still be inspected through Git history if ever needed.
+
+The removed prototype had these characteristics:
 - `assistant_app.py` starts a local FastAPI app, attaches to a local browser via CDP, imports Browser Use, checks a local Ollama endpoint, and stores SQLite files locally.
 - `litellm_config.yaml` defaults to `ollama_chat/llama3.1:8b` and uses a local proxy.
 - `.env.example` configures localhost endpoints and a local model.
@@ -28,7 +30,7 @@ The existing `browser-agent/` folder is a local prototype, not a hosted Geed AI 
 
 ## Cleanup policy
 
-Do not delete these files blindly in the first pass. First check all references from the production frontend, deployment configuration, CI workflows, and tests. Then remove or archive only components proven unused by production. Preserve Git history. No local setup scripts should be presented as required for the intended cloud-only architecture.
+The local-only prototype and its local setup instructions are removed from this branch. The production editor remains unchanged apart from removing the obsolete local-agent launcher and clarifying the AI Bridge status. Preserve Git history. No local setup scripts are required for the intended cloud-only architecture.
 
 ## Target architecture
 
