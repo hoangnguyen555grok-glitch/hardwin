@@ -1664,7 +1664,9 @@ function bridgeStatus(){
  return {
   app:'Geed Hardwin',version:'v1.29',scene:scene()?.name||'Scene',sceneIndex,
   fps:FPS,durationSeconds:DURATION,maxFrame:MAX,currentFrame:frame,playing,
-  layerCount:all.length,selected:sel?{id:sel.id,name:sel.name,type:sel.type}:null,
+  layerCount:all.length,selectedCount:(selectedIds.length?selectedIds:(selectedId?[selectedId]:[])).length,
+  selectedLayers:(selectedIds.length?selectedIds:(selectedId?[selectedId]:[])).map(id=>all.find(o=>o.id===id)).filter(Boolean).map(o=>({id:o.id,name:o.name,type:o.type})),
+  selected:sel?{id:sel.id,name:sel.name,type:sel.type}:null,
   layers:all.map(o=>({id:o.id,name:o.name,type:o.type,visible:o.visible!==false,locked:!!o.locked})),
   aiModelConnected:false,mcpConnected:false
  };
@@ -1777,6 +1779,8 @@ function agentSnapshot(){
   currentFrame:Number(status.currentFrame)||0,
   playing:Boolean(status.playing),
   layerCount:Number(status.layerCount)||0,
+  selectedCount:Number(status.selectedCount)||0,
+  selectedLayers:(Array.isArray(status.selectedLayers)?status.selectedLayers:[]).slice(0,20).map(layer=>({id:String(layer.id||'').slice(0,100),name:String(layer.name||'').slice(0,80),type:String(layer.type||'').slice(0,40)})),
   selected:status.selected?{
    id:String(status.selected.id||'').slice(0,100),
    name:String(status.selected.name||'').slice(0,80),
@@ -1835,9 +1839,14 @@ function runAgentEditorAction(rawAction){
   case 'animateCircle':result=window.GeedHardwinBridge.animateCircle(action.args);break;
   case 'play':result=window.GeedHardwinBridge.play();break;
   case 'stop':result=window.GeedHardwinBridge.stop();break;
-  case 'setFrame':result=window.GeedHardwinBridge.setFrame(action.args.frame);break;
+  case 'setFrame':
+   if(action.args.frame>before.maxFrame)throw new Error('Frame được yêu cầu nằm ngoài timeline hiện tại.');
+   result=window.GeedHardwinBridge.setFrame(action.args.frame);
+   break;
   case 'deleteSelected':{
-   const confirmed=window.confirm('AI muốn xóa layer đang chọn khỏi cảnh hiện tại. Bạn có chắc chắn muốn xóa không?');
+   if(before.selectedCount<1)throw new Error('Chưa có layer nào được chọn. Hãy chọn layer cần xóa trước.');
+   const names=before.selectedLayers.map(layer=>layer.name||layer.id).join(', ');
+   const confirmed=window.confirm('AI muốn xóa '+before.selectedCount+' layer đang chọn ('+names+'). Bạn có chắc chắn muốn xóa đúng các layer này không?');
    if(!confirmed)return {tool:action.tool,cancelled:true,verified:false,before,after:before};
    result=window.GeedHardwinBridge.deleteSelected();
    if(!result?.ok)throw new Error(result?.message||'Không có layer nào được xóa.');
@@ -1851,7 +1860,7 @@ function runAgentEditorAction(rawAction){
  else if(action.tool==='play')verified=after.playing;
  else if(action.tool==='stop')verified=!after.playing;
  else if(action.tool==='setFrame')verified=after.currentFrame===action.args.frame;
- else if(action.tool==='deleteSelected')verified=after.layerCount<before.layerCount;
+ else if(action.tool==='deleteSelected')verified=before.selectedCount>0&&after.layerCount===before.layerCount-before.selectedCount;
  if(!verified)throw new Error('Editor chưa xác nhận được kết quả của thao tác '+action.tool+'. Mình đã dừng để tránh báo sai.');
  return {
   tool:action.tool,
