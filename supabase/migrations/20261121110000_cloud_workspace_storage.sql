@@ -115,7 +115,7 @@ begin
    where r.user_id = p_user_id
      and r.expires_at > pg_catalog.now();
 
-  if v_used + v_pending + pg_catalog.greatest(p_requested_bytes - v_previous, 0) > v_limit then
+  if v_used + v_pending + greatest(p_requested_bytes - v_previous, 0) > v_limit then
     return pg_catalog.jsonb_build_object(
       'allowed', false,
       'code', 'CLOUD_STORAGE_QUOTA_EXCEEDED',
