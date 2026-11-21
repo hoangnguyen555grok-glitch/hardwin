@@ -1,6 +1,6 @@
 # Goal 8 — Cloud AI, accounts and data protection
 
-Status: repository cleanup, Google-only account foundation, per-account quota gate, bounded AI Agent loop, opt-in expiring AI memory, and community-first provider routing are implemented on the working branch. GitHub Actions run `44867255756` passed **41/41 tests** and all syntax checks on commit `7e34cc4ea4c883d5121e7732347a4632b74ad411`. Vercel Preview deployment `dpl_4RdYMUdP9fjpea8eUcPEd924rAXS` built READY from that commit. The Preview environment currently has no environment variables configured, so live Google OAuth/provider calls are not yet testable. No HTTP interaction test is claimed.
+Status: repository cleanup, Google-only account foundation, per-account quota gate, bounded AI Agent loop, opt-in expiring AI memory, free-first AI routing, and a community GIF exporter are implemented on the working branch. GitHub Actions run `44868286358` passed **45/45 tests** and all syntax checks on code commit `cd13358088aa34dfbffc19c77a3aa91645af949f`; subsequent commits changed only community/third-party documentation. Vercel Preview deployment `dpl_5erygbriMmWvYAS7KpRZvSX4W3ec` built READY from branch commit `3394d7b8a739dac0fe3298f6b8ccce017433d49c`. The Preview environment has no environment variables configured, so live Google OAuth/provider calls are not yet testable. The browser-only GIF CDN path has unit coverage and an offline fallback, but has not yet been visually tested in a real browser.
 Branch: `goal8-cloud-ai-cleanup`
 Production branch: unchanged. No merge or production deployment has been performed.
 
@@ -33,7 +33,16 @@ Files: `lib/ai-router.js`, `api/ai/chat.js`, `lib/supabase-ai-gateway.js`, tests
 - Falls through to the next explicitly allowed provider after clear errors or quota/rate-limit responses. An ambiguous timeout stops the chain to avoid a possible duplicate billable generation.
 - Enforces request validation, timeout limits, a server-side output-token ceiling, authenticated sessions and atomic account-level monthly request/token reservations.
 - Records provider token usage. Model costs remain unknown unless an exact model price is configured; rate-based calculations are labelled estimates, never invoice actuals.
-- Free quotas are limited and may change. This is a text-agent/chat foundation, not an image/video generation pipeline.
+- Free quotas are limited and may change. AI text routing remains separate from media-generation APIs; no unlimited image/video generation service is promised.
+
+## B.1 Community components — selective integration
+
+- GIF export now lazily uses the MIT-licensed `gifenc@1.0.3` project from the community. It builds one palette for all frames; the existing encoder remains as an offline fallback when the CDN/library cannot load.
+- Four focused tests cover palette selection, frame timing, input validation and the offline fallback path. The current CI run passes all 45 tests.
+- Evaluated AniCraft, Flare, MyMotionStudio and Animora as whole-editor/community references. None is a safe drop-in replacement for the current editor/project format, so no wholesale rewrite was made.
+- Mediabunny is the leading next candidate for video export, but is not yet integrated: audio parity, browser codec support, memory and bundle impact need real-browser validation first.
+- Pollinations exposes text/image/video/audio/3D APIs and an MCP server, but generation uses a prepaid Pollen wallet. Quest rewards are variable; any future BYOP support must be an explicit user-connected option with a user-controlled budget, not described as unlimited free service.
+- Inventory, selection decisions and license notes: `docs/COMMUNITY-RESOURCES.md` and `docs/THIRD-PARTY-NOTICES.md`.
 
 ## C. Account and data protection — foundation implemented
 
@@ -67,7 +76,7 @@ Supported actions: inspect project, create circle, animate circle, play, stop, s
 ## F. Remaining release gates
 
 1. Owner configures Google OAuth and Vercel Preview server environment variables (instructions in `docs/GOAL8-ACCOUNT-SECURITY.md`). The current Preview has no environment variables; provider keys and secrets must be added by the owner through Vercel settings, never committed or pasted into chat.
-2. A fresh Preview is READY from runtime commit `7e34cc4`: https://geed-hardwin-p7t1sn942-hoangnguyen555grok-1529.vercel.app/. The build completed, but HTTP interaction and OAuth smoke checks remain pending because no Preview secrets/providers are configured. Then verify Auth callback, session restoration and local save/import/export.
+2. A fresh Preview is READY from commit `3394d7b`: https://geed-hardwin-clhc59svs-hoangnguyen555grok-1529.vercel.app/. The build completed, but live OAuth/provider calls and browser interaction tests remain pending because the Preview has no environment variables. Verify Auth callback, session restoration and local save/import/export after owner setup.
 3. With an owner-configured test account/provider, exercise AI disabled, quota boundaries, real provider response, usage ledger, cost estimate, tool actions, confirmation prompt and post-action verification.
 4. Test memory write/read/delete and automatic expiry using a test note; ensure project/media remain untouched.
 5. Compare usage ledger estimates with actual provider invoices before deciding any Free allowance or paid plan. Payments remain out of scope.
