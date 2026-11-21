@@ -39,3 +39,48 @@ test('chat endpoint only accepts POST', async () => {
   assert.equal(res.statusCode, 405);
   assert.equal(res.headers.allow, 'POST');
 });
+
+
+test('chat endpoint stops on ambiguous provider timeout and marks it non-retryable', async () => {
+  const keys = [
+    'GEED_AI_GATEWAY_TOKEN',
+    'GEED_AI_OPENAI_API_KEY',
+    'GEED_AI_OPENAI_MODEL',
+    'GEED_AI_DEEPSEEK_API_KEY',
+    'GEED_AI_DEEPSEEK_MODEL',
+    'GEED_AI_PROVIDER_ORDER'
+  ];
+  const previous = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  try {
+    process.env.GEED_AI_GATEWAY_TOKEN = 'test-secret-token';
+    process.env.GEED_AI_OPENAI_API_KEY = 'test-openai-key';
+    process.env.GEED_AI_OPENAI_MODEL = 'test-openai-model';
+    process.env.GEED_AI_DEEPSEEK_API_KEY = 'test-deepseek-key';
+    process.env.GEED_AI_DEEPSEEK_MODEL = 'test-deepseek-model';
+    process.env.GEED_AI_PROVIDER_ORDER = 'openai,deepseek';
+    globalThis.fetch = async () => {
+      calls += 1;
+      const error = new Error('timed out');
+      error.name = 'AbortError';
+      throw error;
+    };
+    const res = responseMock();
+    await handler({
+      method: 'POST',
+      headers: { authorization: 'Bearer test-secret-token' },
+      body: { messages: [{ role: 'user', content: 'hello' }] }
+    }, res);
+    assert.equal(res.statusCode, 504);
+    assert.equal(res.body.retryable, false);
+    assert.equal(res.body.attempts[0].outcome, 'uncertain_timeout');
+    assert.equal(calls, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    for (const key of keys) {
+      if (previous[key] === undefined) delete process.env[key];
+      else process.env[key] = previous[key];
+    }
+  }
+});
