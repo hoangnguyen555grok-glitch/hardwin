@@ -1,6 +1,6 @@
 # Goal 8 — Cloud AI, accounts and data protection
 
-Status: repository cleanup, Google-only account foundation, per-account quota gate, bounded AI Agent loop, opt-in expiring AI memory, and community-first provider routing are implemented on the working branch. GitHub Actions run `44867167763` passed **41/41 tests** and all syntax checks on commit `0ff268f2f364ead465ef356ffb2f5b66352cc4fe`. The updated free-provider routing still needs a fresh Vercel Preview smoke test. Real Google OAuth and provider calls remain blocked until the owner configures credentials and confirms the free-tier provider accounts.
+Status: repository cleanup, Google-only account foundation, per-account quota gate, bounded AI Agent loop, opt-in expiring AI memory, and community-first provider routing are implemented on the working branch. GitHub Actions run `44867255756` passed **41/41 tests** and all syntax checks on commit `7e34cc4ea4c883d5121e7732347a4632b74ad411`. Vercel Preview deployment `dpl_4RdYMUdP9fjpea8eUcPEd924rAXS` built READY from that commit. The Preview environment currently has no environment variables configured, so live Google OAuth/provider calls are not yet testable. No HTTP interaction test is claimed.
 Branch: `goal8-cloud-ai-cleanup`
 Production branch: unchanged. No merge or production deployment has been performed.
 
@@ -66,8 +66,8 @@ Supported actions: inspect project, create circle, animate circle, play, stop, s
 
 ## F. Remaining release gates
 
-1. Owner configures Google OAuth and Vercel Preview server environment variables (instructions in `docs/GOAL8-ACCOUNT-SECURITY.md`).
-2. The last confirmed Preview served commit `1f68edce761320ff2d3cd38feaf7533578dd9866`; it predates the latest free-first router edits. Create/check a fresh Preview for the current branch before interactive testing. Then verify Auth callback, session restoration and local save/import/export.
+1. Owner configures Google OAuth and Vercel Preview server environment variables (instructions in `docs/GOAL8-ACCOUNT-SECURITY.md`). The current Preview has no environment variables; provider keys and secrets must be added by the owner through Vercel settings, never committed or pasted into chat.
+2. A fresh Preview is READY from runtime commit `7e34cc4`: https://geed-hardwin-p7t1sn942-hoangnguyen555grok-1529.vercel.app/. The build completed, but HTTP interaction and OAuth smoke checks remain pending because no Preview secrets/providers are configured. Then verify Auth callback, session restoration and local save/import/export.
 3. With an owner-configured test account/provider, exercise AI disabled, quota boundaries, real provider response, usage ledger, cost estimate, tool actions, confirmation prompt and post-action verification.
 4. Test memory write/read/delete and automatic expiry using a test note; ensure project/media remain untouched.
 5. Compare usage ledger estimates with actual provider invoices before deciding any Free allowance or paid plan. Payments remain out of scope.
