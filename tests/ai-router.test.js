@@ -63,6 +63,18 @@ test('Cloudflare Workers AI requires an explicit free-plan confirmation and endp
   assert.deepEqual(configuredProviders(env), ['cloudflare']);
 });
 
+test('Gemini is enabled only after confirming its Free tier and billing is disabled', () => {
+  const env = {
+    GEED_AI_GEMINI_API_KEY: 'gemini-test-key',
+    GEED_AI_GEMINI_MODEL: 'gemini-free-model',
+    GEED_AI_GEMINI_FREE_TIER_CONFIRMED: 'true'
+  };
+  assert.deepEqual(configuredProviders(env), []);
+  env.GEED_AI_GEMINI_BILLING_DISABLED = 'true';
+  assert.deepEqual(configuredProviders(env), ['gemini']);
+  assert.deepEqual(providerOrder('general', env), ['gemini']);
+});
+
 test('fails over from the first provider to the next configured provider', async () => {
   const calls = [];
   const fakeFetch = async (url) => {
