@@ -14,6 +14,15 @@ test('browser auth uses only the Supabase publishable key and PKCE', () => {
   assert.doesNotMatch(authSource, /service[_-]?role|sb_secret_|SUPABASE_SERVICE_ROLE_KEY/i);
   assert.doesNotMatch(authSource, /signInWithPassword|signInWithOtp|provider:\s*["'](facebook|apple)["']/);
 });
+test('database auth trigger rejects every provider except Google', () => {
+  const migrationPath = path.join(root, 'supabase/migrations/20261121040340_google_only_auth_provider.sql');
+  const migration = fs.readFileSync(migrationPath, 'utf8');
+  assert.match(migration, /before insert on auth\.users/i);
+  assert.match(migration, /new\.raw_app_meta_data\s*->>\s*'provider'/i);
+  assert.match(migration, /<>\s*'google'/i);
+  assert.match(migration, /using errcode\s*=\s*'42501'/i);
+});
+
 test('editor remains usable without account sign-in and preserves local autosave/export', () => {
   assert.match(html, /id="accountButton"/);
   assert.match(html, /id="accountStatus"/);

@@ -1,6 +1,6 @@
 # Goal 8 — Cloud AI, accounts and data protection
 
-Status: repository cleanup, cloud Model Router, Supabase account schema, Google-only browser sign-in client, per-account quota gate and automatic AI-memory expiry cleanup are implemented on the working branch. **Not ready for production publication yet:** owner OAuth credentials and Vercel server secrets are still required, the preview build has not been completed, and the Agent Engine is not implemented.
+Status: repository cleanup, cloud Model Router, Supabase account schema, database-enforced Google-only account creation, browser sign-in client, per-account quota gate and automatic AI-memory expiry cleanup are implemented on the working branch. The first Vercel Preview build is READY and the first full CI pass reported 22/22 tests. **Not ready for production publication yet:** OAuth credentials and server secrets still require owner setup; the latest hardening commit needs a refreshed Preview; the Agent Engine and memory/chat UI are not implemented.
 Branch: `goal8-cloud-ai-cleanup`
 Production branch: unchanged; no production deployment or merge has been performed.
 
@@ -37,7 +37,7 @@ Files: `lib/ai-router.js`, `api/ai/chat.js`, router tests, GitHub Actions workfl
 
 Supabase project `geed-hardwin-auth` (`rdzitdoarrfjugzogkrf`) is active in Singapore; project creation quote was USD 0/month on 2026-11-21.
 
-- Google-only browser sign-in client uses Supabase's publishable key and PKCE. The header control is optional; the editor still works signed out.
+- Google-only browser sign-in client uses Supabase's publishable key and PKCE. The header control is optional; the editor still works signed out. A database `BEFORE INSERT` trigger rejects new auth.users rows unless `raw_app_meta_data.provider` is exactly `google`.
 - Database contains profiles, entitlements, usage ledger, AI memories and project metadata, all with RLS and per-user ownership policies.
 - New users are assigned the Free plan with AI disabled and zero storage/AI quotas.
 - The AI endpoint verifies the Supabase access token with Supabase Auth and uses server-only RPCs to reserve account request/token quota and finalize measured usage. It does not trust a user ID from the browser.
@@ -45,7 +45,7 @@ Supabase project `geed-hardwin-auth` (`rdzitdoarrfjugzogkrf`) is active in Singa
 - Provider token counts are recorded. Cost stays unknown unless a model's exact rate is configured; a rate-based calculation is marked estimate, never actual invoice cost.
 - Payments and cloud project/media storage remain deferred.
 
-**Owner setup still required:** create a Google OAuth Web Client in Google Cloud, enter Client ID/Secret in Supabase Auth Provider settings, set redirect allow-list, and add the server-only Supabase service-role secret plus provider keys/models to the Vercel **Preview** environment. Do not place secrets in chat or Git. Details are in `docs/GOAL8-ACCOUNT-SECURITY.md`.
+**Owner setup still required:** create a Google OAuth Web Client in Google Cloud, enter Client ID/Secret in Supabase Auth Provider settings, disable the Email provider, set the exact production/Preview redirect allow-list, and add the server-only Supabase service-role secret plus provider keys/models to the Vercel **Preview** environment. Do not place secrets in chat or Git. Details are in `docs/GOAL8-ACCOUNT-SECURITY.md`.
 
 ## D. Cloud AI memory — database expiry implemented; product integration pending
 
@@ -57,12 +57,12 @@ Supabase project `geed-hardwin-auth` (`rdzitdoarrfjugzogkrf`) is active in Singa
 ## E. Remaining build and release gates
 
 1. Owner configures Google OAuth credentials and Vercel Preview-only server secrets.
-2. Run CI for the new account/quota tests and syntax checks.
-3. Create a Vercel Preview deployment from this branch and test the app, sign-in, session restoration, local autosave/import/export, unauthorized/disabled AI cases, quota enforcement, provider fallback and usage logging.
-4. Implement the Agent Engine: plan → bounded tool calls → observe editor state → verify results, permission gates, audit trail, timeouts, cancellation and safe rollback.
-5. Integrate the AI chat UI only after the preview backend is fully configured. Keep the prototype AI Bridge clearly marked until that integration is real.
-6. Implement AI-memory selection/read/write UI, then test automatic expiry without touching project assets.
-7. Compare observed provider usage with actual provider invoices. Only after measuring costs should free allowances and paid pricing be designed.
+2. Re-run CI after the latest quota/cost hardening and verify all tests and syntax checks.
+3. Refresh the Vercel Preview from the latest branch commit and test the app, Google sign-in, session restoration, local autosave/import/export, unauthorized/disabled AI, quota enforcement, provider failover and usage logging.
+4. Implement the Agent Engine: natural-language plan → bounded tool calls → observe editor state → verify results, permission gates, audit trail, timeouts, cancellation and safe rollback.
+5. Integrate the AI chat UI only after the preview backend is configured and tested. Keep the prototype AI Bridge clearly marked until that integration is real.
+6. Implement AI-memory selection/read/write UI and deletion/export controls, then test automatic expiry without touching project assets.
+7. Compare observed provider usage with provider invoices. Only after measuring actual costs should free allowances and paid pricing be designed.
 8. Present the tested preview and deployment evidence. Production merge/deploy requires the owner's explicit instruction.
 
 ## Cost and release safety

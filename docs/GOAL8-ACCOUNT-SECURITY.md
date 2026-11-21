@@ -1,6 +1,6 @@
 # Goal 8 — Account, entitlement and data protection
 
-Status: Supabase schema, Google-only browser sign-in client, server-side Supabase session verification, and per-account AI quota enforcement are implemented on the working branch. Google OAuth credentials and Vercel server secrets still require owner setup.
+Status: Supabase schema, database-enforced Google-only account creation, Google browser sign-in client, server-side Supabase session verification and per-account AI quota enforcement are implemented on the working branch. The Vercel Preview build is ready; Google OAuth credentials and server secrets still require owner setup.
 Working branch: `goal8-cloud-ai-cleanup`
 Supabase project: `geed-hardwin-auth` (`rdzitdoarrfjugzogkrf`), region `ap-southeast-1` (Singapore).
 Project creation quote: USD 0/month on 2026-11-21. This quote does not guarantee that future provider API calls, storage or other services are free.
@@ -30,11 +30,11 @@ All five exposed public tables have RLS enabled. Policies use `auth.uid()` owner
 Google OAuth cannot be activated without a Client ID and Client Secret created by the project owner. Do not paste the Client Secret into chat, source control, browser storage or frontend code.
 
 1. Open Google Cloud Console → Google Auth Platform → Clients and create an OAuth Client ID of type **Web application**.
-2. Authorized JavaScript origin: `https://geed-hardwin.vercel.app`.
+2. Authorized JavaScript origins: `https://geed-hardwin.vercel.app` and `https://geed-hardwin-git-goal8-cloud-ai-cleanup-hoangnguyen555grok-1529.vercel.app` (the isolated Preview alias).
 3. Authorized redirect URI (Supabase callback): `https://rdzitdoarrfjugzogkrf.supabase.co/auth/v1/callback`.
 4. Keep requested scopes limited to `openid`, `email` and `profile`.
-5. In Supabase Dashboard → Authentication → Sign In / Providers → Google, enable Google and enter the Client ID and Client Secret.
-6. In Supabase Dashboard → Authentication → URL Configuration, set Site URL to `https://geed-hardwin.vercel.app` and add the exact production redirect URL `https://geed-hardwin.vercel.app/**`. Add the exact Vercel preview URL only after the preview exists; do not allow all unrelated Vercel deployment domains.
+5. In Supabase Dashboard → Authentication → Sign In / Providers, enable Google and enter the Client ID and Client Secret. Disable the Email provider and leave every other provider disabled. A database `BEFORE INSERT` trigger also rejects any new Auth user whose `raw_app_meta_data.provider` is not exactly `google`, providing a server-side enforcement layer in addition to the UI.
+6. In Supabase Dashboard → Authentication → URL Configuration, set Site URL to `https://geed-hardwin.vercel.app` and add these exact redirect patterns: `https://geed-hardwin.vercel.app/**` and `https://geed-hardwin-git-goal8-cloud-ai-cleanup-hoangnguyen555grok-1529.vercel.app/**`. Do not allow all unrelated Vercel deployment domains.
 7. Complete Google consent-screen branding and add privacy policy/terms links before public launch.
 
 The browser client uses only the Supabase publishable key, PKCE flow and Google provider. The sign-in button is optional; the local editor still works if OAuth is not configured. The real login flow cannot be tested until the owner configures these values.
@@ -62,7 +62,7 @@ Optional exact-model price map:
   }
 }
 ```
-Only an exact model ID match is used. This calculates a **rate-based estimate** from provider token counts; it is not an invoice or authoritative actual charge. The ledger records it as `estimated`. When no verified price map exists, the cost remains `unknown` (null), not zero. Actual invoice cost is intentionally left null until there is a reliable source for it.
+Only an exact model ID match is used. Both rate values must be explicitly supplied as a non-negative number or non-empty numeric string; missing, null, blank or invalid values leave cost `unknown`. An explicitly configured rate of `0` is accepted only as a deliberate price entry. This calculates a **rate-based estimate** from provider token counts; it is not an invoice or authoritative actual charge. The ledger records it as `estimated`. When no valid exact price map exists, the cost remains `unknown` (null), not zero. Actual invoice cost is intentionally left null until there is a reliable source for it.
 
 ## AI authentication and quota enforcement
 
@@ -71,7 +71,7 @@ The `POST /api/ai/chat` endpoint now:
 2. Reserves monthly request and token allowance under a row lock on that user's entitlement. Concurrent calls cannot all pass the same remaining quota.
 3. Refuses accounts without active status, AI access, and positive configured limits before calling any provider.
 4. Routes through configured provider APIs, records provider token counts and an estimated cost only when an exact price entry exists.
-5. Records ambiguous provider timeouts without retrying another provider, reducing the risk of duplicate generation charges.
+5. Records ambiguous provider timeouts without retrying another provider. For quota accounting, it conservatively records the full server-side output-token allowance reserved for that request; this is not reported as measured output or actual provider cost.
 6. Writes usage through a server-only RPC. If the usage write fails after a completed generation, the response explicitly sets `usage_recorded: false` and warns not to automatically retry.
 
 The reservation uses conservative input-character estimates plus the server-enforced output token ceiling. Expired in-flight reservations are cleared on the next reservation after ten minutes. New accounts are intentionally AI-disabled by default. No account has been granted nonzero quotas yet.
@@ -86,9 +86,11 @@ The reservation uses conservative input-character estimates plus the server-enfo
 ## Verification performed
 
 - Supabase project reports `ACTIVE_HEALTHY`.
-- Migrations applied: `initial_account_safety_schema`, `usage_cost_status`, `ai_memory_expiry_cleanup`, `ai_usage_quota_enforcement`, `separate_estimated_and_actual_ai_cost`.
+- Migrations applied: `20261121035113` initial schema, `20261121035229` cost status, `20261121035409` memory expiry, `20261121035551` initial quota RPCs, `20261121035624` hardened quota RPCs, `20261121035637` estimated-vs-actual costs and `20261121040340` Google-only Auth enforcement.
 - All five public tables have RLS enabled.
 - Security Advisor returned zero findings.
 - Reserve/finalize RPCs are executable by `service_role` and not by `anon` or `authenticated`.
 - AI memory cleanup job is present and active; cleanup function is under the private schema with fixed empty search path.
-- No real Google sign-in test is possible until owner-created OAuth credentials are entered.
+- The Google-only `BEFORE INSERT` Auth trigger was exercised against temporary test rows: a `google` provider was accepted; `email` and missing-provider rows were rejected. No real OAuth login is possible until owner-created Google credentials are entered.
+- GitHub Actions run `44863975064` passed 22/22 tests and all syntax checks; the later hardening commit is being rechecked.
+- Vercel Preview for branch `goal8-cloud-ai-cleanup` built successfully at `https://geed-hardwin-git-goal8-cloud-ai-cleanup-hoangnguyen555grok-1529.vercel.app/`. Production domains were not changed. This preview was built before the latest hardening commit and must be refreshed before final release testing.

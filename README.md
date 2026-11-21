@@ -89,13 +89,15 @@ Repository công khai để theo dõi tiến độ. Chưa gắn giấy phép mã
 
 AI Bridge hiện vẫn là bảng lệnh mẫu trong editor, **chưa phải chatbot AI cloud và chưa tự thực thi kế hoạch**. Không cần cài Ollama, Python agent, local proxy, mở Opera debug hay tải model về máy.
 
-Trên branch `goal8-cloud-ai-cleanup` đã có nền tảng Model Router gọi API cloud, dự án Supabase cho tài khoản/quyền sử dụng/usage ledger/AI memory, nút đăng nhập Google tùy chọn và endpoint AI xác thực session + kiểm tra quota theo tài khoản. AI mặc định bị tắt và quota bằng 0 cho tài khoản mới; chưa có chi phí provider nào được xem là miễn phí. Giá dự kiến chỉ được ghi là estimate khi cấu hình đúng model price; chưa có dữ liệu invoice thực tế.
+Trên branch `goal8-cloud-ai-cleanup` đã có Model Router cloud, nền tảng tài khoản Supabase, nút đăng nhập Google tùy chọn, chốt database chỉ nhận provider Google, xác thực session ở server, quota AI theo từng tài khoản và nhật ký token/chi phí estimate. AI mặc định bị tắt, quota bằng 0 cho tài khoản mới. Chi phí chưa rõ luôn ghi là `unknown`, không coi là miễn phí; phí estimate chỉ có khi cấu hình giá đúng model. Timeout không rõ kết quả không tự gọi lại nhà cung cấp khác và bị tính bảo thủ theo lượng token đã giữ chỗ.
 
-Editor vẫn hoạt động khi chưa đăng nhập và lưu project/media trên thiết bị bằng IndexedDB cùng chức năng Save/Open JSON. Supabase không chứa file hoạt hình hoặc media. AI memory có thời hạn 2/3/7/30 ngày và job dọn hết hạn chỉ xóa dữ liệu AI memory.
+Editor vẫn hoạt động khi chưa đăng nhập và lưu project/media trên thiết bị bằng IndexedDB cùng chức năng Save/Open JSON. Supabase không chứa file hoạt hình hoặc media. AI memory có thời hạn 2/3/7/30 ngày; job dọn hết hạn chỉ xóa dữ liệu AI memory.
 
-**Chưa sẵn sàng phát hành production:** chủ dự án còn cần cấu hình Google OAuth Client ID/Secret trong Supabase và secret server-side cùng provider key/model trong Vercel Preview. Agent Engine, tích hợp chatbot vào UI và giao diện chọn thời hạn memory vẫn đang chờ hoàn thiện/kiểm thử. Branch này chưa merge vào `main` và không làm thay đổi website production.
+Bản Preview đã build READY từ nhánh thử nghiệm: `https://geed-hardwin-git-goal8-cloud-ai-cleanup-hoangnguyen555grok-1529.vercel.app/`. CI đã có lượt 22/22 bài kiểm thử đạt, nhưng cần chạy lại sau các chỉnh sửa hardening mới nhất. Preview chưa có secret backend và Google OAuth credentials nên đăng nhập/AI thật chưa thể thử nghiệm. Vercel production và `main` không bị thay đổi.
 
-Chi tiết tiến độ và các bước owner setup:
+**Chưa sẵn sàng phát hành production:** còn cần owner cấu hình Google OAuth và Vercel Preview secrets; refresh/test Preview mới nhất; hoàn thiện Agent Engine, chatbot UI và giao diện quản lý AI memory. Không có thanh toán hoặc gói trả phí trong giai đoạn này.
+
+Chi tiết:
 - [Kế hoạch Goal 8](docs/GOAL8-CLOUD-AI-PLAN.md)
 - [Bảo vệ tài khoản, quota và dữ liệu](docs/GOAL8-ACCOUNT-SECURITY.md)
 - [Model Router](docs/GOAL8-MODEL-ROUTER.md)
