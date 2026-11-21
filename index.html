@@ -101,10 +101,54 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
 @media(max-width:700px){.image-editor-modal{padding:5px}.image-editor-window{width:100%;height:98vh}.image-editor-toolbar{gap:5px;padding:7px}.image-editor-workspace{padding:7px}.image-editor-foot{flex-wrap:wrap}}
 
 
-/* Account status and Google sign-in */
-.account-status{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#9eacc0;font-size:11px}
-#accountButton{white-space:nowrap;padding:7px 9px;font-size:11px}
+/* Google account menu, profile dialog and editor shortcuts */
+.account-area{position:relative;display:flex;align-items:center;gap:10px;min-width:0}
+.account-status{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#9eacc0;font-size:11px}
+#accountButton.account-trigger{display:flex;align-items:center;gap:8px;max-width:220px;white-space:nowrap;padding:5px 9px 5px 6px;font-size:11px}
+.account-avatar{width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center;overflow:hidden;border-radius:50%;background:linear-gradient(135deg,#6fa8ff,#a18aff);color:#101725;font-size:12px;font-weight:800;box-shadow:0 0 0 1px #ffffff24}
+.account-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.account-avatar-fallback{display:grid;place-items:center;width:100%;height:100%}
+.account-button-label{max-width:125px;overflow:hidden;text-overflow:ellipsis}
+.account-chevron{color:#9eacc0;font-size:12px;line-height:1}
+.account-menu{position:absolute;right:0;top:calc(100% + 9px);z-index:14000;width:min(310px,calc(100vw - 24px));padding:8px;background:#1b222d;border:1px solid #46566d;border-radius:12px;box-shadow:0 18px 48px #000b}
+.account-menu[hidden]{display:none}
+.account-menu-profile{display:flex;align-items:center;gap:11px;padding:10px 9px 13px}
+.account-menu-avatar{width:42px;height:42px;flex:0 0 42px}
+.account-menu-identity{min-width:0;display:flex;flex-direction:column;gap:4px}
+.account-menu-identity strong{font-size:13px;color:#f0f5fc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.account-menu-identity small{font-size:11px;color:#9eacc0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.account-menu-divider{height:1px;background:#354153;margin:4px 3px}
+.account-menu-item{width:100%;display:flex;align-items:center;gap:11px;padding:10px 11px;border:0;background:transparent;border-radius:8px;text-align:left;color:#dce5f2;font-size:12px}
+.account-menu-item:hover,.account-menu-item:focus-visible{background:#2a3545;border-color:transparent;outline:none}
+.account-menu-icon{width:20px;text-align:center;font-size:16px;color:#a9c7fa}
+.account-menu-item.danger{color:#ffb5b5}
+.account-menu-item.danger .account-menu-icon{color:#ff9292}
+dialog.account-dialog{width:min(460px,calc(100vw - 28px));max-width:none;max-height:min(82vh,720px);padding:0;border:1px solid #46566d;border-radius:15px;background:#1a212c;color:#edf2f8;box-shadow:0 28px 90px #000c;overflow:auto}
+dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
+.account-dialog-shell{display:flex;flex-direction:column}
+.account-dialog-head{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid #354153;background:#202938}
+.account-dialog-heading{flex:1;min-width:0}
+.account-dialog-heading small{display:block;color:#9eacc0;font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.account-dialog-heading h2{margin:0;font-size:16px;font-weight:700}
+.account-dialog-close{width:32px;height:32px;padding:0;font-size:19px;line-height:1}
+.account-dialog-content{padding:18px}
+.account-dialog-actions{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px;border-top:1px solid #354153}
+.account-profile-card{display:flex;align-items:center;gap:14px;padding:4px 0 13px}
+.account-dialog-avatar{width:58px;height:58px;flex:0 0 58px;font-size:21px}
+.account-profile-copy{min-width:0}
+.account-profile-copy h3{margin:0 0 5px;font-size:15px;overflow-wrap:anywhere}
+.account-profile-copy p{margin:0;color:#aab7c9;font-size:12px;overflow-wrap:anywhere}
+.account-provider-pill{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:5px 8px;border:1px solid #365c4f;border-radius:999px;background:#18372f;color:#a6e4c7;font-size:10px}
+.account-dialog-note{color:#aab7c9;font-size:11px;line-height:1.6;margin:10px 0 0}
+.account-setting-row{display:grid;grid-template-columns:1fr 145px;align-items:center;gap:14px;margin:12px 0;color:#cbd5e3;font-size:12px}
+.account-setting-row select,.account-setting-row input{width:100%;padding:8px 9px;border:1px solid #39475a;border-radius:7px;background:#101720;color:#edf2f8}
+.account-help-list{display:grid;gap:10px}
+.account-help-row{display:flex;align-items:center;justify-content:space-between;gap:16px;color:#cbd5e3;font-size:12px}
+.account-help-row kbd{min-width:112px;padding:5px 7px;border:1px solid #46566d;border-radius:6px;background:#111822;color:#e5edfa;text-align:center;font:11px ui-monospace,monospace}
+.account-highlight{animation:accountLibraryPulse 1.2s ease}
+@keyframes accountLibraryPulse{0%,100%{box-shadow:inset 0 0 0 0 transparent}35%{box-shadow:inset 0 0 0 2px #79a9ff}}
 @media(max-width:1120px){.account-status{display:none}.topbar{gap:9px}}
+@media(max-width:700px){.account-button-label{display:none}#accountButton.account-trigger{padding-right:7px}.account-setting-row{grid-template-columns:1fr 120px}}
 
 </style>
 </head>
@@ -120,8 +164,27 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
   <button class="ghost" id="saveProject">Save project</button>
   <input id="projectInput" type="file" accept="application/json,.json" hidden />
   <button class="ghost" id="aiBridgeOpen" title="Open AI control bridge">✦ AI Bridge</button>
-  <span class="account-status" id="accountStatus">Lưu dự án trên thiết bị</span>
-  <button class="ghost" id="accountButton" type="button" data-authenticated="false">Đăng nhập Google</button>
+  <div class="account-area" id="accountArea">
+    <span class="account-status" id="accountStatus">Lưu dự án trên thiết bị</span>
+    <button class="ghost account-trigger" id="accountButton" type="button" data-authenticated="false" aria-haspopup="menu" aria-expanded="false" aria-controls="accountMenu" title="Đăng nhập bằng Google">
+      <span class="account-avatar" id="accountAvatarWrap" hidden><img id="accountAvatar" alt="" referrerpolicy="no-referrer" hidden/><span class="account-avatar-fallback" id="accountAvatarFallback" aria-hidden="true">G</span></span>
+      <span class="account-button-label" id="accountButtonLabel">Đăng nhập Google</span>
+      <span class="account-chevron" aria-hidden="true">⌄</span>
+    </button>
+    <div class="account-menu" id="accountMenu" role="menu" aria-label="Menu tài khoản" hidden>
+      <div class="account-menu-profile">
+        <span class="account-avatar account-menu-avatar" id="accountMenuAvatarWrap"><img id="accountMenuAvatar" alt="" referrerpolicy="no-referrer" hidden/><span class="account-avatar-fallback" id="accountMenuAvatarFallback" aria-hidden="true">G</span></span>
+        <div class="account-menu-identity"><strong id="accountMenuName">Tài khoản Geed Hardwin</strong><small id="accountMenuEmail">Chưa đăng nhập</small></div>
+      </div>
+      <div class="account-menu-divider" role="separator"></div>
+      <button class="account-menu-item" id="accountProfileItem" type="button" role="menuitem"><span class="account-menu-icon" aria-hidden="true">◉</span><span>Hồ sơ tài khoản</span></button>
+      <button class="account-menu-item" id="accountLibraryItem" type="button" role="menuitem"><span class="account-menu-icon" aria-hidden="true">▤</span><span>Thư viện tài nguyên</span></button>
+      <button class="account-menu-item" id="accountSettingsItem" type="button" role="menuitem"><span class="account-menu-icon" aria-hidden="true">⚙</span><span>Cài đặt trình biên tập</span></button>
+      <button class="account-menu-item" id="accountHelpItem" type="button" role="menuitem"><span class="account-menu-icon" aria-hidden="true">?</span><span>Trợ giúp và phím tắt</span></button>
+      <div class="account-menu-divider" role="separator"></div>
+      <button class="account-menu-item danger" id="accountSignOut" type="button" role="menuitem"><span class="account-menu-icon" aria-hidden="true">⇥</span><span>Đăng xuất</span></button>
+    </div>
+  </div>
   <details class="export-options" id="exportOptions"><summary>Export ▾</summary><div class="export-panel">
   <div class="sectiontitle">Export settings</div>
   <div class="field"><label>Image format</label><select id="exportImageFormat"><option value="image/png">PNG · transparent</option><option value="image/jpeg">JPEG · white background</option><option value="image/webp">WebP · transparent</option></select></div>
@@ -133,6 +196,18 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
   <div class="export-actions"><button id="exportStill">Current frame</button><button id="exportGif">Animated GIF</button><button id="exportPngSequence">PNG sequence</button><button class="primary" id="exportVideo">Export video</button></div>
   </div></details>
 </header>
+
+<dialog class="account-dialog" id="accountDialog" aria-labelledby="accountDialogTitle">
+  <div class="account-dialog-shell">
+    <div class="account-dialog-head">
+      <div class="account-dialog-heading"><small>GEED HARDWIN ACCOUNT</small><h2 id="accountDialogTitle">Hồ sơ tài khoản</h2></div>
+      <button class="ghost account-dialog-close" id="accountDialogClose" type="button" aria-label="Đóng">×</button>
+    </div>
+    <div class="account-dialog-content" id="accountDialogContent"></div>
+    <div class="account-dialog-actions"><button class="primary" id="accountDialogPrimary" type="button">Đóng</button></div>
+  </div>
+</dialog>
+
 <div id="symbolEditBanner" hidden style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 16px;background:#1a2940;border-bottom:1px solid #365477;color:#eaf2ff;font-size:13px"><div><strong id="symbolEditTitle">Editing MovieClip</strong><span style="color:#a8bedc"> · Internal timeline · Local coordinates</span></div><div style="display:flex;align-items:center;gap:8px"><label for="symbolDurationInput" style="color:#c3d5eb">Length (frames)</label><input id="symbolDurationInput" type="number" min="2" max="2880" step="1" style="width:84px;background:#111d2c;color:#fff;border:1px solid #426184;border-radius:6px;padding:6px"><button id="exitSymbolEdit" class="primary">Done editing</button></div></div>
 <div class="app">
   <aside class="left panel">
