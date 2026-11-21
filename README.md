@@ -87,9 +87,18 @@ Repository công khai để theo dõi tiến độ. Chưa gắn giấy phép mã
 
 ## AI Automation — trạng thái triển khai
 
-AI Bridge hiện chỉ là bảng lệnh mẫu trong editor, **chưa kết nối mô hình AI**. Nút mở Local AI Agent và hướng dẫn điều khiển Opera đã được gỡ khỏi giao diện. Các tệp thử nghiệm trong `browser-agent/` vẫn còn trong repository để kiểm tra phụ thuộc trước khi quyết định loại bỏ; chúng không phải dịch vụ cloud và không thuộc luồng chạy của editor.
+AI Bridge hiện vẫn là bảng lệnh mẫu trong editor, **chưa phải chatbot AI cloud và chưa tự thực thi kế hoạch**. Không cần cài Ollama, Python agent, local proxy, mở Opera debug hay tải model về máy.
 
-Kiến trúc mục tiêu và kế hoạch dọn dẹp được ghi tại [docs/GOAL8-CLOUD-AI-PLAN.md](docs/GOAL8-CLOUD-AI-PLAN.md). Mục tiêu là chatbot AI chạy trong Geed Hardwin, gọi mô hình qua API cloud, có định tuyến/fallback, agent tools và bộ nhớ dự án có thời hạn. Chưa có backend AI cloud hoặc provider API key nào được triển khai.
+Trên branch `goal8-cloud-ai-cleanup` đã có nền tảng Model Router gọi API cloud, dự án Supabase cho tài khoản/quyền sử dụng/usage ledger/AI memory, nút đăng nhập Google tùy chọn và endpoint AI xác thực session + kiểm tra quota theo tài khoản. AI mặc định bị tắt và quota bằng 0 cho tài khoản mới; chưa có chi phí provider nào được xem là miễn phí. Giá dự kiến chỉ được ghi là estimate khi cấu hình đúng model price; chưa có dữ liệu invoice thực tế.
+
+Editor vẫn hoạt động khi chưa đăng nhập và lưu project/media trên thiết bị bằng IndexedDB cùng chức năng Save/Open JSON. Supabase không chứa file hoạt hình hoặc media. AI memory có thời hạn 2/3/7/30 ngày và job dọn hết hạn chỉ xóa dữ liệu AI memory.
+
+**Chưa sẵn sàng phát hành production:** chủ dự án còn cần cấu hình Google OAuth Client ID/Secret trong Supabase và secret server-side cùng provider key/model trong Vercel Preview. Agent Engine, tích hợp chatbot vào UI và giao diện chọn thời hạn memory vẫn đang chờ hoàn thiện/kiểm thử. Branch này chưa merge vào `main` và không làm thay đổi website production.
+
+Chi tiết tiến độ và các bước owner setup:
+- [Kế hoạch Goal 8](docs/GOAL8-CLOUD-AI-PLAN.md)
+- [Bảo vệ tài khoản, quota và dữ liệu](docs/GOAL8-ACCOUNT-SECURITY.md)
+- [Model Router](docs/GOAL8-MODEL-ROUTER.md)
 
 ## Cập nhật v1.13
 
