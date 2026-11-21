@@ -222,7 +222,6 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
     <div class="ai-bridge-message agent">Xin chào! Bảng này là bản thử nghiệm cầu nối điều khiển bên trong Geed Hardwin. Nó đã có thể gọi một số thao tác biên tập được giới hạn sẵn, nhưng chưa kết nối ChatGPT hay mô hình AI. Hãy thử: “Tạo hoạt cảnh hình tròn 10 giây”, “Phát”, “Dừng”, hoặc “Trạng thái”.</div>
   </div>
   <div class="ai-bridge-examples">
-    <button type="button" id="openLocalBrowserAgent" class="primary">↗ Open Local AI Agent</button>
     <button type="button" data-ai-cmd="Tạo hoạt cảnh hình tròn 10 giây">Tạo chuyển động 10 giây</button>
     <button type="button" data-ai-cmd="Trạng thái">Kiểm tra dự án</button>
     <button type="button" data-ai-cmd="Phát">Phát</button>
@@ -232,7 +231,7 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
     <input id="aiBridgeInput" type="text" autocomplete="off" placeholder="Nhập lệnh thử bằng tiếng Việt…" aria-label="AI Bridge command" />
     <button class="primary" type="submit">Gửi</button>
   </form>
-  <div class="ai-bridge-foot">AI Bridge trong trình biên tập vẫn là bộ lệnh mẫu. Để điều khiển Opera bằng AI tạo sinh, hãy cài và chạy Local AI Agent trên máy của bạn, sau đó nhấn Open Local AI Agent. Không có API key nào được lưu trong trang web này.</div>
+  <div class="ai-bridge-foot">Đây hiện là bảng lệnh thử nghiệm, chưa kết nối mô hình AI. Các thao tác chỉ chạy trong trình biên tập Geed Hardwin; không cần Opera, chương trình cục bộ hoặc tải mô hình về máy.</div>
 </section>
 
 
@@ -1726,7 +1725,7 @@ function aiBridgeCommand(raw){
   return 'Mình chưa có bộ xử lý AI tự do trong bản thử này. Có thể thử: “Tạo hoạt cảnh hình tròn 10 giây”, “Tạo hình tròn”, “Trạng thái”, “Phát”, “Dừng”, “Xuất video”, hoặc “Xóa layer đang chọn”.';
  }catch(err){return 'Không thực hiện được: '+(err?.message||String(err))}
 }
-$('aiBridgeOpen').onclick=()=>{$('aiBridgePanel').hidden=false;$('aiBridgeInput').focus()};$('openLocalBrowserAgent').onclick=()=>window.open('http://127.0.0.1:8765/','_blank','noopener');
+$('aiBridgeOpen').onclick=()=>{$('aiBridgePanel').hidden=false;$('aiBridgeInput').focus()};
 $('aiBridgeClose').onclick=()=>$('aiBridgePanel').hidden=true;
 $('aiBridgeForm').onsubmit=e=>{e.preventDefault();const input=$('aiBridgeInput'),value=input.value.trim();if(!value)return;aiBridgeAppend(value,'user');input.value='';const result=aiBridgeCommand(value);aiBridgeAppend(result,'agent')};
 document.querySelectorAll('[data-ai-cmd]').forEach(button=>button.addEventListener('click',()=>{const value=button.dataset.aiCmd;aiBridgeAppend(value,'user');aiBridgeAppend(aiBridgeCommand(value),'agent')}));
