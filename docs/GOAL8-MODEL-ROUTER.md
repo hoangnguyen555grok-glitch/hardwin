@@ -7,7 +7,7 @@ Status: backend router implementation added on branch \`goal8-cloud-ai-cleanup\`
 - Vercel Node serverless endpoint: \`POST /api/ai/chat\`.
 - Provider keys and model IDs are read only from server-side environment variables.
 - Supported adapters: OpenAI-compatible chat completions (OpenAI, xAI, DeepSeek, Qwen, GLM), Anthropic Messages API, and Gemini generateContent API.
-- Task classifier routes general, coding, reasoning, and creative requests through independently configurable provider order.
+- Task classifier routes general, coding, reasoning, and creative text requests through independently configurable provider order. The initial fallback preference is DeepSeek → Qwen → GLM → Gemini → xAI → OpenAI → Anthropic, a cost-conscious starting order rather than a promise about live prices. Set explicit provider orders after comparing the exact models enabled on each account.
 - Automatic failover proceeds to the next configured provider after a provider error, quota/rate limit, timeout, or service failure. No same-provider retry loop is used.
 - Request validation limits the conversation to 30 plain-text messages, 12,000 characters per message, 50,000 characters total, and 4,096 output tokens.
 - Responses disclose the selected provider/model and sanitized attempt outcomes; provider API keys and raw provider error text are never returned.
@@ -58,3 +58,12 @@ node --test tests/ai-router.test.js
 \`\`\`
 
 This phase adds the routing backend only. It does not yet add the chatbot's agent/tool loop or project memory.
+
+
+## API protocol references
+
+- xAI Chat Completions: https://docs.x.ai/developers/rest-api-reference/inference/chat-completions
+- DeepSeek Chat Completions: https://api-docs.deepseek.com/api/create-chat-completion/
+- Gemini `generateContent` and `x-goog-api-key` header: https://ai.google.dev/api/generate-content
+- Anthropic Messages API: https://docs.anthropic.com/en/api/messages
+- OpenAI Chat Completions: https://platform.openai.com/docs/api-reference/chat
