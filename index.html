@@ -1726,6 +1726,7 @@ function aiBridgeAppend(text,who='agent'){
 let aiAgentBusy=false;
 let aiAgentConversation=[];
 let aiAgentUserId=null;
+let aiAgentMemoryRequested=false;
 
 function updateAgentStatus(authenticated){
  const account=$('aiBridgeAccountStatus'),ai=$('aiBridgeAiStatus');
@@ -1932,8 +1933,18 @@ $('aiMemoryManage').addEventListener('click',async()=>{
  catch(error){container.hidden=false;container.textContent='Không tải được ghi nhớ AI: '+(error?.message||String(error));}
 });
 
+function explicitlyAskedToRemember(prompt){
+ const value=String(prompt||'');
+ if(/(?:don't|do not|never)\s+(?:remember|save|store)|(?:đừng|không cần|không)\s+(?:ghi nhớ|nhớ|lưu)/i.test(value))return false;
+ return /\b(?:remember|memorize|save this|store this|keep this in mind|note this for next time)\b|(?:hãy\s+)?(?:ghi nhớ|nhớ giúp|nhớ là|lưu lại|ghi lại để lần sau|đừng quên)/i.test(value);
+}
+
 async function persistAgentMemory(agent){
  if(!agent.memory)return;
+ if(!aiAgentMemoryRequested){
+  aiBridgeAppend('Nội dung AI đề xuất không được lưu vì yêu cầu hiện tại không có chỉ dẫn ghi nhớ rõ ràng.','agent');
+  return;
+ }
  const days=Number($('aiMemoryRetention').value||0);
  if(![2,3,7,30].includes(days)){
   aiBridgeAppend('Bạn có yêu cầu lưu ghi nhớ nhưng đang chọn “Không lưu”; nội dung đó không được lưu.','agent');
@@ -1953,6 +1964,7 @@ async function sendAgentPrompt(raw){
  if(!prompt||aiAgentBusy)return;
  const input=$('aiBridgeInput');
  aiBridgeAppend(prompt,'user');
+ aiAgentMemoryRequested=explicitlyAskedToRemember(prompt);
  input.value='';
  setAgentBusy(true);
  try{
