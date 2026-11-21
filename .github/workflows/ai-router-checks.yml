@@ -5,13 +5,17 @@ on:
     branches: [main, goal8-cloud-ai-cleanup, goal9-account-menu, goal10-cloud-workspace]
     paths:
       - "api/ai/**"
+      - "api/cloud/**"
       - "lib/ai-router.js"
       - "lib/ai-agent.js"
       - "lib/supabase-*.js"
+      - "lib/cloud-workspace.js"
+      - "lib/r2-presign.js"
       - "index.html"
       - "supabase/migrations/**"
       - "tests/*.test.js"
       - "docs/GOAL8-*.md"
+      - "docs/GOAL10-*.md"
       - ".github/workflows/ai-router-checks.yml"
   pull_request:
     paths:
@@ -45,4 +49,7 @@ jobs:
           node --check lib/ai-agent.js
           node --check lib/gif-export.mjs
           node --check lib/supabase-ai-gateway.js
+          node --check lib/r2-presign.js
+          node --check api/cloud/workspace.js
+          node --input-type=module --check < lib/cloud-workspace.js
           node --input-type=module --check < lib/supabase-auth.js
