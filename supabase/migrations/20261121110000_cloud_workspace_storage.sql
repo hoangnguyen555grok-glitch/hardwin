@@ -230,6 +230,114 @@ begin
 end;
 $$;
 
+
+create or replace function public.geed_delete_cloud_project(
+  p_user_id uuid,
+  p_local_project_key text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  v_deleted integer;
+begin
+  if p_user_id is null
+     or p_local_project_key is null
+     or p_local_project_key !~* '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}(uuid, text, bigint) from public, anon, authenticated;
+revoke all on function public.geed_finalize_cloud_storage(uuid, uuid, text, text, integer, text, bigint, text) from public, anon, authenticated;
+revoke all on function public.geed_cancel_cloud_storage(uuid, uuid) from public, anon, authenticated;
+revoke all on function public.geed_delete_cloud_project(uuid, text) from public, anon, authenticated;
+grant execute on function public.geed_reserve_cloud_storage(uuid, text, bigint) to service_role;
+grant execute on function public.geed_finalize_cloud_storage(uuid, uuid, text, text, integer, text, bigint, text) to service_role;
+grant execute on function public.geed_cancel_cloud_storage(uuid, uuid) to service_role;
+grant execute on function public.geed_delete_cloud_project(uuid, text) to service_role;
+
+     or p_object_key <> p_user_id::text || '/' || p_local_project_key || '/project.json' then
+    return pg_catalog.jsonb_build_object('saved', false, 'code', 'INVALID_CLOUD_FINALIZATION');
+  end if;
+
+  select r.*
+    into v_reservation
+    from private.cloud_storage_reservations r
+   where r.id = p_reservation_id
+     and r.user_id = p_user_id
+     and r.local_project_key = p_local_project_key
+     and r.expires_at > pg_catalog.now()
+   for update;
+
+  if not found or v_reservation.requested_bytes <> p_uploaded_bytes then
+    return pg_catalog.jsonb_build_object('saved', false, 'code', 'CLOUD_RESERVATION_EXPIRED_OR_MISMATCHED');
+  end if;
+
+  insert into public.project_metadata (
+    user_id, local_project_key, name, schema_version,
+    cloud_object_key, cloud_size_bytes, cloud_sha256, cloud_version, cloud_saved_at
+  ) values (
+    p_user_id, p_local_project_key, p_name, p_schema_version,
+    p_object_key, p_uploaded_bytes, pg_catalog.lower(p_sha256), 1, pg_catalog.now()
+  )
+  on conflict (user_id, local_project_key) do update
+    set name = excluded.name,
+        schema_version = excluded.schema_version,
+        cloud_object_key = excluded.cloud_object_key,
+        cloud_size_bytes = excluded.cloud_size_bytes,
+        cloud_sha256 = excluded.cloud_sha256,
+        cloud_version = public.project_metadata.cloud_version + 1,
+        cloud_saved_at = pg_catalog.now(),
+        updated_at = pg_catalog.now()
+  returning * into v_project;
+
+  delete from private.cloud_storage_reservations where id = p_reservation_id;
+
+  return pg_catalog.jsonb_build_object(
+    'saved', true,
+    'project', pg_catalog.to_jsonb(v_project)
+  );
+end;
+$$;
+
+create or replace function public.geed_cancel_cloud_storage(
+  p_reservation_id uuid,
+  p_user_id uuid
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_deleted integer;
+begin
+  delete from private.cloud_storage_reservations
+   where id = p_reservation_id and user_id = p_user_id;
+  get diagnostics v_deleted = row_count;
+  return v_deleted = 1;
+end;
+$$;
+
+revoke all on function public.geed_reserve_cloud_storage(uuid, text, bigint) from public, anon, authenticated;
+revoke all on function public.geed_finalize_cloud_storage(uuid, uuid, text, text, integer, text, bigint, text) from public, anon, authenticated;
+revoke all on function public.geed_cancel_cloud_storage(uuid, uuid) from public, anon, authenticated;
+grant execute on function public.geed_reserve_cloud_storage(uuid, text, bigint) to service_role;
+grant execute on function public.geed_finalize_cloud_storage(uuid, uuid, text, text, integer, text, bigint, text) to service_role;
+grant execute on function public.geed_cancel_cloud_storage(uuid, uuid) to service_role;
+ then
+    return false;
+  end if;
+
+  delete from public.project_metadata
+   where user_id = p_user_id
+     and local_project_key = p_local_project_key
+     and cloud_object_key = p_user_id::text || '/' || p_local_project_key || '/project.json';
+  get diagnostics v_deleted = row_count;
+  delete from private.cloud_storage_reservations
+   where user_id = p_user_id and local_project_key = p_local_project_key;
+  return v_deleted = 1;
+end;
+$;
+
 revoke all on function public.geed_reserve_cloud_storage(uuid, text, bigint) from public, anon, authenticated;
 revoke all on function public.geed_finalize_cloud_storage(uuid, uuid, text, text, integer, text, bigint, text) from public, anon, authenticated;
 revoke all on function public.geed_cancel_cloud_storage(uuid, uuid) from public, anon, authenticated;
