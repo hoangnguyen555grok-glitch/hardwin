@@ -77,7 +77,7 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
 .ai-bridge-form input:focus{border-color:#709de7}
 .ai-bridge-foot{padding:0 13px 11px;color:#9da9b8;font-size:10px;line-height:1.45;background:#141a23}
 .ai-image-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;padding:9px 12px 0;border-top:1px solid #2e3949;background:#141a23}
-.ai-image-form textarea{min-width:0;min-height:52px;max-height:100px;resize:vertical;border:1px solid #3a485a;border-radius:8px;background:#0f141c;color:#edf2f8;padding:8px 10px;font:11px/1.45 inherit;outline:none}
+.ai-image-form textarea{min-width:0;min-height:52px;max-height:100px;resize:vertical;border:1px solid #3a485a;border-radius:8px;background:#0f141c;color:#edf2f8;padding:8px 10px;font-family:inherit;font-size:11px;line-height:1.45;outline:none}
 .ai-image-form textarea:focus{border-color:#709de7}
 .ai-image-form button{align-self:stretch;font-size:11px;padding:7px 10px}
 .ai-image-note{padding:4px 13px 7px;background:#141a23;color:#8190a3;font-size:9px;line-height:1.4}
@@ -1745,6 +1745,7 @@ function aiBridgeAppend(text,who='agent'){
  log.appendChild(node);log.scrollTop=log.scrollHeight;
 }
 let aiAgentBusy=false;
+let aiImageBusy=false;
 let aiAgentConversation=[];
 let aiAgentUserId=null;
 let aiAgentMemoryRequested=false;
@@ -1790,7 +1791,6 @@ window.addEventListener('geed-auth-change',event=>{
 });
 updateAgentStatus(false);
 
-let aiImageBusy=false;
 async function generateAiImage(event){
  event.preventDefault();
  const prompt=String($('aiImagePrompt').value||'').trim();
