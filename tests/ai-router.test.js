@@ -9,7 +9,8 @@ const baseEnv = {
   GEED_AI_OPENAI_MODEL: 'test-model',
   GEED_AI_DEEPSEEK_API_KEY: 'test-deepseek-key',
   GEED_AI_DEEPSEEK_MODEL: 'deepseek-test',
-  GEED_AI_PROVIDER_ORDER: 'openai,deepseek'
+  GEED_AI_PROVIDER_ORDER: 'openai,deepseek',
+  GEED_AI_ALLOW_PAID_PROVIDERS: 'true'
 };
 
 test('classifies coding and reasoning tasks', () => {
@@ -27,6 +28,39 @@ test('validates plain-text conversation roles and size', () => {
 test('only routes to providers with both a key and model ID', () => {
   assert.deepEqual(configuredProviders(baseEnv), ['openai', 'deepseek']);
   assert.deepEqual(providerOrder('general', baseEnv), ['openai', 'deepseek']);
+});
+
+test('defaults to free-tier community providers and excludes paid providers', () => {
+  const env = {
+    GEED_AI_OPENROUTER_API_KEY: 'openrouter-test-key',
+    GEED_AI_OPENROUTER_MODEL: 'openrouter/free',
+    GEED_AI_GROQ_API_KEY: 'groq-test-key',
+    GEED_AI_GROQ_MODEL: 'free-groq-model',
+    GEED_AI_GROQ_FREE_TIER_CONFIRMED: 'true',
+    GEED_AI_OPENAI_API_KEY: 'paid-openai-key',
+    GEED_AI_OPENAI_MODEL: 'paid-model'
+  };
+  assert.deepEqual(configuredProviders(env), ['openrouter', 'groq']);
+  assert.deepEqual(providerOrder('general', env), ['openrouter', 'groq']);
+});
+
+test('OpenRouter only accepts its free router or a free model variant by default', () => {
+  const env = {
+    GEED_AI_OPENROUTER_API_KEY: 'openrouter-test-key',
+    GEED_AI_OPENROUTER_MODEL: 'openai/paid-model'
+  };
+  assert.deepEqual(configuredProviders(env), []);
+});
+
+test('Cloudflare Workers AI requires an explicit free-plan confirmation and endpoint', () => {
+  const env = {
+    GEED_AI_CLOUDFLARE_API_KEY: 'cloudflare-test-key',
+    GEED_AI_CLOUDFLARE_MODEL: '@cf/zai-org/glm-4.7-flash',
+    GEED_AI_CLOUDFLARE_FREE_TIER_CONFIRMED: 'true'
+  };
+  assert.deepEqual(configuredProviders(env), []);
+  env.GEED_AI_CLOUDFLARE_BASE_URL = 'https://api.cloudflare.com/client/v4/accounts/test/ai/v1';
+  assert.deepEqual(configuredProviders(env), ['cloudflare']);
 });
 
 test('fails over from the first provider to the next configured provider', async () => {
