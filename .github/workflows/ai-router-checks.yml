@@ -36,12 +36,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Run model router, auth and quota tests
+      - name: Run account, AI and community integration tests
         run: node --test tests/*.test.js
       - name: Syntax-check server and browser modules
         run: |
           node --check api/ai/chat.js
           node --check lib/ai-router.js
           node --check lib/ai-agent.js
+          node --check lib/gif-export.mjs
           node --check lib/supabase-ai-gateway.js
           node --input-type=module --check < lib/supabase-auth.js
