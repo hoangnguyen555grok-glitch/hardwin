@@ -1782,7 +1782,7 @@ function validateBrowserAgentAction(action){
  switch(action.tool){
   case 'inspect':case 'play':case 'stop':case 'deleteSelected':
    return {tool:action.tool,args:{}};
-  case 'setFrame':return {tool:'setFrame',args:{frame:number('frame',0,2879,true)}};
+  case 'setFrame':return {tool:'setFrame',args:{frame:number('frame',0,7199,true)}};
   case 'createCircle':return {tool:'createCircle',args:bounded([['x',40,1240],['y',40,680],['radius',12,220]])};
   case 'animateCircle':return {tool:'animateCircle',args:bounded([['durationSeconds',1,120],['fromX',60,1220],['toX',60,1220],['y',60,660],['radius',12,180]])};
   default:throw new Error('Tác tử đề xuất một công cụ chưa được cho phép.');
@@ -1881,7 +1881,8 @@ async function sendAgentPrompt(raw){
    const agent=data.agent;
    if(agent.message)aiBridgeAppend(agent.message,'agent');
    if(!agent.action){
-    completed=true;
+    if(agent.done)completed=true;
+    else aiBridgeAppend('AI chưa xác nhận hoàn tất nên mình dừng tại đây; chưa có thao tác mới nào được chạy.','agent');
     break;
    }
 
