@@ -1,6 +1,7 @@
 'use strict';
 
 const { routeChat, normalizeMessages, configuredProviders, resolveMaxTokens, classifyTask } = require('../../lib/ai-router');
+const { AGENT_SYSTEM_PROMPT, parseAgentOutput } = require('../../lib/ai-agent');
 const {
   readConfig,
   getBearerToken,
@@ -77,7 +78,19 @@ module.exports = async function handler(req, res) {
     body = req.body && typeof req.body === 'object'
       ? req.body
       : (typeof req.body === 'string' ? JSON.parse(req.body) : {});
-    messages = normalizeMessages(body.messages);
+    const normalized = normalizeMessages(body.messages);
+    if (body.mode !== undefined && body.mode !== 'chat' && body.mode !== 'agent') {
+      return send(res, 400, { error: 'Unsupported AI mode.', code: 'INVALID_MODE' });
+    }
+    if (body.mode === 'agent') {
+      const conversation = normalized.filter(message => message.role !== 'system').slice(-29);
+      if (!conversation.some(message => message.role === 'user')) {
+        return send(res, 400, { error: 'Agent mode requires a user message.', code: 'INVALID_AGENT_CONVERSATION' });
+      }
+      messages = [{ role: 'system', content: AGENT_SYSTEM_PROMPT }, ...conversation];
+    } else {
+      messages = normalized;
+    }
   } catch (error) {
     return send(res, 400, { error: error.message || 'Invalid request' });
   }
@@ -86,7 +99,9 @@ module.exports = async function handler(req, res) {
     return send(res, 503, { error: 'No AI provider is configured on the server.', code: 'NO_PROVIDER' });
   }
 
-  const maxTokens = resolveMaxTokens(body.max_tokens);
+  const agentMode = body.mode === 'agent';
+  const requestedMaxTokens = body.max_tokens === undefined ? (agentMode ? 512 : undefined) : body.max_tokens;
+  const maxTokens = resolveMaxTokens(requestedMaxTokens);
   const reservedTokens = estimateReservationTokens(messages, maxTokens);
   const requestId = createRequestId();
 
@@ -172,8 +187,11 @@ module.exports = async function handler(req, res) {
     usageRecorded = saved === true;
   } catch { /* return the completed generation but make the missing ledger write explicit */ }
 
+  const agent = agentMode ? parseAgentOutput(result.content) : null;
+
   return send(res, 200, {
     ...result,
+    ...(agentMode ? { agent: agent.data, agent_format_valid: agent.formatValid } : {}),
     usage: {
       input_tokens: usage.inputTokens,
       output_tokens: usage.outputTokens,
