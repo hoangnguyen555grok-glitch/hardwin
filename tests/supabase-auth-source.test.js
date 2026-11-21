@@ -67,7 +67,7 @@ test('AI memory is opt-in, owner-scoped, expiring and user-manageable', () => {
 
 
 test('inline editor script parses successfully', () => {
-  const inlineScripts = [...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/gi)]
+  const inlineScripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
     .map(match => match[1])
     .filter(source => source.trim().length > 0);
   assert.ok(inlineScripts.length > 0);
@@ -75,12 +75,12 @@ test('inline editor script parses successfully', () => {
 });
 
 test('AI memory requires an explicit remember intent and is not saved by default', () => {
-  assert.match(html, /function explicitlyAskedToRemember\\(prompt\\)/);
-  assert.match(html, /aiAgentMemoryRequested=explicitlyAskedToRemember\\(prompt\\)/);
-  assert.match(html, /if\\(!aiAgentMemoryRequested\\)/);
+  assert.match(html, /function explicitlyAskedToRemember\(prompt\)/);
+  assert.match(html, /aiAgentMemoryRequested=explicitlyAskedToRemember\(prompt\)/);
+  assert.match(html, /if\(!aiAgentMemoryRequested\)/);
   assert.match(html, /<option value="0" selected>Không lưu/);
-  assert.match(authSource, /new Date\\(\\)\\.toISOString\\(\\)/);
-  assert.doesNotMatch(authSource.slice(authSource.indexOf('async function saveAiMemory'), authSource.indexOf('async function listAiMemories')), /expires_at\\s*:/);
+  assert.match(authSource, /new Date\(\)\.toISOString\(\)/);
+  assert.doesNotMatch(authSource.slice(authSource.indexOf('async function saveAiMemory'), authSource.indexOf('async function listAiMemories')), /expires_at\s*:/);
 });
 
 test('database computes memory expiry and enforces per-account storage cap', () => {
@@ -88,7 +88,7 @@ test('database computes memory expiry and enforces per-account storage cap', () 
   const ttlMigration = fs.readFileSync(path.join(root, 'supabase/migrations/20261121041743_ai_memory_server_ttl_and_update_lockdown.sql'), 'utf8');
   assert.match(limitMigration, /pg_advisory_xact_lock/);
   assert.match(limitMigration, /active_count >= 20/);
-  assert.match(ttlMigration, /new\\.expires_at := new\\.created_at \\+ pg_catalog\\.make_interval/);
-  assert.match(ttlMigration, /revoke update on public\\.ai_memories/);
+  assert.match(ttlMigration, /new\.expires_at := new\.created_at \+ pg_catalog\.make_interval/);
+  assert.match(ttlMigration, /revoke update on public\.ai_memories/);
   assert.match(ttlMigration, /drop policy if exists ai_memories_update_own/);
 });
