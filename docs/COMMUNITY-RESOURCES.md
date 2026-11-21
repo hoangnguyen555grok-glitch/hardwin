@@ -16,6 +16,7 @@ All AI provider credentials remain server-side. A provider is enabled only when 
 | [OpenRouter](https://openrouter.ai/) | Default AI text route can use `openrouter/free` or a specific model ID ending in `:free`. | Hosted free-model quota is limited. Never fall through to a paid model automatically. |
 | [Groq](https://groq.com/) | OpenAI-compatible free-tier route. | Enabled only with the explicit server flag `GEED_AI_GROQ_FREE_TIER_CONFIRMED=true`. Check the account's current Free-tier model and rate limits first. |
 | [Cloudflare Workers AI](https://developers.cloudflare.com/workers-ai/) | OpenAI-compatible account endpoint as another optional free-tier route. | Enabled only with the explicit flag and account-specific endpoint. Free-plan allowance/model availability must be checked in the account. |
+| [Gemini Developer API](https://ai.google.dev/gemini-api/docs/pricing) | Existing native adapter can use a model on Google's Free tier. | Optional hosted free tier, not an open-source project. Requires both free-tier confirmation and a Google API project with billing disabled; features/model access vary and may change. |
 
 ## Evaluated, not adopted wholesale
 
