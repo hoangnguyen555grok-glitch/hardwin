@@ -71,3 +71,24 @@ test('agent parser rejects finished responses that still contain an action', () 
   assert.equal(parsed.formatValid, false);
   assert.equal(parsed.data.action, null);
 });
+
+
+test('agent memory is optional, user-requested text and limited to 1000 characters', () => {
+  const valid = parseAgentOutput(JSON.stringify({
+    message: 'Tôi đã ghi nhận tùy chọn này.',
+    action: null,
+    done: true,
+    memory: 'Người dùng thích timeline ở 24 FPS.'
+  }));
+  assert.equal(valid.formatValid, true);
+  assert.equal(valid.data.memory, 'Người dùng thích timeline ở 24 FPS.');
+
+  const tooLong = parseAgentOutput(JSON.stringify({
+    message: 'Done',
+    action: null,
+    done: true,
+    memory: 'x'.repeat(1001)
+  }));
+  assert.equal(tooLong.formatValid, false);
+  assert.equal(tooLong.data.action, null);
+});
