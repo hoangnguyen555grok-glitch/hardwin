@@ -37,6 +37,9 @@ module.exports = async function handler(req, res) {
     return send(res, 200, result);
   } catch (error) {
     if (error.code === 'NO_PROVIDER') return send(res, 503, { error: error.message });
+    if (error.code === 'UPSTREAM_TIMEOUT_UNCERTAIN') {
+      return send(res, 504, { error: error.message, attempts: error.attempts, retryable: false });
+    }
     if (error.code === 'ALL_PROVIDERS_FAILED') {
       return send(res, 502, { error: error.message, attempts: error.attempts });
     }
