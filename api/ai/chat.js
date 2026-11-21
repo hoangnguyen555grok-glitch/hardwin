@@ -6,6 +6,7 @@ const {
   getBearerToken,
   verifySupabaseUser,
   callSupabaseRpc,
+  estimateInputTokens,
   estimateReservationTokens,
   deriveUsage,
   estimateProviderCost,
@@ -134,8 +135,10 @@ module.exports = async function handler(req, res) {
         provider: firstProvider,
         model: 'unavailable',
         taskType,
-        inputTokens: Math.ceil(messages.reduce((sum, item) => sum + item.content.length, 0) / 3),
-        outputTokens: 0,
+        inputTokens: estimateInputTokens(messages),
+        // When a provider timeout is ambiguous, charge the full reserved output allowance
+        // to the account's token quota. The actual provider charge remains unknown.
+        outputTokens: outcome === 'uncertain' ? maxTokens : 0,
         estimatedCost: null,
         outcome
       });

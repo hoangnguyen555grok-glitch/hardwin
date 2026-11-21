@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  readConfig, getBearerToken, estimateReservationTokens, deriveUsage,
+  readConfig, getBearerToken, estimateInputTokens, estimateReservationTokens, deriveUsage,
   estimateProviderCost, createRequestId
 } = require('../lib/supabase-ai-gateway');
 
@@ -20,8 +20,10 @@ test('bearer parser rejects malformed authorization headers', () => {
   assert.equal(getBearerToken({ headers: { authorization: 'Bearer abc def' } }), null);
   assert.equal(getBearerToken({ headers: { authorization: 'Bearer valid-token' } }), 'valid-token');
 });
-test('quota reservation estimate includes input and output headroom', () => {
-  assert.ok(estimateReservationTokens([{ content: 'x'.repeat(300) }], 100) >= 200);
+test('quota reservation includes message overhead and the full output allowance', () => {
+  const messages = [{ content: 'x'.repeat(300) }, { content: 'hello' }];
+  assert.equal(estimateInputTokens(messages), 100 + 8 + 2 + 8);
+  assert.equal(estimateReservationTokens(messages, 100), 218);
 });
 test('provider usage is normalized and missing token counts are conservatively estimated', () => {
   assert.deepEqual(deriveUsage({
