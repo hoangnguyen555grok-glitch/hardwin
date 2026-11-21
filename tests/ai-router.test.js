@@ -37,6 +37,7 @@ test('defaults to free-tier community providers and excludes paid providers', ()
     GEED_AI_GROQ_API_KEY: 'groq-test-key',
     GEED_AI_GROQ_MODEL: 'free-groq-model',
     GEED_AI_GROQ_FREE_TIER_CONFIRMED: 'true',
+    GEED_AI_GROQ_BILLING_DISABLED: 'true',
     GEED_AI_OPENAI_API_KEY: 'paid-openai-key',
     GEED_AI_OPENAI_MODEL: 'paid-model'
   };
@@ -56,11 +57,25 @@ test('Cloudflare Workers AI requires an explicit free-plan confirmation and endp
   const env = {
     GEED_AI_CLOUDFLARE_API_KEY: 'cloudflare-test-key',
     GEED_AI_CLOUDFLARE_MODEL: '@cf/zai-org/glm-4.7-flash',
-    GEED_AI_CLOUDFLARE_FREE_TIER_CONFIRMED: 'true'
+    GEED_AI_CLOUDFLARE_FREE_TIER_CONFIRMED: 'true',
+    GEED_AI_CLOUDFLARE_BILLING_DISABLED: 'true'
   };
   assert.deepEqual(configuredProviders(env), []);
   env.GEED_AI_CLOUDFLARE_BASE_URL = 'https://api.cloudflare.com/client/v4/accounts/test/ai/v1';
   assert.deepEqual(configuredProviders(env), ['cloudflare']);
+  env.GEED_AI_CLOUDFLARE_BILLING_DISABLED = 'false';
+  assert.deepEqual(configuredProviders(env), []);
+});
+
+test('Groq Free requires confirmation that the account has no paid billing enabled', () => {
+  const env = {
+    GEED_AI_GROQ_API_KEY: 'groq-test-key',
+    GEED_AI_GROQ_MODEL: 'free-groq-model',
+    GEED_AI_GROQ_FREE_TIER_CONFIRMED: 'true'
+  };
+  assert.deepEqual(configuredProviders(env), []);
+  env.GEED_AI_GROQ_BILLING_DISABLED = 'true';
+  assert.deepEqual(configuredProviders(env), ['groq']);
 });
 
 test('Gemini is enabled only after confirming its Free tier and billing is disabled', () => {
