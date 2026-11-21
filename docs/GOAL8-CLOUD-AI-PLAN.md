@@ -1,6 +1,6 @@
 # Goal 8 — Cloud AI, accounts and data protection
 
-Status: repository cleanup, Google-only account foundation, per-account quota gate, bounded AI Agent loop, opt-in expiring AI memory, community-first GIF export, and free-first AI routing are implemented on the working branch. GitHub Actions run `44868505667` passed **46/46 tests** and all syntax checks on code commit `bb38fee1f688e903d26b97344548cd4b2903e085`; subsequent commits changed only documentation. Vercel Preview deployment `dpl_CnxYkH5m4bVV1TF68W7VS5jJxuwK` built READY from branch commit `c371c7efc13e0dd5209970ce0ca3153f80c29417`. The Preview environment has no environment variables configured, so live Google OAuth/provider calls are not yet testable. The browser-only GIF CDN path has unit coverage and an offline fallback, but has not yet been visually tested in a real browser.
+Status: repository cleanup, Google-only account foundation, per-account quota gate, bounded AI Agent loop, opt-in expiring AI memory, community-first GIF export, and free-first AI routing are implemented on the working branch. GitHub Actions run `44868582776` passed **46/46 tests** and all syntax checks on branch head `0c85a1891832e51ec9f833c16c88b23090f787e5`. Vercel Preview deployment `dpl_CnxYkH5m4bVV1TF68W7VS5jJxuwK` built READY from branch commit `c371c7efc13e0dd5209970ce0ca3153f80c29417`. The Preview environment has no environment variables configured, so live Google OAuth/provider calls are not yet testable. The browser-only GIF CDN path has unit coverage and an offline fallback, but has not yet been visually tested in a real browser.
 Branch: `goal8-cloud-ai-cleanup`
 Production branch: unchanged. No merge or production deployment has been performed.
 
@@ -81,7 +81,8 @@ Supported actions: inspect project, create circle, animate circle, play, stop, s
 4. Test memory write/read/delete and automatic expiry using a test note; ensure project/media remain untouched.
 5. Compare usage ledger estimates with actual provider invoices before deciding any Free allowance or paid plan. Payments remain out of scope.
 6. Implement further agent tools only when their results can be independently observed and verified. Add cancellation/undo or rollback only where the editor provides a safe, testable contract.
-7. Present Preview evidence. Production merge/deploy requires the owner's explicit instruction.
+7. Before opening/merging a release PR, reconcile the one newer commit on `main` (`e39d1820a6ea5df4f8e9ffdd3a0651967ae5f4d9`, per-account auth/quota tests). The branch currently differs in `tests/ai-router-api.test.js`; preserve the stronger test coverage and resolve deliberately rather than force-pushing or merging blindly.
+8. Present Preview evidence. Production merge/deploy requires the owner's explicit instruction.
 
 ## Cost and release safety
 
