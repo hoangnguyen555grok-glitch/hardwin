@@ -40,6 +40,12 @@ test('provider cost is only estimated from an exact model price entry', () => {
   assert.equal(estimateProviderCost({ model: 'model-x', inputTokens: 10, outputTokens: 5, env }), 0.00002);
   assert.equal(estimateProviderCost({ model: 'other', inputTokens: 10, outputTokens: 5, env }), null);
   assert.equal(estimateProviderCost({ model: 'model-x', inputTokens: 10, outputTokens: 5, env: { GEED_AI_TOKEN_PRICES_JSON: 'bad' } }), null);
+  assert.equal(estimateProviderCost({ model: 'model-x', inputTokens: 10, outputTokens: 5,
+    env: { GEED_AI_TOKEN_PRICES_JSON: JSON.stringify({ 'model-x': { input_per_1m_usd: null, output_per_1m_usd: 1 } }) } }), null);
+  assert.equal(estimateProviderCost({ model: 'model-x', inputTokens: 10, outputTokens: 5,
+    env: { GEED_AI_TOKEN_PRICES_JSON: JSON.stringify({ 'model-x': { input_per_1m_usd: '', output_per_1m_usd: 1 } }) } }), null);
+  assert.equal(estimateProviderCost({ model: 'model-x', inputTokens: 10, outputTokens: 5,
+    env: { GEED_AI_TOKEN_PRICES_JSON: JSON.stringify({ 'model-x': { input_per_1m_usd: 0, output_per_1m_usd: 0 } }) } }), 0);
 });
 test('request IDs are UUIDs', () => {
   assert.match(createRequestId(), /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);

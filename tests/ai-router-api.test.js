@@ -158,7 +158,13 @@ test('chat endpoint records ambiguous timeouts and does not retry provider calls
       if (target.endsWith('/auth/v1/user')) return response(200, { id: 'user-123' });
       if (target.endsWith('/rpc/geed_reserve_ai_request')) return response(200, { allowed: true });
       if (target.endsWith('/rpc/geed_finalize_ai_request')) {
-        finalizedOutcome = JSON.parse(options.body).p_outcome;
+        const body = JSON.parse(options.body);
+        finalizedOutcome = body.p_outcome;
+        assert.equal(body.p_input_tokens, 10);
+        assert.equal(body.p_output_tokens, 200);
+        assert.equal(body.p_cost_status, 'unknown');
+        assert.equal(body.p_actual_cost_usd, null);
+        assert.equal(body.p_estimated_cost_usd, null);
         return response(200, true);
       }
       if (target.includes('/chat/completions')) {
