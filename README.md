@@ -87,13 +87,15 @@ Repository công khai để theo dõi tiến độ. Chưa gắn giấy phép mã
 
 ## AI Automation — trạng thái triển khai
 
-AI Bridge hiện dùng tác tử AI cloud thay cho bộ phân tích câu lệnh theo từ khóa: nhận yêu cầu tiếng Việt/Anh, lên bước, dùng các tool editor trong allow-list, quan sát trạng thái sau mỗi bước và xác minh kết quả. Xóa layer cần xác nhận riêng; xuất video vẫn do người dùng thao tác. Tác tử không chạy mã hoặc truy cập file hệ thống.
+AI Bridge đã dùng tác tử AI cloud thay cho bộ phân tích câu lệnh theo từ khóa: nhận yêu cầu tự nhiên, chia bước, chỉ dùng tool editor trong allow-list, quan sát trạng thái sau mỗi thao tác và xác minh kết quả. Xóa layer chỉ áp dụng với các layer đang chọn, hiển thị tên/số lượng và yêu cầu xác nhận; xuất video vẫn do người dùng thao tác. Tác tử không chạy mã tùy ý hoặc truy cập file hệ thống.
 
-Tài khoản Google-only, quota AI theo tài khoản và nhật ký token/chi phí đã có. AI Agent làm việc qua API cloud và hiện chỉ hỗ trợ các thao tác editor đã kiểm chứng. AI memory mặc định **Không lưu**; chỉ ghi khi người dùng yêu cầu ghi nhớ rõ và chọn 2/3/7/30 ngày. Mỗi tài khoản tối đa 20 ghi nhớ đang hoạt động; người dùng xem/xóa từng mục, database tự tính ngày hết hạn.
+Tài khoản Google-only, xác thực phiên ở server, quota AI theo tài khoản và nhật ký token/chi phí đã có. Tài khoản mới mặc định AI tắt/quota 0. AI memory mặc định **Không lưu**, chỉ ghi khi người dùng yêu cầu ghi nhớ rõ và chọn 2/3/7/30 ngày; người dùng có thể xem/xóa từng note, tối đa 20 note còn hiệu lực mỗi tài khoản.
 
-Editor vẫn hoạt động khi chưa đăng nhập và lưu project/media trên thiết bị; Supabase không lưu file hoạt hình hoặc media gốc. Tài khoản mới vẫn có AI tắt và quota 0. Chi phí model chưa biết thì được ghi `unknown`, không coi là miễn phí. Chưa bật thanh toán/gói trả phí.
+Editor vẫn hoạt động khi chưa đăng nhập và giữ project/media trên thiết bị. Supabase không lưu project hay media gốc. Chưa bật thanh toán hoặc gói trả phí.
 
-GitHub Actions đã qua 38/38 test và kiểm tra cú pháp. **Chưa sẵn sàng production:** cần owner cấu hình Google OAuth và server secrets ở Vercel Preview, sau đó chạy kiểm thử tích hợp với provider thật. Nhánh `main` và website production chưa thay đổi.
+**Preview READY** từ commit `1f68edce761320ff2d3cd38feaf7533578dd9866`: [Mở bản thử nghiệm](https://geed-hardwin-git-goal8-cloud-ai-cleanup-hoangnguyen555grok-1529.vercel.app/). CI [đạt 38/38 test](https://github.com/hoangnguyen555grok-glitch/hardwin/actions/runs/44865868854). Đã kiểm tra trang editor và module trả HTTP 200; API chat trả 405/Allow POST khi gọi GET.
+
+Chưa sẵn sàng production: Preview chưa có secret, cần chủ dự án cấu hình Google OAuth và các server environment variables rồi thử login/AI với provider thật. Nhánh `main` và website production không bị thay đổi.
 
 Chi tiết: [Kế hoạch Goal 8](docs/GOAL8-CLOUD-AI-PLAN.md) · [Bảo vệ tài khoản và dữ liệu](docs/GOAL8-ACCOUNT-SECURITY.md) · [Model Router](docs/GOAL8-MODEL-ROUTER.md)
 

@@ -1,6 +1,6 @@
 # Goal 8 — Account, entitlement and data protection
 
-Status: Supabase schema, database-enforced Google-only account creation, Google browser sign-in client, server-side Supabase session verification and per-account AI quota enforcement are implemented on the working branch. The Vercel Preview build is ready; Google OAuth credentials and server secrets still require owner setup.
+Status: Supabase schema, database-enforced Google-only account creation, Google browser sign-in client, server-side Supabase session verification, per-account AI quota enforcement, bounded AI Agent and opt-in AI memory are implemented on the working branch. Vercel Preview is READY from commit `1f68edce761320ff2d3cd38feaf7533578dd9866`; Google OAuth credentials and server secrets still require owner setup.
 Working branch: `goal8-cloud-ai-cleanup`
 Supabase project: `geed-hardwin-auth` (`rdzitdoarrfjugzogkrf`), region `ap-southeast-1` (Singapore).
 Project creation quote: USD 0/month on 2026-11-21. This quote does not guarantee that future provider API calls, storage or other services are free.
@@ -87,7 +87,7 @@ The reservation uses conservative input-character estimates plus the server-enfo
 
 The editor AI Bridge is now a cloud-agent client in the working branch. It sends natural-language tasks to the authenticated `/api/ai/chat` endpoint in `agent` mode. The server injects the agent system prompt (client system messages are discarded), parses one JSON action at a time and rejects actions outside a small allow-list. The browser validates action arguments again, runs only existing editor bridge methods, and sends fresh editor observations back to the model. The loop is bounded to five model turns per task and the in-tab chat history is capped and not persisted.
 
-Supported automatic actions: inspect, create circle, animate circle, play, stop, set frame and delete selected layer. Delete requires a separate browser confirmation and verifies that the layer count decreased. Video export stays manual because the editor currently has no reliable completion signal for the agent to verify. The model cannot run arbitrary code, access local files or call external shell/browser tools.
+Supported automatic actions: inspect, create circle, animate circle, play, stop, set frame and delete selected layer(s). Delete requires a separate browser confirmation showing the currently selected names/count and verifies the layer count decreased by exactly that count. Video export stays manual because the editor currently has no reliable completion signal for the agent to verify. The model cannot run arbitrary code, access local files or call external shell/browser tools.
 
 Optional AI memory is separate from the editor project. It defaults to off, is saved only when the user explicitly asks to remember something, and can be set to 2/3/7/30 days. The UI lists and deletes notes individually. User switching/sign-out clears in-tab conversation state. No animation project JSON, image, audio or video is placed in this memory table.
 

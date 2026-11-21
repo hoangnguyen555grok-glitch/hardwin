@@ -1,6 +1,6 @@
 # Goal 8 — Cloud AI, accounts and data protection
 
-Status: repository cleanup, cloud Model Router, Google-only account foundation, per-account quota gate, bounded AI Agent loop and opt-in expiring AI memory are implemented on the working branch. GitHub Actions run `44865631777` passed **38/38 tests** and all syntax checks. A refreshed Vercel Preview is the next release verification step; real Google OAuth and provider calls remain blocked until the project owner enters credentials and secrets.
+Status: repository cleanup, cloud Model Router, Google-only account foundation, per-account quota gate, bounded AI Agent loop and opt-in expiring AI memory are implemented on the working branch. GitHub Actions run `44865868854` passed **38/38 tests** and all syntax checks on commit `1f68edce761320ff2d3cd38feaf7533578dd9866`. A fresh Vercel Preview built READY from the same commit and passed HTTP smoke checks. Real Google OAuth and provider calls remain blocked until the project owner enters credentials and secrets.
 Branch: `goal8-cloud-ai-cleanup`
 Production branch: unchanged. No merge or production deployment has been performed.
 
@@ -51,7 +51,7 @@ Supabase project `geed-hardwin-auth` (`rdzitdoarrfjugzogkrf`) is active in Singa
 
 The AI Bridge no longer parses command keywords. In `agent` mode, the API injects a server-owned system prompt, discards all client-supplied system messages, and accepts a strict one-action JSON response. The browser validates arguments again, invokes only existing `GeedHardwinBridge` methods and sends a fresh editor-state observation to the model. The loop is capped at five model turns per user request; chat history is kept in memory for the current tab only and is cleared when the account changes or signs out.
 
-Supported actions: inspect project, create circle, animate circle, play, stop, set frame and delete selected layer. Deletion requires a separate `window.confirm` prompt and is only reported as verified when the layer count decreases. Video export remains manual because the current editor does not expose a reliable job-completion result to the agent. The agent cannot run arbitrary code, shell commands, access local files or control a browser.
+Supported actions: inspect project, create circle, animate circle, play, stop, set frame and delete selected layer(s). Deletion requires a separate `window.confirm` that names the currently selected items and count; it is only reported as verified when the layer count decreases by exactly that count. A requested layer that is not selected cannot be deleted. Video export remains manual because the current editor does not expose a reliable job-completion result to the agent. The agent cannot run arbitrary code, shell commands, access local files or control a browser.
 
 **Runtime integration test pending:** the backend is deliberately closed until the owner adds Preview secrets and enables Google OAuth. Therefore a real end-to-end LLM→editor tool loop has not yet been executed against a live configured provider. CI validates the request, parser, allow-list, browser code syntax, mocked quota and provider flows.
 
@@ -66,7 +66,7 @@ Supported actions: inspect project, create circle, animate circle, play, stop, s
 ## F. Remaining release gates
 
 1. Owner configures Google OAuth and Vercel Preview server environment variables (instructions in `docs/GOAL8-ACCOUNT-SECURITY.md`).
-2. Deploy a fresh Preview from the latest branch commit and smoke-test editor, account button, Auth callback, session restoration and local save/import/export.
+2. The latest Preview currently serves commit `1f68edce761320ff2d3cd38feaf7533578dd9866` and is READY. Re-run the smoke and interactive checks after owner config, especially Auth callback, session restoration and local save/import/export.
 3. With an owner-configured test account/provider, exercise AI disabled, quota boundaries, real provider response, usage ledger, cost estimate, tool actions, confirmation prompt and post-action verification.
 4. Test memory write/read/delete and automatic expiry using a test note; ensure project/media remain untouched.
 5. Compare usage ledger estimates with actual provider invoices before deciding any Free allowance or paid plan. Payments remain out of scope.
