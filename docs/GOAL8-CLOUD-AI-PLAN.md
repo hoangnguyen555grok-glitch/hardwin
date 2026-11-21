@@ -1,20 +1,20 @@
 # Goal 8 — Cloud AI, accounts and data protection
 
-Status: repository cleanup, cloud Model Router, Supabase account schema, database-enforced Google-only account creation, browser sign-in client, per-account quota gate and automatic AI-memory expiry cleanup are implemented on the working branch. The first Vercel Preview build is READY and the first full CI pass reported 22/22 tests. **Not ready for production publication yet:** OAuth credentials and server secrets still require owner setup; the latest hardening commit needs a refreshed Preview; the Agent Engine and memory/chat UI are not implemented.
+Status: repository cleanup, cloud Model Router, Google-only account foundation, per-account quota gate, bounded AI Agent loop and opt-in expiring AI memory are implemented on the working branch. GitHub Actions run `44865631777` passed **38/38 tests** and all syntax checks. A refreshed Vercel Preview is the next release verification step; real Google OAuth and provider calls remain blocked until the project owner enters credentials and secrets.
 Branch: `goal8-cloud-ai-cleanup`
-Production branch: unchanged; no production deployment or merge has been performed.
+Production branch: unchanged. No merge or production deployment has been performed.
 
 ## Product and safety decisions
 
 - AI runs through hosted model/provider APIs and hosted application services. No local model runtime, model weights, Ollama, local proxy, browser automation or Opera/CDP dependency.
-- Provider credentials stay in server-side environment variables. No secret is placed in frontend code, Git, logs or browser storage.
-- The editor remains usable without an account. Google is the only sign-in method.
-- Free users keep project files and media in their browser/device through the existing IndexedDB autosave and JSON export/import workflow.
+- Provider credentials and the Supabase service-role key stay in server-side environment variables only.
+- The editor remains usable without an account. Google is the only permitted sign-in method, enforced both in the browser OAuth flow and by a database trigger on new Auth users.
+- Free users keep project files and media in their browser/device through IndexedDB autosave and JSON export/import.
 - Supabase stores user/account data, entitlements, usage ledger, lightweight project metadata and small AI memory. It does not store animation project binaries or media.
-- No payments, paid plan, auto-renewal or cloud media storage are enabled in this phase.
-- AI access defaults to disabled and zero quota until model prices and cost controls are configured deliberately.
-- AI memory retention is configurable as 2, 3, 7 or 30 days. Expiry must never delete project files or original media.
-- Risky editor actions require explicit user confirmation. The Agent Engine must verify outcomes before reporting completion.
+- Payments, paid plans, auto-renewal and paid cloud media storage are deferred until actual costs can be measured and a price plan approved.
+- Every new account starts with AI disabled, zero AI request/token quota and zero cloud-storage quota.
+- AI memory is off by default. Only an explicit remember request plus a selected 2/3/7/30-day TTL can store a short note. Expiry never deletes projects or media.
+- Risky editor actions require user confirmation. The Agent Engine verifies the editor state after each supported operation and stops if it cannot verify an outcome.
 
 ## A. Repository cleanup — completed
 
@@ -22,53 +22,60 @@ The former `browser-agent/` directory and its local-only setup instructions/work
 
 The deleted prototype had a local FastAPI runner, Browser Use/CDP, local Ollama and LiteLLM configuration, SQLite task memory and Windows scripts for local browser debugging. None of those components is part of the target cloud workflow.
 
-## B. Cloud Model Router — implemented, backend-only
+## B. Cloud Model Router — implemented
 
-Files: `lib/ai-router.js`, `api/ai/chat.js`, router tests, GitHub Actions workflow and `docs/GOAL8-MODEL-ROUTER.md`.
+Files: `lib/ai-router.js`, `api/ai/chat.js`, `lib/supabase-ai-gateway.js`, tests and `docs/GOAL8-MODEL-ROUTER.md`.
 
 - Supports OpenAI-compatible providers (OpenAI, xAI, DeepSeek, Qwen and GLM), Anthropic Messages and Gemini generateContent.
-- Provider keys/model IDs and order are supplied through server environment variables only.
-- Uses configured providers only; supports fallback for explicit provider failures such as rate limits/quota errors.
+- Provider keys/model IDs and provider order are supplied through server environment variables only.
+- Uses configured providers only; can fall back on explicit provider failures such as quota/rate-limit errors.
 - Does not automatically fall back after an ambiguous timeout, to avoid duplicate billable generations.
-- Enforces request validation, timeout limits and a server-side output-token ceiling.
-- It is a text-chat router, not an image/video generation pipeline.
+- Enforces request validation, timeout limits, a server-side output-token ceiling, authenticated sessions and atomic account-level monthly request/token reservations.
+- Records provider token usage. Model costs remain unknown unless an exact model price is configured; rate-based calculations are labelled estimates, never invoice actuals.
+- This is a text-agent/chat foundation, not an image/video generation pipeline.
 
 ## C. Account and data protection — foundation implemented
 
-Supabase project `geed-hardwin-auth` (`rdzitdoarrfjugzogkrf`) is active in Singapore; project creation quote was USD 0/month on 2026-11-21.
+Supabase project `geed-hardwin-auth` (`rdzitdoarrfjugzogkrf`) is active in Singapore; its project creation quote was USD 0/month on 2026-11-21. This is not a quote for any external provider API usage.
 
-- Google-only browser sign-in client uses Supabase's publishable key and PKCE. The header control is optional; the editor still works signed out. A database `BEFORE INSERT` trigger rejects new auth.users rows unless `raw_app_meta_data.provider` is exactly `google`.
-- Database contains profiles, entitlements, usage ledger, AI memories and project metadata, all with RLS and per-user ownership policies.
-- New users are assigned the Free plan with AI disabled and zero storage/AI quotas.
-- The AI endpoint verifies the Supabase access token with Supabase Auth and uses server-only RPCs to reserve account request/token quota and finalize measured usage. It does not trust a user ID from the browser.
-- Quota reservation serializes requests per account, preventing concurrent requests from bypassing the monthly limits.
-- Provider token counts are recorded. Cost stays unknown unless a model's exact rate is configured; a rate-based calculation is marked estimate, never actual invoice cost.
-- Payments and cloud project/media storage remain deferred.
+- Google-only browser sign-in uses Supabase's publishable key and PKCE. A database `BEFORE INSERT` trigger rejects new Auth users unless `raw_app_meta_data.provider` equals `google`.
+- Tables: `profiles`, `entitlements`, `usage_ledger`, `ai_memories`, `project_metadata`; all public tables have RLS with per-user policies.
+- Clients cannot change entitlements or write usage rows. Quota reservation/finalization RPCs are service-role only.
+- New accounts receive Free status, AI off and zero quotas. Server checks the Supabase access token against Auth and derives the account ID from the verified session.
+- The AI endpoint reserves quota before calling a provider and writes token usage afterward. Ambiguous timeouts are not retried, and the token reservation is conservatively accounted against the user's allowance.
+- Cost is labelled `unknown` unless an exact configured model price exists. Estimated cost and actual invoice cost are stored separately; no assumed-zero pricing.
 
-**Owner setup still required:** create a Google OAuth Web Client in Google Cloud, enter Client ID/Secret in Supabase Auth Provider settings, disable the Email provider, set the exact production/Preview redirect allow-list, and add the server-only Supabase service-role secret plus provider keys/models to the Vercel **Preview** environment. Do not place secrets in chat or Git. Details are in `docs/GOAL8-ACCOUNT-SECURITY.md`.
+**Owner setup still required:** create a Google OAuth Web Client, enter its Client ID/Secret in Supabase Auth, disable Email and all non-Google providers, set the exact redirect allow-list, and add Supabase server secrets plus provider keys/models to the Vercel **Preview** environment. Secrets must not be pasted into chat or Git. See `docs/GOAL8-ACCOUNT-SECURITY.md`.
 
-## D. Cloud AI memory — opt-in controls and expiry implemented
+## D. Bounded cloud AI Agent — implemented, provider test pending
 
-- AI memory records are limited to small text context and retention values 2/3/7/30 days. Saving is off by default and requires a clear user request to remember a note plus the selected TTL.
-- Browser controls allow selecting TTL, reading the user's own recent memories and deleting an individual note. The note is retrieved only when the user has selected a nonzero retention mode.
-- The database computes expiry server-side, limits each account to 20 active notes, and denies client updates.
-- Expired rows are hidden immediately by RLS and a daily `pg_cron` task deletes only expired `ai_memories` rows at 03:17 UTC.
-- The project/media store is not referenced by the deletion job; no original projects or assets are written into AI memory.
+The AI Bridge no longer parses command keywords. In `agent` mode, the API injects a server-owned system prompt, discards all client-supplied system messages, and accepts a strict one-action JSON response. The browser validates arguments again, invokes only existing `GeedHardwinBridge` methods and sends a fresh editor-state observation to the model. The loop is capped at five model turns per user request; chat history is kept in memory for the current tab only and is cleared when the account changes or signs out.
 
-## E. Remaining build and release gates
+Supported actions: inspect project, create circle, animate circle, play, stop, set frame and delete selected layer. Deletion requires a separate `window.confirm` prompt and is only reported as verified when the layer count decreases. Video export remains manual because the current editor does not expose a reliable job-completion result to the agent. The agent cannot run arbitrary code, shell commands, access local files or control a browser.
 
-1. Owner configures Google OAuth credentials and Vercel Preview-only server secrets.
-2. Re-run CI after the latest quota/cost hardening and verify all tests and syntax checks.
-3. Refresh the Vercel Preview from the latest branch commit and test the app, Google sign-in, session restoration, local autosave/import/export, unauthorized/disabled AI, quota enforcement, provider failover and usage logging.
-4. Implement the Agent Engine: natural-language plan → bounded tool calls → observe editor state → verify results, permission gates, audit trail, timeouts, cancellation and safe rollback.
-5. Integrate the AI chat UI only after the preview backend is configured and tested. Keep the prototype AI Bridge clearly marked until that integration is real.
-6. Implement AI-memory selection/read/write UI and deletion/export controls, then test automatic expiry without touching project assets.
-7. Compare observed provider usage with provider invoices. Only after measuring actual costs should free allowances and paid pricing be designed.
-8. Present the tested preview and deployment evidence. Production merge/deploy requires the owner's explicit instruction.
+**Runtime integration test pending:** the backend is deliberately closed until the owner adds Preview secrets and enables Google OAuth. Therefore a real end-to-end LLM→editor tool loop has not yet been executed against a live configured provider. CI validates the request, parser, allow-list, browser code syntax, mocked quota and provider flows.
+
+## E. AI memory — opt-in controls and expiry implemented
+
+- UI defaults to `Không lưu`. A short note is stored only when the user explicitly asks the AI to remember something and has selected 2, 3, 7 or 30 days.
+- When a nonzero retention period is selected, recent own-account notes can be read as untrusted context. The user can open the memory list and delete individual notes.
+- Browser code cannot set its own expiration timestamp. Supabase computes `expires_at` from the selected retention value, caps each account at 20 active notes, removes expired rows opportunistically and does not grant clients UPDATE on memories.
+- RLS hides expired rows immediately; a daily `pg_cron` job at 03:17 UTC deletes only expired rows from `ai_memories`.
+- These memory operations never delete or modify animation project JSON, images, audio, video or project metadata.
+
+## F. Remaining release gates
+
+1. Owner configures Google OAuth and Vercel Preview server environment variables (instructions in `docs/GOAL8-ACCOUNT-SECURITY.md`).
+2. Deploy a fresh Preview from the latest branch commit and smoke-test editor, account button, Auth callback, session restoration and local save/import/export.
+3. With an owner-configured test account/provider, exercise AI disabled, quota boundaries, real provider response, usage ledger, cost estimate, tool actions, confirmation prompt and post-action verification.
+4. Test memory write/read/delete and automatic expiry using a test note; ensure project/media remain untouched.
+5. Compare usage ledger estimates with actual provider invoices before deciding any Free allowance or paid plan. Payments remain out of scope.
+6. Implement further agent tools only when their results can be independently observed and verified. Add cancellation/undo or rollback only where the editor provides a safe, testable contract.
+7. Present Preview evidence. Production merge/deploy requires the owner's explicit instruction.
 
 ## Cost and release safety
 
-- The Supabase project quote was USD 0/month when created. Provider APIs can still incur separate usage costs.
-- Do not assume a provider free tier is unlimited or permanent.
-- Do not enable AI quota or add payment integrations by default.
-- Never deploy to production or merge to `main` until the owner explicitly authorizes the release.
+- The Supabase project creation quote was USD 0/month. Provider APIs can still incur separate usage charges.
+- Do not assume any provider free tier is unlimited or permanent.
+- Do not grant AI quota, add payments or create paid cloud storage by default.
+- Never deploy to production or merge to `main` until the owner explicitly authorizes release.

@@ -87,13 +87,13 @@ Repository công khai để theo dõi tiến độ. Chưa gắn giấy phép mã
 
 ## AI Automation — trạng thái triển khai
 
-AI Bridge đã được chuyển từ parser từ khóa sang tác tử AI cloud: nhận yêu cầu tiếng Việt/Anh, lập từng bước, chỉ dùng tool editor được cho phép, quan sát trạng thái sau mỗi bước và yêu cầu xác nhận riêng trước khi xóa layer. Tác tử không chạy mã tùy ý; xuất video vẫn do người dùng thao tác để bảo đảm kiểm tra được file đầu ra.
+AI Bridge hiện dùng tác tử AI cloud thay cho bộ phân tích câu lệnh theo từ khóa: nhận yêu cầu tiếng Việt/Anh, lên bước, dùng các tool editor trong allow-list, quan sát trạng thái sau mỗi bước và xác minh kết quả. Xóa layer cần xác nhận riêng; xuất video vẫn do người dùng thao tác. Tác tử không chạy mã hoặc truy cập file hệ thống.
 
-Nền tảng tài khoản Google, quota theo tài khoản, nhật ký token/chi phí, AI memory tùy chọn có thời hạn và bộ điều khiển agent đã có trong branch `goal8-cloud-ai-cleanup`. Memory mặc định tắt; chỉ lưu khi người dùng yêu cầu ghi nhớ rõ và chọn 2/3/7/30 ngày. Người dùng xem/xóa từng note; database giới hạn 20 note đang hoạt động mỗi tài khoản và tự tính thời điểm hết hạn.
+Tài khoản Google-only, quota AI theo tài khoản và nhật ký token/chi phí đã có. AI Agent làm việc qua API cloud và hiện chỉ hỗ trợ các thao tác editor đã kiểm chứng. AI memory mặc định **Không lưu**; chỉ ghi khi người dùng yêu cầu ghi nhớ rõ và chọn 2/3/7/30 ngày. Mỗi tài khoản tối đa 20 ghi nhớ đang hoạt động; người dùng xem/xóa từng mục, database tự tính ngày hết hạn.
 
-Editor vẫn hoạt động không cần đăng nhập và lưu project/media trên thiết bị. Supabase không lưu project hay media gốc. AI vẫn mặc định bị khóa với tài khoản mới (quota 0), và cần cấu hình Google OAuth, server secrets cùng quota trước khi thử model thật. Chi phí chưa có bằng chứng invoice thì không được báo là 0.
+Editor vẫn hoạt động khi chưa đăng nhập và lưu project/media trên thiết bị; Supabase không lưu file hoạt hình hoặc media gốc. Tài khoản mới vẫn có AI tắt và quota 0. Chi phí model chưa biết thì được ghi `unknown`, không coi là miễn phí. Chưa bật thanh toán/gói trả phí.
 
-Preview đã build ở commit trước đó, nhưng cần tạo lại từ commit mới nhất sau Agent Engine và AI memory changes. Chưa có real OAuth/provider-key integration test. `main` và production chưa thay đổi; không có merge hoặc production deploy.
+GitHub Actions đã qua 38/38 test và kiểm tra cú pháp. **Chưa sẵn sàng production:** cần owner cấu hình Google OAuth và server secrets ở Vercel Preview, sau đó chạy kiểm thử tích hợp với provider thật. Nhánh `main` và website production chưa thay đổi.
 
 Chi tiết: [Kế hoạch Goal 8](docs/GOAL8-CLOUD-AI-PLAN.md) · [Bảo vệ tài khoản và dữ liệu](docs/GOAL8-ACCOUNT-SECURITY.md) · [Model Router](docs/GOAL8-MODEL-ROUTER.md)
 

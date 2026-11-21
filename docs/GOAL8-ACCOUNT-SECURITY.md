@@ -94,11 +94,11 @@ Optional AI memory is separate from the editor project. It defaults to off, is s
 ## Verification performed
 
 - Supabase project reports `ACTIVE_HEALTHY`.
-- Migrations applied: `20261121035113` initial schema, `20261121035229` cost status, `20261121035409` memory expiry, `20261121035551` initial quota RPCs, `20261121035624` hardened quota RPCs, `20261121035637` estimated-vs-actual costs and `20261121040340` Google-only Auth enforcement.
-- All five public tables have RLS enabled.
-- Security Advisor returned zero findings.
-- Reserve/finalize RPCs are executable by `service_role` and not by `anon` or `authenticated`.
-- AI memory cleanup job is present and active; cleanup function is under the private schema with fixed empty search path.
-- The Google-only `BEFORE INSERT` Auth trigger was exercised against temporary test rows: a `google` provider was accepted; `email` and missing-provider rows were rejected. No real OAuth login is possible until owner-created Google credentials are entered.
-- GitHub Actions run `44863975064` passed 22/22 tests and all syntax checks; the later hardening commit is being rechecked.
-- Vercel Preview for branch `goal8-cloud-ai-cleanup` built successfully at `https://geed-hardwin-git-goal8-cloud-ai-cleanup-hoangnguyen555grok-1529.vercel.app/`. Production domains were not changed. This preview was built before the latest hardening commit and must be refreshed before final release testing.
+- Applied migrations: `20261121035113` initial schema, `20261121035229` cost status, `20261121035409` memory expiry cleanup, `20261121035551` + `20261121035624` quota RPCs, `20261121035637` estimated/actual cost separation, `20261121040340` Google-only Auth provider, `20261121041413` active-memory cap and `20261121041743` server-side TTL/client-update lockout.
+- All five public tables have RLS enabled; Security Advisor returned zero findings.
+- Reserve/finalize AI quota RPCs are executable by `service_role` and not by `anon` or `authenticated`.
+- AI memories cannot be updated by the client; user insert/delete remains scoped by RLS. The server expiry trigger fixes the create/expiry timestamps and the active-memory trigger caps each account at 20.
+- Memory cleanup job is present and active at 03:17 UTC; it deletes only expired `ai_memories` rows.
+- The Google-only Auth trigger was exercised against temporary test rows: `google` was accepted, `email` and missing provider were rejected. A real OAuth login remains untested until owner credentials are configured.
+- GitHub Actions run `44865631777` passed **38/38 tests** and all syntax checks: https://github.com/hoangnguyen555grok-glitch/hardwin/actions/runs/44865631777
+- Preview build and runtime smoke tests must be refreshed after the latest commit; the production branch and deployment remain untouched.
