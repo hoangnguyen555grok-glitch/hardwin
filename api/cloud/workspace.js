@@ -40,8 +40,15 @@ function readR2Config(env = process.env) {
   return config;
 }
 
-function objectKeyFor(userId, projectKey) {
-  return userId + '/' + projectKey + '/project.json';
+function objectKeyFor(userId, projectKey, reservationId) {
+  if (!UUID_RE.test(reservationId || '')) throw new TypeError('Invalid upload reservation identifier.');
+  return userId + '/' + projectKey + '/snapshots/' + reservationId + '.json';
+}
+
+function ownsObjectKey(userId, projectKey, objectKey) {
+  const prefix = userId + '/' + projectKey + '/snapshots/';
+  if (typeof objectKey !== 'string' || !objectKey.startsWith(prefix) || !objectKey.endsWith('.json')) return false;
+  return UUID_RE.test(objectKey.slice(prefix.length, -5));
 }
 
 function maxObjectBytes(env = process.env) {
@@ -150,7 +157,7 @@ async function prepareSave(config, r2, userId, body) {
     ), { status: code === 'CLOUD_STORAGE_QUOTA_EXCEEDED' ? 413 : 403, code });
   }
 
-  const key = objectKeyFor(userId, projectKey);
+  const key = objectKeyFor(userId, projectKey, result.reservation_id);
   return {
     reservationId: result.reservation_id,
     uploadUrl: signedUrl(r2, 'PUT', key, 600),
@@ -174,7 +181,7 @@ async function completeSave(config, r2, userId, body) {
     throw Object.assign(new Error('Invalid cloud save confirmation.'), { status: 400 });
   }
 
-  const key = objectKeyFor(userId, projectKey);
+  const key = objectKeyFor(userId, projectKey, reservationId);
   const headUrl = signedUrl(r2, 'HEAD', key, 120);
   const response = await fetch(headUrl, { method: 'HEAD', cache: 'no-store' });
   if (!response.ok) {
@@ -189,27 +196,47 @@ async function completeSave(config, r2, userId, body) {
     });
   }
 
-  const saved = await callSupabaseRpc({
-    config,
-    functionName: 'geed_finalize_cloud_storage',
-    payload: {
-      p_reservation_id: reservationId,
-      p_user_id: userId,
-      p_local_project_key: projectKey,
-      p_name: name,
-      p_schema_version: schemaVersion,
-      p_object_key: key,
-      p_uploaded_bytes: storedBytes,
-      p_sha256: sha256
-    }
-  });
+  let saved;
+  try {
+    saved = await callSupabaseRpc({
+      config,
+      functionName: 'geed_finalize_cloud_storage',
+      payload: {
+        p_reservation_id: reservationId,
+        p_user_id: userId,
+        p_local_project_key: projectKey,
+        p_name: name,
+        p_schema_version: schemaVersion,
+        p_object_key: key,
+        p_uploaded_bytes: storedBytes,
+        p_sha256: sha256
+      }
+    });
+  } catch (error) {
+    try { await fetch(signedUrl(r2, 'DELETE', key, 60), { method: 'DELETE' }); } catch { /* Best-effort removal of an uncommitted object. */ }
+    throw error;
+  }
   const result = Array.isArray(saved) ? saved[0] : saved;
   if (!result || result.saved !== true) {
+    try { await fetch(signedUrl(r2, 'DELETE', key, 60), { method: 'DELETE' }); } catch { /* Best-effort removal of an uncommitted object. */ }
     throw Object.assign(new Error('The cloud storage reservation could not be finalized.'), {
       status: 409, code: result?.code || 'CLOUD_FINALIZATION_REJECTED'
     });
   }
-  return { project: result.project };
+
+  let previousObjectCleanupPending = false;
+  if (typeof result.previous_object_key === 'string' &&
+      ownsObjectKey(userId, projectKey, result.previous_object_key) &&
+      result.previous_object_key !== key) {
+    try {
+      const cleanup = await fetch(signedUrl(r2, 'DELETE', result.previous_object_key, 120), { method: 'DELETE' });
+      previousObjectCleanupPending = !cleanup.ok;
+    } catch {
+      previousObjectCleanupPending = true;
+    }
+    if (previousObjectCleanupPending) console.error('Cloud workspace previous snapshot cleanup is pending.');
+  }
+  return { project: result.project, previousObjectCleanupPending };
 }
 
 async function prepareOpen(config, r2, userId, body) {
@@ -222,7 +249,7 @@ async function prepareOpen(config, r2, userId, body) {
     '&cloud_object_key=not.is.null&limit=1';
   const rows = await supabaseRequest(config, path);
   const project = Array.isArray(rows) ? rows[0] : null;
-  if (!project || project.cloud_object_key !== objectKeyFor(userId, projectKey)) {
+  if (!project || !ownsObjectKey(userId, projectKey, project.cloud_object_key)) {
     throw Object.assign(new Error('Cloud project not found.'), { status: 404, code: 'CLOUD_PROJECT_NOT_FOUND' });
   }
   return {
@@ -250,17 +277,25 @@ async function prepareDelete(config, r2, userId, body) {
     '&cloud_object_key=not.is.null&limit=1';
   const rows = await supabaseRequest(config, path);
   const project = Array.isArray(rows) ? rows[0] : null;
-  const expectedKey = objectKeyFor(userId, projectKey);
-  if (!project || project.cloud_object_key !== expectedKey) {
+  const objectKey = project?.cloud_object_key;
+  if (!project || !ownsObjectKey(userId, projectKey, objectKey)) {
     throw Object.assign(new Error('Cloud project not found.'), { status: 404, code: 'CLOUD_PROJECT_NOT_FOUND' });
   }
-  return { deleteUrl: signedUrl(r2, 'DELETE', expectedKey, 120), expiresIn: 120 };
+  return { deleteUrl: signedUrl(r2, 'DELETE', objectKey, 120), expiresIn: 120 };
 }
 
 async function confirmDelete(config, r2, userId, body) {
   const projectKey = String(body.projectKey || '');
   if (!UUID_RE.test(projectKey)) throw Object.assign(new Error('Invalid project identifier.'), { status: 400 });
-  const key = objectKeyFor(userId, projectKey);
+  const query = '/rest/v1/project_metadata?select=cloud_object_key' +
+    '&user_id=eq.' + encodeURIComponent(userId) +
+    '&local_project_key=eq.' + encodeURIComponent(projectKey) +
+    '&cloud_object_key=not.is.null&limit=1';
+  const rows = await supabaseRequest(config, query);
+  const key = Array.isArray(rows) ? rows[0]?.cloud_object_key : null;
+  if (!ownsObjectKey(userId, projectKey, key)) {
+    throw Object.assign(new Error('Cloud project not found.'), { status: 404, code: 'CLOUD_PROJECT_NOT_FOUND' });
+  }
   const headUrl = signedUrl(r2, 'HEAD', key, 120);
   const response = await fetch(headUrl, { method: 'HEAD', cache: 'no-store' });
   if (response.ok) {
@@ -276,7 +311,7 @@ async function confirmDelete(config, r2, userId, body) {
   const result = await callSupabaseRpc({
     config,
     functionName: 'geed_delete_cloud_project',
-    payload: { p_user_id: userId, p_local_project_key: projectKey }
+    payload: { p_user_id: userId, p_local_project_key: projectKey, p_object_key: key }
   });
   if (result !== true) {
     throw Object.assign(new Error('Cloud project metadata could not be deleted.'), {
@@ -361,3 +396,4 @@ module.exports = async function handler(req, res) {
 
 module.exports.readR2Config = readR2Config;
 module.exports.objectKeyFor = objectKeyFor;
+module.exports.ownsObjectKey = ownsObjectKey;
