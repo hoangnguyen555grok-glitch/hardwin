@@ -32,3 +32,15 @@ test('editor remains usable without account sign-in and preserves local autosave
   assert.match(html, /id="saveProject"/);
   assert.match(html, /id="openProject"/);
 });
+
+
+test('AI Bridge uses the authenticated cloud agent loop rather than keyword-only command parsing', () => {
+  assert.match(html, /data-ai-prompt/);
+  assert.match(html, /fetch\('\/api\/ai\/chat'/);
+  assert.match(html, /mode:'agent'/);
+  assert.match(html, /aiAgentConversation/);
+  assert.match(html, /runAgentEditorAction/);
+  assert.match(html, /window\.confirm\(/);
+  assert.doesNotMatch(html, /function aiBridgeCommand\(/);
+  assert.doesNotMatch(html, /data-ai-cmd/);
+});

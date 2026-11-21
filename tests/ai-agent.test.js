@@ -22,6 +22,8 @@ test('agent action sanitizer accepts only allow-listed safe tools', () => {
   assert.deepEqual(sanitizeAgentAction({ tool: 'setFrame', args: { frame: 24 } }), { tool: 'setFrame', args: { frame: 24 } });
   assert.throws(() => sanitizeAgentAction({ tool: 'runShell', args: { command: 'rm -rf /' } }));
   assert.throws(() => sanitizeAgentAction({ tool: 'eval', args: { code: 'alert(1)' } }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'exportVideo' }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'undo' }));
 });
 
 test('circle tools enforce numeric, name and color bounds', () => {
@@ -37,6 +39,8 @@ test('circle tools enforce numeric, name and color bounds', () => {
   assert.throws(() => sanitizeAgentAction({ tool: 'createCircle', args: { color: 'red' } }));
   assert.throws(() => sanitizeAgentAction({ tool: 'animateCircle', args: { durationSeconds: 121 } }));
   assert.throws(() => sanitizeAgentAction({ tool: 'setFrame', args: { frame: -1 } }));
+  assert.deepEqual(sanitizeAgentAction({ tool: 'setFrame', args: { frame: 7199 } }), { tool: 'setFrame', args: { frame: 7199 } });
+  assert.throws(() => sanitizeAgentAction({ tool: 'setFrame', args: { frame: 7200 } }));
 });
 
 test('agent parser accepts a valid JSON response and strips unknown arguments', () => {

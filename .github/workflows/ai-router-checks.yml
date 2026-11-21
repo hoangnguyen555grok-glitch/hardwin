@@ -6,6 +6,7 @@ on:
     paths:
       - "api/ai/**"
       - "lib/ai-router.js"
+      - "lib/ai-agent.js"
       - "lib/supabase-*.js"
       - "index.html"
       - "supabase/migrations/**"
@@ -41,5 +42,6 @@ jobs:
         run: |
           node --check api/ai/chat.js
           node --check lib/ai-router.js
+          node --check lib/ai-agent.js
           node --check lib/supabase-ai-gateway.js
           node --input-type=module --check < lib/supabase-auth.js
