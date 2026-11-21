@@ -47,12 +47,13 @@ Supabase project `geed-hardwin-auth` (`rdzitdoarrfjugzogkrf`) is active in Singa
 
 **Owner setup still required:** create a Google OAuth Web Client in Google Cloud, enter Client ID/Secret in Supabase Auth Provider settings, disable the Email provider, set the exact production/Preview redirect allow-list, and add the server-only Supabase service-role secret plus provider keys/models to the Vercel **Preview** environment. Do not place secrets in chat or Git. Details are in `docs/GOAL8-ACCOUNT-SECURITY.md`.
 
-## D. Cloud AI memory — database expiry implemented; product integration pending
+## D. Cloud AI memory — opt-in controls and expiry implemented
 
-- AI memory records are limited to small text context and retention values 2/3/7/30 days.
+- AI memory records are limited to small text context and retention values 2/3/7/30 days. Saving is off by default and requires a clear user request to remember a note plus the selected TTL.
+- Browser controls allow selecting TTL, reading the user's own recent memories and deleting an individual note. The note is retrieved only when the user has selected a nonzero retention mode.
+- The database computes expiry server-side, limits each account to 20 active notes, and denies client updates.
 - Expired rows are hidden immediately by RLS and a daily `pg_cron` task deletes only expired `ai_memories` rows at 03:17 UTC.
-- The project/media store is not referenced by the deletion job.
-- The application UI to choose memory retention, save/retrieve memories in AI conversations and show deletion/export controls is not implemented yet.
+- The project/media store is not referenced by the deletion job; no original projects or assets are written into AI memory.
 
 ## E. Remaining build and release gates
 

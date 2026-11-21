@@ -20,7 +20,7 @@ Project creation quote: USD 0/month on 2026-11-21. This quote does not guarantee
 - `profiles`: user display name, avatar URL and locale. An Auth trigger creates the row when a user is created.
 - `entitlements`: server-controlled plan/status, AI enablement and request/token/storage limits. Clients can read their own row but cannot change it.
 - `usage_ledger`: provider/model, provider token usage, request outcome, estimated cost and actual cost (when an authoritative invoice value later becomes available). Clients can read their own rows; they cannot write or modify ledger entries. Unknown cost remains null and is never represented as zero.
-- `ai_memories`: small text context only, with 2/3/7/30-day retention and expiry. RLS limits every record to its owner.
+- `ai_memories`: small text context only, with opt-in 2/3/7/30-day retention and expiry. The database sets the expiration timestamp, limits each account to 20 active memories, removes expired rows opportunistically and through a daily scheduled cleanup, and denies client updates. RLS limits every record to its owner.
 - `project_metadata`: lightweight project name/summary/version only. Original project JSON, images, audio and exports stay local.
 
 All five exposed public tables have RLS enabled. Policies use `auth.uid()` ownership checks. Internal trigger, cleanup and reservation tables/functions live in the non-exposed `private` schema. Quota reservation/finalization RPCs are executable only by the server `service_role`, never by `anon` or `authenticated`.
@@ -80,8 +80,16 @@ The reservation uses conservative input-character estimates plus the server-enfo
 
 - Local project/media: remains on the user's device. JSON export is recommended because browser data can be cleared or evicted.
 - Free cloud backup: not enabled. There is no local project deletion timer.
-- AI memory: database accepts only 2/3/7/30 days. A daily `pg_cron` job runs at 03:17 UTC, removes only expired rows from `ai_memories`, and the RLS read policy hides expired rows immediately. It never targets project metadata or local files.
+- AI memory: the UI defaults to **Không lưu**. Only a clear remember/save request plus an explicit 2/3/7/30-day selection can save a short note. The database itself computes expiry from `retention_days`, caps each user at 20 active notes, rejects client updates, and deletes only expired AI-memory rows. A daily `pg_cron` job runs at 03:17 UTC; RLS hides expired rows immediately. The user can inspect and delete individual notes. This never targets project metadata or local files.
 - Paid cloud storage and subscription-expiry handling: deferred until costs, quotas and pricing are measured and explicitly approved.
+
+## AI agent and memory UI
+
+The editor AI Bridge is now a cloud-agent client in the working branch. It sends natural-language tasks to the authenticated `/api/ai/chat` endpoint in `agent` mode. The server injects the agent system prompt (client system messages are discarded), parses one JSON action at a time and rejects actions outside a small allow-list. The browser validates action arguments again, runs only existing editor bridge methods, and sends fresh editor observations back to the model. The loop is bounded to five model turns per task and the in-tab chat history is capped and not persisted.
+
+Supported automatic actions: inspect, create circle, animate circle, play, stop, set frame and delete selected layer. Delete requires a separate browser confirmation and verifies that the layer count decreased. Video export stays manual because the editor currently has no reliable completion signal for the agent to verify. The model cannot run arbitrary code, access local files or call external shell/browser tools.
+
+Optional AI memory is separate from the editor project. It defaults to off, is saved only when the user explicitly asks to remember something, and can be set to 2/3/7/30 days. The UI lists and deletes notes individually. User switching/sign-out clears in-tab conversation state. No animation project JSON, image, audio or video is placed in this memory table.
 
 ## Verification performed
 
