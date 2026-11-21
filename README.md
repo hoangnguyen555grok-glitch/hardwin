@@ -85,10 +85,19 @@ Repository công khai để theo dõi tiến độ. Chưa gắn giấy phép mã
 - **Polygon & Star vector tools (v1.10):** vẽ trực tiếp trên Stage bằng thao tác kéo để tạo lục giác và ngôi sao 5 cánh dạng vector path khép kín, có fill/stroke, chỉnh sửa được bằng Edit path points và hỗ trợ keyframe/morph theo nền tảng path hiện có.
 
 
-## AI và điều khiển trình duyệt
+## AI Automation — trạng thái triển khai
 
-Bản AI Bridge trong trình biên tập vẫn giữ bộ lệnh mẫu. Từ v1.29, bảng này có nút mở **Local AI Agent** chạy trên máy người dùng. Agent cục bộ ghép Browser Use (điều khiển Opera/CDP), LiteLLM (định tuyến và chuyển mô hình), LangGraph (quy trình có checkpoint) và SQLite (ký ức tác vụ cục bộ). Hướng dẫn cài đặt, bật gateway, cấu hình provider và giới hạn an toàn nằm tại [browser-agent/README.md](browser-agent/README.md). Đây là dịch vụ chạy trên máy cá nhân; không tự động kết nối với cuộc trò chuyện ChatGPT hoặc đám mây.
+AI Bridge đã dùng tác tử AI cloud thay cho bộ phân tích câu lệnh theo từ khóa: nhận yêu cầu tự nhiên, chia bước, chỉ dùng tool editor trong allow-list, quan sát trạng thái sau mỗi thao tác và xác minh kết quả. Xóa layer chỉ áp dụng với các layer đang chọn, hiển thị tên/số lượng và yêu cầu xác nhận; xuất video vẫn do người dùng thao tác. Tác tử không chạy mã tùy ý hoặc truy cập file hệ thống.
 
+Tài khoản Google-only, xác thực phiên ở server, quota AI theo tài khoản và nhật ký token/chi phí đã có. Tài khoản mới mặc định AI tắt/quota 0. AI memory mặc định **Không lưu**, chỉ ghi khi người dùng yêu cầu ghi nhớ rõ và chọn 2/3/7/30 ngày; người dùng có thể xem/xóa từng note, tối đa 20 note còn hiệu lực mỗi tài khoản.
+
+Editor vẫn hoạt động khi chưa đăng nhập và giữ project/media trên thiết bị. Supabase không lưu project hay media gốc. Chưa bật thanh toán hoặc gói trả phí.
+
+**Preview READY** từ commit `1f68edce761320ff2d3cd38feaf7533578dd9866`: [Mở bản thử nghiệm](https://geed-hardwin-git-goal8-cloud-ai-cleanup-hoangnguyen555grok-1529.vercel.app/). CI [đạt 38/38 test](https://github.com/hoangnguyen555grok-glitch/hardwin/actions/runs/44865868854). Đã kiểm tra trang editor và module trả HTTP 200; API chat trả 405/Allow POST khi gọi GET.
+
+Chưa sẵn sàng production: Preview chưa có secret, cần chủ dự án cấu hình Google OAuth và các server environment variables rồi thử login/AI với provider thật. Nhánh `main` và website production không bị thay đổi.
+
+Chi tiết: [Kế hoạch Goal 8](docs/GOAL8-CLOUD-AI-PLAN.md) · [Bảo vệ tài khoản và dữ liệu](docs/GOAL8-ACCOUNT-SECURITY.md) · [Model Router](docs/GOAL8-MODEL-ROUTER.md)
 
 ## Cập nhật v1.13
 
@@ -167,12 +176,6 @@ Bản AI Bridge trong trình biên tập vẫn giữ bộ lệnh mẫu. Từ v1.
 - **Project persistence:** ảnh đã chỉnh sửa được lưu cùng dữ liệu dự án hiện tại và được khôi phục khi mở lại project.
 - **Giới hạn hiện tại:** Eraser là xóa pixel thủ công, không phải AI inpainting. Xóa vật thể và tự tái tạo nền phía sau cần dịch vụ AI riêng, sẽ tích hợp ở giai đoạn sau.
 
-## Cập nhật v1.29
+## Ghi chú phiên bản AI thử nghiệm cũ
 
-- **Local AI Agent launcher:** AI Bridge có nút mở bảng điều khiển AI cục bộ tại `http://127.0.0.1:8765` sau khi người dùng cài và khởi chạy agent.
-- **Browser automation foundation:** Browser Use điều khiển Opera qua CDP trên profile tách biệt; danh sách website được phép cấu hình trong `.env`.
-- **Multi-model routing:** LiteLLM có các route cho Ollama, OpenAI, Anthropic và Gemini; cấu hình fallback chuyển tiếp khi provider gặp lỗi hoặc rate limit. Cloud routes chỉ dùng được sau khi người dùng tự thêm API key vào `.env`.
-- **Stateful workflow:** LangGraph điều phối recall → browser task → persist và ghi checkpoint theo thread.
-- **Local memory:** SQLite lưu tóm tắt tác vụ thành công, khôi phục ngữ cảnh trong cùng phiên; LangGraph checkpoint tiến trình và nút xóa dọn cả hai kho dữ liệu.
-- **Safety gates:** thao tác xóa/gửi/đăng/mua/thanh toán và một số thay đổi tài khoản yêu cầu xác nhận; dịch vụ chỉ lắng nghe trên loopback. Không đưa API key, mật khẩu, cookie hoặc tunnel token vào GitHub.
-- Vercel tiếp tục lưu trang biên tập tĩnh; browser runtime và model gateway chạy trên máy cục bộ vì một trang tĩnh trên đám mây không thể tự kết nối vào cổng CDP trên máy người dùng.
+Các ghi chú Local AI Agent v1.29 bên dưới lịch sử phát triển không còn là hướng dẫn sử dụng hiện hành. Không cần cài Ollama, mở Opera debug, chạy Python hay tải mô hình để dùng editor. Những tệp thử nghiệm cũ sẽ chỉ được xóa sau khi hoàn tất rà soát tham chiếu và xác nhận không ảnh hưởng công cụ biên tập/hoạt hình.
