@@ -204,7 +204,12 @@ async function completeSave(config, r2, userId, body) {
     }
   });
   const result = Array.isArray(saved) ? saved[0] : saved;
-  return { project: result };
+  if (!result || result.saved !== true) {
+    throw Object.assign(new Error('The cloud storage reservation could not be finalized.'), {
+      status: 409, code: result?.code || 'CLOUD_FINALIZATION_REJECTED'
+    });
+  }
+  return { project: result.project };
 }
 
 async function prepareOpen(config, r2, userId, body) {
@@ -262,12 +267,23 @@ module.exports = async function handler(req, res) {
   try {
     body = parseBody(req);
     const action = String(body.action || '');
-    if (!['list', 'prepare-save', 'complete-save', 'prepare-open'].includes(action)) {
+    if (!['list', 'prepare-save', 'complete-save', 'prepare-open', 'cancel-save'].includes(action)) {
       return send(res, 400, { error: 'Unsupported cloud workspace action.', code: 'INVALID_ACTION' });
     }
     if (action === 'list') {
       const result = await listProjects(config, user.id);
       return send(res, 200, result);
+    }
+
+    if (action === 'cancel-save') {
+      const reservationId = String(body.reservationId || '');
+      if (!UUID_RE.test(reservationId)) return send(res, 400, { error: 'Invalid reservation identifier.', code: 'INVALID_RESERVATION_ID' });
+      await callSupabaseRpc({
+        config,
+        functionName: 'geed_cancel_cloud_storage',
+        payload: { p_reservation_id: reservationId, p_user_id: user.id }
+      });
+      return send(res, 200, { cancelled: true });
     }
 
     const r2 = readR2Config();
