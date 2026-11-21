@@ -1,0 +1,33 @@
+name: AI router checks
+
+on:
+  push:
+    branches: [main, goal8-cloud-ai-cleanup]
+    paths:
+      - "api/ai/**"
+      - "lib/ai-router.js"
+      - "tests/ai-router.test.js"
+      - ".github/workflows/ai-router-checks.yml"
+  pull_request:
+    paths:
+      - "api/ai/**"
+      - "lib/ai-router.js"
+      - "tests/ai-router.test.js"
+      - ".github/workflows/ai-router-checks.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  router-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run model router tests
+        run: node --test tests/ai-router.test.js
+      - name: Syntax-check serverless endpoint
+        run: node --check api/ai/chat.js && node --check lib/ai-router.js
