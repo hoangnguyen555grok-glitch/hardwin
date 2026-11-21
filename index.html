@@ -1725,6 +1725,7 @@ function aiBridgeAppend(text,who='agent'){
 }
 let aiAgentBusy=false;
 let aiAgentConversation=[];
+let aiAgentUserId=null;
 
 function updateAgentStatus(authenticated){
  const account=$('aiBridgeAccountStatus'),ai=$('aiBridgeAiStatus');
@@ -1741,7 +1742,26 @@ function updateAgentStatus(authenticated){
  if(manage)manage.disabled=!authenticated;
 }
 window.addEventListener('geed-auth-change',event=>{
- updateAgentStatus(Boolean(event.detail?.authenticated));
+ const nextUserId=event.detail?.user?.id||null;
+ if(nextUserId!==aiAgentUserId){
+  aiAgentConversation=[];
+  const memoryList=$('aiMemoryList');
+  if(memoryList){memoryList.hidden=true;memoryList.replaceChildren();}
+  const retention=$('aiMemoryRetention');
+  if(retention)retention.value='0';
+  const log=$('aiBridgeLog');
+  if(log){
+   log.replaceChildren();
+   const welcome=document.createElement('div');
+   welcome.className='ai-bridge-message agent';
+   welcome.textContent=nextUserId
+    ?'Tài khoản đã kết nối. Ghi nhớ AI chỉ được lưu khi bạn yêu cầu rõ ràng và chọn thời hạn.'
+    :'Đã đăng xuất. Lịch sử hội thoại trong bộ nhớ tab đã được xóa; project và media cục bộ vẫn được giữ.';
+   log.appendChild(welcome);
+  }
+ }
+ aiAgentUserId=nextUserId;
+ updateAgentStatus(Boolean(nextUserId));
 });
 updateAgentStatus(false);
 
@@ -1845,7 +1865,7 @@ function setAgentBusy(busy){
  aiAgentBusy=busy;
  $('aiBridgeInput').disabled=busy;
  $('aiBridgeSend').disabled=busy;
- $('aiMemoryRetention').disabled=busy||!Boolean(window.GeedHardwinAuth);
+ $('aiMemoryRetention').disabled=busy||$('accountButton').dataset.authenticated!=='true';
  document.querySelectorAll('[data-ai-prompt]').forEach(button=>button.disabled=busy);
  $('aiBridgeSend').textContent=busy?'Đang xử lý…':'Gửi';
 }
