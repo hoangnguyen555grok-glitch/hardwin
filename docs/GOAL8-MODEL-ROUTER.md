@@ -13,8 +13,8 @@ The existing Node.js adapter is deliberately small: it reuses the OpenAI-compati
 The default order is:
 
 1. **OpenRouter** — model `openrouter/free` or a specific model ending in `:free`. The dynamic `openrouter/free` route selects an eligible free model. Current documented free-model limits are 20 requests/minute and 50 requests/day. The higher daily limit requires buying credits, so this project must not buy credits just to raise the limit.
-2. **Groq Free** — uses the OpenAI-compatible endpoint `https://api.groq.com/openai/v1`. It is included only after the owner explicitly confirms that the account is still on the Free tier with `GEED_AI_GROQ_FREE_TIER_CONFIRMED=true`.
-3. **Cloudflare Workers AI Free** — uses the account-scoped OpenAI-compatible endpoint `https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1`. It is included only when `GEED_AI_CLOUDFLARE_FREE_TIER_CONFIRMED=true` and `GEED_AI_CLOUDFLARE_BASE_URL` is set. The Workers Free plan currently documents 10,000 Neurons/day; model availability and plan eligibility must be checked in the account before enabling it.
+2. **Groq Free** — uses the OpenAI-compatible endpoint `https://api.groq.com/openai/v1`. It is included only after the owner explicitly confirms the Free tier and absence of paid billing with both `GEED_AI_GROQ_FREE_TIER_CONFIRMED=true` and `GEED_AI_GROQ_BILLING_DISABLED=true`.
+3. **Cloudflare Workers AI Free** — uses the account-scoped OpenAI-compatible endpoint `https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1`. It is included only when `GEED_AI_CLOUDFLARE_FREE_TIER_CONFIRMED=true`, `GEED_AI_CLOUDFLARE_BILLING_DISABLED=true`, and `GEED_AI_CLOUDFLARE_BASE_URL` is set. The owner must verify the account is still on Workers Free before setting these flags.
 4. **Gemini Developer API Free** — uses the existing native Gemini adapter. It is included only when both `GEED_AI_GEMINI_FREE_TIER_CONFIRMED=true` and `GEED_AI_GEMINI_BILLING_DISABLED=true` are set. The selected model must be shown as Free in Google AI Studio. Keep billing disabled on the API project so quota exhaustion fails instead of crossing into paid usage. Grounding and some model/features have separate charges; do not use them in this free-only route.
 
 Free quotas, eligible models, regional availability, and provider terms can change. A free tier is not unlimited capacity and can be exhausted or rate-limited. The router may move to the next explicitly enabled free provider after a clear provider error or rate-limit response. An ambiguous network timeout stops the chain because the first provider may already have processed the request.
@@ -22,8 +22,8 @@ Free quotas, eligible models, regional availability, and provider terms can chan
 ## Provider eligibility is intentionally restrictive
 
 - OpenRouter accepts only `openrouter/free` or model IDs ending in `:free` by default. A paid OpenRouter model is rejected by the default eligibility check.
-- Groq is not enabled until its Free-tier confirmation flag is set.
-- Cloudflare is not enabled until its Free-plan confirmation flag and account-specific base URL are both present.
+- Groq is not enabled until both its Free-tier confirmation and billing-disabled flags are set.
+- Cloudflare text routing is not enabled until its Free-plan confirmation, billing-disabled flag and account-specific base URL are all present.
 - Gemini has a separate free-only lane requiring both the Free-tier confirmation and disabled-billing flags. If those flags are absent, Gemini is disabled like the other direct-provider integrations.
 - Existing direct integrations for OpenAI, Anthropic, xAI, DeepSeek, Qwen, and GLM are **disabled by default**. They require the explicit server-side switch `GEED_AI_ALLOW_PAID_PROVIDERS=true`.
 - The configured provider order is an allow-list. The router no longer silently appends every configured provider. A provider key being present does not, by itself, authorize it as a fallback.
@@ -45,6 +45,7 @@ For Groq Free:
 | `GEED_AI_GROQ_API_KEY` | Groq API key |
 | `GEED_AI_GROQ_MODEL` | A model currently available to the account's Free tier |
 | `GEED_AI_GROQ_FREE_TIER_CONFIRMED` | `true` only after confirming the account remains on Free |
+| `GEED_AI_GROQ_BILLING_DISABLED` | `true` only after confirming no paid Groq billing is enabled |
 
 For Cloudflare Workers AI Free:
 
@@ -54,6 +55,7 @@ For Cloudflare Workers AI Free:
 | `GEED_AI_CLOUDFLARE_MODEL` | Model ID available on the Free plan |
 | `GEED_AI_CLOUDFLARE_BASE_URL` | `https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1` |
 | `GEED_AI_CLOUDFLARE_FREE_TIER_CONFIRMED` | `true` only after confirming the account is on Workers Free |
+| `GEED_AI_CLOUDFLARE_BILLING_DISABLED` | `true` only after confirming no Workers Paid plan or paid overage is enabled |
 
 For Gemini Developer API Free:
 
@@ -77,6 +79,31 @@ Existing direct provider variables remain available only for an owner-approved p
 - `GEED_AI_ALLOW_PAID_PROVIDERS=true` is required before direct providers such as OpenAI, Anthropic, xAI, DeepSeek, Qwen, or GLM can be selected outside Gemini's separately gated Free lane.
 - Each enabled provider needs its own server-only API key and model ID.
 - Do not enable this flag merely to make a provider fallback succeed.
+
+## FLUX.1 Schnell image generation (community model, Cloudflare-hosted)
+
+The editor exposes `POST /api/ai/image` from the AI Bridge. It reuses Black Forest Labs' **FLUX.1 Schnell** model under Apache-2.0 through Cloudflare Workers AI; Geed Hardwin does not host model weights or run inference locally.
+
+- Fixed model: `@cf/black-forest-labs/flux-1-schnell`; the browser cannot choose another model, set inference steps, or request a paid fallback.
+- Fixed inference setting: 4 steps. Prompt length is limited to 2,048 characters.
+- Server checks a valid Supabase/Google session, reserves one per-account monthly AI request, calls Cloudflare once, and records the outcome.
+- The model returns an image as base64; after successful decoding the browser adds it to the resource library and canvas. The image bytes stay in the local project/IndexedDB, not Supabase.
+- Provider usage cost is recorded as unknown rather than falsely assumed to be zero. Cloudflare's 10,000 Neurons/day Free allocation is shared at account level and resets at 00:00 UTC. On Workers Free, operations fail after that allowance; on Workers Paid, usage above the free allowance is billed. The owner must verify the account is on Workers Free and has not enabled a paid Workers plan before enabling this feature.
+- No automatic retry or provider fallback is made for image generation. If a timeout occurs, the account ledger records an uncertain outcome so the user is not prompted to retry automatically.
+
+Required server environment:
+
+| Variable | Value |
+|---|---|
+| `GEED_AI_CLOUDFLARE_API_KEY` | Cloudflare API token with Workers AI Run permission |
+| `GEED_AI_CLOUDFLARE_ACCOUNT_ID` | 32-character Cloudflare account ID |
+| `GEED_AI_CLOUDFLARE_IMAGE_ENABLED` | `true` only after owner setup and smoke tests |
+| `GEED_AI_CLOUDFLARE_FREE_TIER_CONFIRMED` | `true` only after verifying the account is Workers Free |
+| `GEED_AI_CLOUDFLARE_BILLING_DISABLED` | `true` only after verifying no paid Workers plan/overage is enabled |
+
+All variables stay in Vercel server-side environment. Leave the image feature disabled until every flag and secret is configured. These switches are owner assertions; they do not replace checking the Cloudflare dashboard.
+
+Sources: https://github.com/black-forest-labs/flux (Apache-2.0 model), https://developers.cloudflare.com/ai/models/@cf/black-forest-labs/flux-1-schnell/, https://developers.cloudflare.com/workers-ai/platform/pricing/
 
 ## Authentication, quota, and safety
 
