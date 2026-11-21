@@ -1,4 +1,4 @@
-name: AI router checks
+name: Geed Hardwin cloud AI and account checks
 
 on:
   push:
@@ -6,20 +6,28 @@ on:
     paths:
       - "api/ai/**"
       - "lib/ai-router.js"
-      - "tests/ai-router*.test.js"
+      - "lib/supabase-*.js"
+      - "index.html"
+      - "supabase/migrations/**"
+      - "tests/*.test.js"
+      - "docs/GOAL8-*.md"
       - ".github/workflows/ai-router-checks.yml"
   pull_request:
     paths:
       - "api/ai/**"
       - "lib/ai-router.js"
-      - "tests/ai-router*.test.js"
+      - "lib/supabase-*.js"
+      - "index.html"
+      - "supabase/migrations/**"
+      - "tests/*.test.js"
+      - "docs/GOAL8-*.md"
       - ".github/workflows/ai-router-checks.yml"
 
 permissions:
   contents: read
 
 jobs:
-  router-tests:
+  cloud-ai-account-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -27,7 +35,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Run model router tests
-        run: node --test tests/ai-router*.test.js
-      - name: Syntax-check serverless endpoint
-        run: node --check api/ai/chat.js && node --check lib/ai-router.js
+      - name: Run model router, auth and quota tests
+        run: node --test tests/*.test.js
+      - name: Syntax-check server and browser modules
+        run: |
+          node --check api/ai/chat.js
+          node --check lib/ai-router.js
+          node --check lib/supabase-ai-gateway.js
+          node --input-type=module --check < lib/supabase-auth.js
