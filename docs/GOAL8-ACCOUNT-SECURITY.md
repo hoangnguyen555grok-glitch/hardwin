@@ -1,6 +1,6 @@
 # Goal 8 — Account, entitlement and data protection
 
-Status: Supabase schema, database-enforced Google-only account creation, server-side session verification, per-account AI request quotas, bounded AI Agent, opt-in AI memory and free-first text routing are implemented on `goal8-cloud-ai-cleanup`. Supabase Auth logs on 2026-11-21 confirmed Google Provider is disabled; Google OAuth cannot start until the owner enables it and supplies a Web OAuth Client ID/Secret.
+Status: Supabase Auth logs on 2026-11-21 confirmed `/authorize` returns HTTP 400 `validation_failed` / `provider is not enabled`. The browser client has been updated to use a clean origin redirect, show the account chooser and display an actionable message. The actual Google Provider switch and OAuth credentials must be enabled by the owner in the Supabase Dashboard.
 Working branch: `goal8-cloud-ai-cleanup`
 Supabase project: `geed-hardwin-auth` (`rdzitdoarrfjugzogkrf`), region `ap-southeast-1` (Singapore).
 Project creation quote: USD 0/month on 2026-11-21. This quote does not guarantee that future provider API calls, storage or other services are free.
@@ -30,11 +30,11 @@ All five exposed public tables have RLS enabled. Policies use `auth.uid()` owner
 Google OAuth cannot be activated without a Client ID and Client Secret created by the project owner. Do not paste the Client Secret into chat, source control, browser storage or frontend code.
 
 1. Open Google Cloud Console → Google Auth Platform → Clients and create an OAuth Client ID of type **Web application**.
-2. Authorized JavaScript origins: `https://geed-hardwin.vercel.app` and `https://geed-hardwin-git-goal8-cloud-ai-cleanup-hoangnguyen555grok-1529.vercel.app` (the isolated Preview alias).
+2. Authorized JavaScript origins: `http://localhost:3000` (the origin shown in the failed Auth logs), `https://geed-hardwin.vercel.app` and `https://geed-hardwin-git-goal8-cloud-ai-cleanup-hoangnguyen555grok-1529.vercel.app` (the isolated Preview alias).
 3. Authorized redirect URI (Supabase callback): `https://rdzitdoarrfjugzogkrf.supabase.co/auth/v1/callback`.
 4. Keep requested scopes limited to `openid`, `email` and `profile`.
-5. In Supabase Dashboard → Authentication → Sign In / Providers, enable Google and enter the Client ID and Client Secret. Disable the Email provider and leave every other provider disabled. A database `BEFORE INSERT` trigger also rejects any new Auth user whose `raw_app_meta_data.provider` is not exactly `google`, providing a server-side enforcement layer in addition to the UI.
-6. In Supabase Dashboard → Authentication → URL Configuration, set Site URL to `https://geed-hardwin.vercel.app` and add these exact redirect patterns: `https://geed-hardwin.vercel.app/**` and `https://geed-hardwin-git-goal8-cloud-ai-cleanup-hoangnguyen555grok-1529.vercel.app/**`. Do not allow all unrelated Vercel deployment domains.
+5. In Supabase Dashboard → Authentication → Sign In / Providers → Google, switch **Enable Sign in with Google** ON, enter the Web Client ID and Client Secret, then Save. This specific switch is currently OFF — it is the cause of the reported `provider is not enabled` error. Disable the Email provider and leave every other provider disabled. A database `BEFORE INSERT` trigger also rejects any new Auth user whose `raw_app_meta_data.provider` is not exactly `google`, providing a server-side enforcement layer in addition to the UI.
+6. In Supabase Dashboard → Authentication → URL Configuration, set Site URL to `https://geed-hardwin.vercel.app` and add these redirect patterns: `http://localhost:3000/**`, `https://geed-hardwin.vercel.app/**` and `https://geed-hardwin-git-goal8-cloud-ai-cleanup-hoangnguyen555grok-1529.vercel.app/**`. Do not allow all unrelated Vercel deployment domains.
 7. Complete Google consent-screen branding and add privacy policy/terms links before public launch.
 
 The browser client uses only the Supabase publishable key, PKCE flow and Google provider. The sign-in button is optional; the local editor still works if OAuth is not configured. The real login flow cannot be tested until the owner configures these values.
