@@ -2,7 +2,7 @@ name: Geed Hardwin cloud AI and account checks
 
 on:
   push:
-    branches: [main, goal8-cloud-ai-cleanup]
+    branches: [main, goal8-cloud-ai-cleanup, goal9-account-menu]
     paths:
       - "api/ai/**"
       - "lib/ai-router.js"
