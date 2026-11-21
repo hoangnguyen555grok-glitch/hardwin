@@ -20,7 +20,9 @@ test('cloud workspace keeps the editor snapshot API behind the existing editor b
 
 test('browser cloud client uses the authenticated session token, not service credentials', () => {
   const client = fs.readFileSync(path.join(root, 'lib/cloud-workspace.js'), 'utf8');
-  assert.match(client, /window\.GeedHardwinAuth\.getAccessToken/);
+  assert.match(client, /window\\.GeedHardwinAuth/);
+  assert.match(client, /getAccessToken/);
+  assert.match(client, /getUser/);
   assert.match(client, /authorization.*Bearer/i);
   assert.match(client, /crypto\.subtle\.digest/);
   assert.doesNotMatch(client, /service[_-]?role|GEED_R2_SECRET_ACCESS_KEY|GEED_SUPABASE_SERVICE_ROLE_KEY/i);
@@ -43,5 +45,7 @@ test('database reserves account quota atomically and locks client cloud metadata
   assert.match(migration, /revoke insert, update, delete on public\.project_metadata from authenticated/i);
   assert.match(migration, /grant execute on function public\.geed_reserve_cloud_storage[\s\S]*to service_role/i);
   assert.match(migration, /geed_delete_cloud_project/);
-  assert.match(migration, /p_object_key <> \(p_user_id::text \|\| '\/' \|\| p_local_project_key \|\| '\/project\.json'\)/i);
+  assert.match(migration, /v_expected_object_key := p_user_id::text[\\s\\S]*snapshots/);
+  assert.match(migration, /p_object_key <> v_expected_object_key/);
+  assert.match(migration, /geed_delete_cloud_project\\(uuid, text, text\\)/);
 });
