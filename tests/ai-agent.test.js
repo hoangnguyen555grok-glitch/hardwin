@@ -11,7 +11,8 @@ const {
 test('agent prompt restricts actions and requires observe/verify after each tool', () => {
   assert.match(AGENT_SYSTEM_PROMPT, /one safe editor action at a time/i);
   assert.match(AGENT_SYSTEM_PROMPT, /wait for the next observation/i);
-  assert.match(AGENT_SYSTEM_PROMPT, /deleteSelected and exportVideo are destructive/i);
+  assert.match(AGENT_SYSTEM_PROMPT, /deleteSelected is destructive/i);
+  assert.match(AGENT_SYSTEM_PROMPT, /Video export remains a manual user action/i);
   assert.match(AGENT_SYSTEM_PROMPT, /exactly one JSON object/i);
   assert.match(AGENT_SYSTEM_PROMPT, /Never output code/i);
 });
