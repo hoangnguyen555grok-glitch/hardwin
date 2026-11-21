@@ -54,10 +54,10 @@ R2 is not enabled on the connected Cloudflare account yet; the API currently ret
 2. Enable R2.
 3. Create a private bucket named geed-hardwin-user-data.
 4. Create an R2 API token with Object Read & Write, scoped to that bucket only.
-5. Configure bucket CORS for the exact production and Vercel Preview origins. Allow GET, HEAD, and PUT; allow the required Content-Type header; expose ETag.
+5. Configure bucket CORS for the exact production and Vercel Preview origins. Allow GET, HEAD, PUT, and DELETE; allow the required Content-Type header; expose ETag.
 6. Enter the R2 and Supabase secrets directly in Vercel Project Settings → Environment Variables, Preview environment only. Do not share the Secret Access Key in chat.
 
-No bucket or token has been created by this branch. No paid plan, billing upgrade or public bucket is required by the code. Review the live Cloudflare/Supabase pricing before opening this to public users; free quotas can change.
+No bucket or token has been created by this branch. The application code does not require a public bucket or a paid app plan. Cloudflare may require account-level R2 activation or billing onboarding before issuing API tokens; do not accept any checkout or paid commitment without reviewing its terms first. Review the live Cloudflare/Supabase pricing before opening this to public users; free quotas can change.
 
 ## Remaining validation before release
 
