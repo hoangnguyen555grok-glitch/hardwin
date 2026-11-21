@@ -23,8 +23,10 @@ module.exports = async function handler(req, res) {
   }
   const auth = req.headers.authorization || '';
   const supplied = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-  if (!supplied || supplied.length !== gatewayToken.length ||
-      !require('node:crypto').timingSafeEqual(Buffer.from(supplied), Buffer.from(gatewayToken))) {
+  const suppliedBytes = Buffer.from(supplied);
+  const expectedBytes = Buffer.from(gatewayToken);
+  if (!supplied || suppliedBytes.length !== expectedBytes.length ||
+      !require('node:crypto').timingSafeEqual(suppliedBytes, expectedBytes)) {
     return send(res, 401, { error: 'Unauthorized' });
   }
 
