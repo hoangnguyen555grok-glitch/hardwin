@@ -1762,6 +1762,9 @@ function updateAgentStatus(authenticated){
  const retention=$('aiMemoryRetention'),manage=$('aiMemoryManage');
  if(retention)retention.disabled=!authenticated;
  if(manage)manage.disabled=!authenticated;
+ const imagePrompt=$('aiImagePrompt'),imageButton=$('aiImageGenerate');
+ if(imagePrompt)imagePrompt.disabled=!authenticated||aiImageBusy;
+ if(imageButton)imageButton.disabled=!authenticated||aiImageBusy;
 }
 window.addEventListener('geed-auth-change',event=>{
  const nextUserId=event.detail?.user?.id||null;
@@ -1786,6 +1789,84 @@ window.addEventListener('geed-auth-change',event=>{
  updateAgentStatus(Boolean(nextUserId));
 });
 updateAgentStatus(false);
+
+let aiImageBusy=false;
+async function generateAiImage(event){
+ event.preventDefault();
+ const prompt=String($('aiImagePrompt').value||'').trim();
+ if(!prompt||aiImageBusy)return;
+ if(prompt.length>2048){aiBridgeAppend('Mô tả ảnh tối đa 2.048 ký tự.','agent');return}
+ if(symbolEditId){aiBridgeAppend('Hãy thoát chế độ chỉnh sửa MovieClip trước khi thêm ảnh vào sân khấu chính.','agent');return}
+ if(!window.GeedHardwinAuth||typeof window.GeedHardwinAuth.getAccessToken!=='function'){
+  aiBridgeAppend('Thành phần đăng nhập chưa sẵn sàng. Hãy tải lại trang rồi đăng nhập Google.','agent');return;
+ }
+ aiImageBusy=true;
+ $('aiImagePrompt').disabled=true;
+ $('aiImageGenerate').disabled=true;
+ $('aiImageGenerate').textContent='Đang tạo…';
+ aiBridgeAppend('Đang tạo ảnh bằng FLUX.1 Schnell. Yêu cầu sẽ dùng quota AI của tài khoản; không tự chuyển sang dịch vụ trả phí.','agent');
+ try{
+  const token=await window.GeedHardwinAuth.getAccessToken();
+  if(!token)throw new Error('Bạn cần đăng nhập Google trước khi tạo ảnh.');
+  const response=await fetch('/api/ai/image',{
+   method:'POST',
+   headers:{'content-type':'application/json',authorization:'Bearer '+token},
+   body:JSON.stringify({prompt})
+  });
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok){
+   const messages={
+    401:'Phiên đăng nhập không hợp lệ hoặc đã hết hạn. Hãy đăng nhập Google lại.',
+    403:'Tài khoản chưa được cấp quyền hoặc quota AI chưa được bật.',
+    429:'Quota tháng của tài khoản hoặc giới hạn Free của nhà cung cấp đã đạt. Không có dịch vụ trả phí nào được gọi.',
+    503:'Dịch vụ tạo ảnh chưa được chủ dự án cấu hình hoặc model không khả dụng trên gói Free.',
+    504:'Kết nối tạo ảnh không rõ trạng thái. Hệ thống không tự thử lại để tránh tạo ảnh/lượt dùng trùng.'
+   };
+   throw new Error(messages[response.status]||data.error||'Tạo ảnh chưa thành công.');
+  }
+  if(typeof data.image!=='string'||!/^data:image\/(?:jpeg|png|webp);base64,/i.test(data.image)||data.image.length>16*1024*1024){
+   throw new Error('Dữ liệu ảnh trả về không hợp lệ. Chưa thêm tài nguyên vào project.');
+  }
+  const image=await new Promise((resolve,reject)=>{
+   const img=new Image();
+   img.onload=()=>resolve(img);
+   img.onerror=()=>reject(new Error('Trình duyệt không đọc được ảnh do model trả về.'));
+   img.src=data.image;
+  });
+  const asset={
+   id:'img-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),
+   name:'AI · '+prompt.slice(0,42),
+   dataUrl:data.image,
+   width:image.naturalWidth||image.width,
+   height:image.naturalHeight||image.height,
+   size:Number(data.image_bytes)||Math.round(data.image.length*.75)
+  };
+  resourceLibrary.images.push(asset);
+  renderResourceLibrary();
+  const scale=Math.min(520/asset.width,420/asset.height,1);
+  makeObject('image',{
+   name:asset.name,
+   width:asset.width*scale,
+   height:asset.height*scale,
+   src:asset.name,
+   img:image,
+   dataUrl:asset.dataUrl,
+   assetId:asset.id
+  });
+  $('aiImagePrompt').value='';
+  aiBridgeAppend('Đã tạo ảnh và thêm vào canvas cùng thư viện tài nguyên. Project được lưu trên thiết bị; ảnh không được tải lên Supabase.','agent');
+  if(data.usage_recorded!==true)aiBridgeAppend('Lưu ý: ảnh đã tạo nhưng sổ theo dõi quota chưa xác nhận được. Không tự gửi lại yêu cầu này.','agent');
+ }catch(error){
+  aiBridgeAppend(error?.message||'Không thể tạo ảnh. Không có thao tác editor nào được tiếp tục.','agent');
+ }finally{
+  aiImageBusy=false;
+  $('aiImageGenerate').textContent='Tạo ảnh';
+  const authenticated=$('accountButton').dataset.authenticated==='true';
+  $('aiImagePrompt').disabled=!authenticated;
+  $('aiImageGenerate').disabled=!authenticated;
+ }
+}
+$('aiImageForm').addEventListener('submit',generateAiImage);
 
 function agentSnapshot(){
  const status=window.GeedHardwinBridge.getStatus();
