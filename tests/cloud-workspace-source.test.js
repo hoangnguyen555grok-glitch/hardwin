@@ -21,7 +21,7 @@ test('cloud workspace keeps the editor snapshot API behind the existing editor b
 test('browser cloud client uses the authenticated session token, not service credentials', () => {
   const client = fs.readFileSync(path.join(root, 'lib/cloud-workspace.js'), 'utf8');
   assert.match(client, /window\.GeedHardwinAuth\.getAccessToken/);
-  assert.match(client, /Authorization.*Bearer/);
+  assert.match(client, /authorization.*Bearer/i);
   assert.match(client, /crypto\.subtle\.digest/);
   assert.doesNotMatch(client, /service[_-]?role|GEED_R2_SECRET_ACCESS_KEY|GEED_SUPABASE_SERVICE_ROLE_KEY/i);
   assert.match(auth, /window\.GeedHardwinAuth/);
