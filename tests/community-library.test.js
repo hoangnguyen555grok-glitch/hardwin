@@ -10,36 +10,59 @@ const root = path.join(__dirname, '..');
 const editor = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const page = fs.readFileSync(path.join(root, 'library.html'), 'utf8');
 const script = fs.readFileSync(path.join(root, 'lib/community-library.js'), 'utf8');
+const catalog = JSON.parse(fs.readFileSync(path.join(root, 'assets/community-library.json'), 'utf8'));
+const docs = fs.readFileSync(path.join(root, 'docs/COMMUNITY-ASSET-LIBRARY.md'), 'utf8');
 
-test('editor exposes a direct link to the public community library', () => {
+test('editor and public library share one static asset catalog', () => {
+  assert.match(editor, /fetch\('\/assets\/community-library\.json'/);
   assert.match(editor, /href="\/library\.html"/);
-  assert.match(editor, /Kho vật liệu/);
-});
-
-test('community library is publicly browsable and has all six planned categories', () => {
   assert.match(page, /Kho vật liệu/);
-  assert.match(page, /Kho cộng đồng/);
-  for (const label of ['Bối cảnh', 'Nhân vật', 'Đạo cụ', 'Âm thanh', 'Hiệu ứng', 'Font chữ']) {
-    assert.ok(page.includes(label), `missing category: ${label}`);
+  assert.deepEqual(catalog.assets, []);
+  assert.equal(catalog.schemaVersion, 2);
+});
+
+test('catalog structure contains six community categories and media support', () => {
+  for (const category of ['backgrounds','characters','props','audio','effects','fonts']) {
+    assert.ok(page.includes(category) || script.includes(category), 'missing category '+category);
   }
-  assert.match(page, /href="\/"[^>]*>← Trình biên tập/);
+  for (const mediaType of ['image','audio','video','font']) assert.ok(script.includes(mediaType));
 });
 
-test('upload control is visibly disabled until the upload pipeline is ready', () => {
-  assert.match(page, /Đăng tài nguyên/);
-  assert.match(page, /disabled aria-disabled="true"/);
-  assert.doesNotMatch(page, /<input[^>]+type="file"/i);
-});
-
-test('community library starts with no mock assets and does not write files or call storage APIs', () => {
-  assert.match(script, /const communityAssets = Object\.freeze\(\[\]\)/);
-  assert.doesNotMatch(script, /\b(fetch|XMLHttpRequest|localStorage|sessionStorage|indexedDB|FileReader)\b/);
-  assert.doesNotMatch(page, /supabase|r2\.|upload\.do|storage\/v1/i);
-});
-
-test('community library script parses and filters the six categories', () => {
+test('resource page loads catalog metadata and renders safely without mock assets', () => {
+  assert.match(script, /fetch\('\/assets\/community-library\.json'/);
+  assert.match(script, /createElement\('article'\)/);
+  assert.match(script, /textContent/);
+  assert.match(script, /communityAssets = data\.assets\.map\(normalizeAsset\)/);
+  assert.match(script, /sessionStorage\.setItem\('geedCommunityAssetHandoff'/);
   assert.doesNotThrow(() => new vm.Script(script, { filename: 'lib/community-library.js' }));
-  assert.match(script, /addEventListener\('input', render\)/);
-  assert.match(script, /aria-pressed/);
-  assert.match(script, /asset\.category === activeCategory/);
+});
+
+test('contributions submit only public HTTPS URLs through GitHub Issues, never file bytes', () => {
+  assert.match(page, /Đề xuất tài nguyên bằng link/);
+  assert.match(page, /Đường dẫn tệp HTTPS công khai/);
+  assert.match(script, /https:\/\/github\.com\/hoangnguyen555grok-glitch\/hardwin\/issues\/new/);
+  assert.match(script, /URL công khai/);
+  assert.doesNotMatch(page, /<input[^>]+type="file"/i);
+  assert.doesNotMatch(script, /FileReader|XMLHttpRequest|FormData\([^)]*files/i);
+});
+
+test('external asset loading is direct and the editor stores URLs instead of binaries', () => {
+  assert.match(editor, /safeCommunityAssetUrl/);
+  assert.match(editor, /crossOrigin='anonymous'/);
+  assert.match(editor, /externalUrl:url/);
+  assert.match(editor, /tệp không được tải lên Geed Hardwin/);
+  assert.match(docs, /does \*\*not\*\* receive or store community media files/);
+  assert.match(docs, /CORS/);
+});
+
+test('only image and audio catalog entries are enabled for editor insertion', () => {
+  assert.match(editor, /asset\.mediaType==='image'/);
+  assert.match(editor, /asset\.mediaType==='audio'/);
+  assert.match(editor, /Video và font đang ở chế độ xem trước/);
+  assert.match(script, /supportsEditor === true && \['image','audio'\]/);
+});
+
+test('no private uploads, storage APIs or database writes are introduced', () => {
+  assert.doesNotMatch(script, /localStorage|indexedDB|supabase|R2/);
+  assert.doesNotMatch(page, /supabase|storage\/v1|upload\.do/i);
 });
