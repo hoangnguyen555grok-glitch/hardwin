@@ -41,7 +41,7 @@ Supported categories: `backgrounds`, `characters`, `props`, `audio`, `effects`, 
 Supported media types in the catalog: `image`, `audio`, `video`, `font`.
 
 In the current editor bridge:
-- Images and audio with `supportsEditor: true` can be inserted into the editor by the user or by an allow-listed AI action.
+- Images and audio with `supportsEditor: true` can be inserted into the editor by the user or by an allow-listed AI action. A newly inserted community image can then receive one bounded start/end motion via AI, but only while that same unanimated image is selected and identified by its catalog ID. This action does not overwrite an existing animation.
 - Video clips can be previewed in the library but are not video layers in the editor timeline yet.
 - Fonts can be listed but are not yet loaded from the community catalog.
 - Use only direct, public HTTPS file URLs. Avoid URLs containing temporary signatures that expire.
