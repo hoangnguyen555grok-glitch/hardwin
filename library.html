@@ -103,6 +103,44 @@ h1{max-width:680px;margin:15px 0 16px;font-size:clamp(34px,5vw,58px);line-height
 .site-footer{display:flex;justify-content:space-between;gap:18px;padding:22px 0 30px;border-top:1px solid #ffffff12;color:#75849a;font-size:10px}
 @media(max-width:850px){.hero{grid-template-columns:1fr;gap:8px;padding-top:42px}.hero-art{min-height:195px;max-width:520px;width:100%;margin:0 auto}.art-orbit{width:190px;height:190px}.art-card{width:126px;height:102px}.category-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.shell{width:min(100% - 28px,1200px)}.site-header{height:66px;gap:10px}.header-label{display:none}.back-link{padding:8px 10px;font-size:10px}.brand{font-size:11px}.brand-mark{width:32px;height:32px}.hero{padding:34px 0 22px}.hero-copy{font-size:13px}.hero-art{min-height:172px}.art-orbit{width:162px;height:162px}.art-card{width:112px;height:92px;padding:9px}.art-card.landscape{left:0}.art-card.character{right:0}.art-card.props{left:25%}.stats{gap:0;justify-content:space-between}.stat{min-width:0;padding-right:10px}.stat+.stat{padding-left:10px}.stat strong{font-size:16px}.stat span{font-size:8px;letter-spacing:.05em}.library-section{padding-top:26px}.section-heading{align-items:flex-start;flex-direction:column}.toolbar{align-items:stretch}.search-wrap{max-width:none}.filters{gap:6px}.filter{padding:7px 9px;font-size:10px}.category-grid{gap:8px}.category-card{padding:11px 9px;gap:8px}.category-icon{width:35px;height:35px;flex-basis:35px;font-size:17px}.category-copy strong{font-size:11px}.category-copy small{font-size:9px}.category-arrow{display:none}.empty-state{min-height:230px}.future-strip{grid-template-columns:1fr}.site-footer{flex-direction:column;gap:7px}}
+
+.asset-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin:12px 0 18px}
+.asset-card{min-width:0;overflow:hidden;border:1px solid #2d394a;border-radius:14px;background:linear-gradient(145deg,#192331,#121923);box-shadow:0 10px 28px #0002}
+.asset-media{position:relative;display:grid;place-items:center;min-height:172px;max-height:220px;overflow:hidden;background:#0c121b}
+.asset-media img,.asset-media video{display:block;width:100%;max-height:220px;object-fit:contain;background:#0c121b}
+.asset-media audio{width:calc(100% - 20px);margin:18px 10px}
+.asset-media-placeholder{display:grid;place-items:center;width:100%;min-height:170px;color:#9bb5d8;font-size:32px;background:linear-gradient(135deg,#263a54,#27243d)}
+.asset-content{padding:13px}
+.asset-tags{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:7px}
+.asset-tag{padding:3px 7px;border:1px solid #3a4a60;border-radius:999px;color:#a9c9f4;font-size:9px}
+.asset-content h4{margin:0;font-size:14px;line-height:1.35}
+.asset-content p{min-height:34px;margin:7px 0;color:#93a3b8;font-size:10px;line-height:1.6}
+.asset-credit{display:flex;justify-content:space-between;gap:8px;margin:8px 0 11px;color:#7f8ea2;font-size:9px}
+.asset-actions{display:flex;gap:7px}
+.asset-actions button,.asset-actions a{flex:1;min-width:0;display:inline-flex;justify-content:center;align-items:center;padding:8px 9px;border:1px solid #41536c;border-radius:8px;background:#22354d;color:#e0edff;font-size:10px;font-weight:700;text-decoration:none}
+.asset-actions a{background:transparent;color:#aebfd4}
+.asset-actions button:disabled{opacity:.45;cursor:not-allowed}
+.asset-submit-dialog{width:min(620px,calc(100vw - 24px));max-height:min(90vh,880px);overflow:auto;padding:0;border:1px solid #40516a;border-radius:16px;background:#161e29;color:#edf3fc;box-shadow:0 24px 90px #000c}
+.asset-submit-dialog::backdrop{background:#070b12cc;backdrop-filter:blur(3px)}
+.asset-submit-form{display:grid;gap:12px;padding:22px}
+.asset-submit-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.asset-submit-head h2{margin:7px 0 0;font-size:22px;letter-spacing:-.03em}
+.close-dialog{width:34px;height:34px;padding:0;border:1px solid #39475a;border-radius:9px;background:#202a37;color:#dfe9f8;font-size:20px}
+.asset-submit-intro{margin:0;color:#9eafc4;font-size:11px;line-height:1.7}
+.asset-submit-form label{display:grid;gap:6px;color:#c7d4e4;font-size:11px;font-weight:650}
+.asset-submit-form input:not([type=checkbox]),.asset-submit-form select,.asset-submit-form textarea{width:100%;min-width:0;padding:10px;border:1px solid #34445a;border-radius:8px;background:#0e151f;color:#edf3fc;font:12px Inter,system-ui,sans-serif}
+.asset-submit-form textarea{resize:vertical}
+.asset-submit-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.asset-submit-form .rights-check{display:flex;align-items:flex-start;gap:8px;font-weight:400;line-height:1.5}
+.asset-submit-form .rights-check input{margin-top:2px}
+.asset-submit-actions{display:flex;justify-content:flex-end;gap:8px}
+.asset-submit-actions button{padding:10px 13px;border:1px solid #3c4d64;border-radius:8px;font-size:11px;font-weight:700}
+.secondary-action{background:#222c3a;color:#cbd7e7}
+.primary-action{background:#477fe1;border-color:#477fe1!important;color:#fff}
+.asset-submit-foot{color:#8292a7;font-size:10px}
+@media(max-width:850px){.asset-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.asset-grid{grid-template-columns:1fr}.asset-media{min-height:200px}.asset-submit-form{padding:16px}.asset-submit-row{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -123,8 +161,8 @@ h1{max-width:680px;margin:15px 0 16px;font-size:clamp(34px,5vw,58px);line-height
       <h1 id="pageTitle">Kho vật liệu<br>hoạt hình</h1>
       <p class="hero-copy">Một nơi tập hợp bối cảnh, nhân vật, đạo cụ và âm thanh để mọi người tìm vật liệu cho các dự án Geed Hardwin. Kho được mở để mọi người cùng xem; tính năng đóng góp tài nguyên sẽ được bổ sung ở giai đoạn tiếp theo.</p>
       <div class="hero-actions">
-        <button class="upload-button" type="button" disabled aria-disabled="true" title="Tính năng đăng tài nguyên sẽ mở sau">＋ Đăng tài nguyên <span>· Sắp mở</span></button>
-        <span class="coming-note">Hiện tại chưa nhận tệp tải lên.</span>
+        <button class="upload-button" id="openAssetSuggestion" type="button">＋ Đề xuất tài nguyên bằng link</button>
+        <span class="coming-note">Không tải tệp lên Geed · Chỉ gửi đường dẫn HTTPS công khai.</span>
       </div>
     </div>
     <div class="hero-art" aria-hidden="true">
@@ -187,6 +225,7 @@ h1{max-width:680px;margin:15px 0 16px;font-size:clamp(34px,5vw,58px);line-height
       <h3 id="resultsTitle">Tất cả vật liệu</h3>
       <span class="results-count" id="resultsCount">0 tài nguyên</span>
     </div>
+    <div class="asset-grid" id="assetGrid" aria-live="polite"></div>
     <div class="empty-state" id="emptyState" role="status" aria-live="polite">
       <div class="empty-symbol" aria-hidden="true">▧</div>
       <h4 id="emptyTitle">Kho cộng đồng đang được chuẩn bị</h4>
@@ -195,11 +234,33 @@ h1{max-width:680px;margin:15px 0 16px;font-size:clamp(34px,5vw,58px);line-height
     </div>
 
     <div class="future-strip">
-      <div class="future-card"><span class="icon" aria-hidden="true">◈</span><div><strong>Đăng tài nguyên sẽ mở sau</strong><p>Người dùng có thể đóng góp ảnh và vật liệu khi tính năng tải lên, tối ưu dung lượng và kiểm duyệt hoàn tất.</p></div></div>
-      <div class="future-card"><span class="icon" aria-hidden="true">✓</span><div><strong>Ghi rõ nguồn và quyền sử dụng</strong><p>Tài nguyên được chia sẻ cần có thông tin tác giả và quyền sử dụng phù hợp trước khi xuất hiện trong kho chung.</p></div></div>
+      <div class="future-card"><span class="icon" aria-hidden="true">↗</span><div><strong>Vật liệu ở hosting bên ngoài</strong><p>Người tạo tự lưu tệp ở dịch vụ của họ. Geed chỉ đọc đường dẫn và thông tin mô tả, không nhận hoặc giữ bản gốc.</p></div></div>
+      <div class="future-card"><span class="icon" aria-hidden="true">✓</span><div><strong>Kiểm duyệt trước khi xuất hiện</strong><p>Đề xuất được gửi đến hàng chờ GitHub để chủ kho kiểm tra bản quyền, đường dẫn và khả năng tải trước khi thêm vào danh mục công khai.</p></div></div>
     </div>
   </section>
 </main>
+
+<dialog class="asset-submit-dialog" id="assetSubmitDialog" aria-labelledby="assetSubmitTitle">
+  <form id="assetSubmitForm" class="asset-submit-form">
+    <div class="asset-submit-head"><div><span class="eyebrow">ĐÓNG GÓP KHO CỘNG ĐỒNG</span><h2 id="assetSubmitTitle">Đề xuất vật liệu bằng đường dẫn</h2></div><button id="closeAssetSuggestion" type="button" class="close-dialog" aria-label="Đóng">×</button></div>
+    <p class="asset-submit-intro">Hãy lưu tệp của bạn ở dịch vụ hosting bên ngoài trước. Form này chỉ gửi đường dẫn và thông tin mô tả đến hàng chờ kiểm duyệt GitHub; nó không tải ảnh, âm thanh hay video lên máy chủ Geed Hardwin.</p>
+    <label>Tên vật liệu<input name="title" maxlength="120" required placeholder="Ví dụ: Rừng thông buổi sớm"></label>
+    <div class="asset-submit-row">
+      <label>Danh mục<select name="category" required><option value="backgrounds">Bối cảnh</option><option value="characters">Nhân vật</option><option value="props">Đạo cụ</option><option value="audio">Âm thanh</option><option value="effects">Hiệu ứng</option><option value="fonts">Font chữ</option></select></label>
+      <label>Loại tệp<select name="mediaType" required><option value="image">Hình ảnh</option><option value="audio">Âm thanh</option><option value="video">Video / hiệu ứng</option><option value="font">Font chữ</option></select></label>
+    </div>
+    <label>Đường dẫn tệp HTTPS công khai<input name="url" type="url" required placeholder="https://.../asset.webp"></label>
+    <label>Đường dẫn ảnh xem trước (không bắt buộc)<input name="thumbnailUrl" type="url" placeholder="https://.../preview.webp"></label>
+    <div class="asset-submit-row">
+      <label>Tác giả / nguồn<input name="author" maxlength="100" required placeholder="Tên của bạn hoặc nguồn"></label>
+      <label>Giấy phép sử dụng<input name="license" maxlength="100" required placeholder="Ví dụ: CC BY 4.0 / Tự tạo"></label>
+    </div>
+    <label>Mô tả và từ khóa<textarea name="description" rows="3" maxlength="600" placeholder="Mô tả nội dung, kích thước, từ khóa..."></textarea></label>
+    <label class="rights-check"><input name="rights" type="checkbox" required> Tôi có quyền chia sẻ tài nguyên này và đồng ý để Geed Hardwin hiển thị đường dẫn, tên tác giả và giấy phép sau khi được duyệt.</label>
+    <div class="asset-submit-actions"><button id="cancelAssetSuggestion" type="button" class="secondary-action">Hủy</button><button class="primary-action" type="submit">Gửi đề xuất lên GitHub</button></div>
+    <small class="asset-submit-foot">Bạn cần đăng nhập GitHub để gửi issue. Tài nguyên sẽ không tự động xuất hiện công khai sau khi gửi.</small>
+  </form>
+</dialog>
 
 <footer class="site-footer"><span>GEED HARDWIN · KHO VẬT LIỆU CỘNG ĐỒNG</span><span>Kho hiện ở chế độ xem · Chưa lưu trữ tệp tải lên</span></footer>
 </div>
