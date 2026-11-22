@@ -5,7 +5,7 @@
 ## Công cụ hiện có
 
 - Resource Library v1.27: thư viện ảnh và font riêng của project; ảnh có thể lưu làm tài nguyên rồi thêm lại vào bất kỳ cảnh nào; font TTF/OTF/WOFF/WOFF2 được nhúng vào project, nạp lại khi mở và chọn trực tiếp cho từng layer chữ. Không cho xóa font đang được layer sử dụng.
-- Community Asset Library v1: trang kho vật liệu cộng đồng công khai tại `/library.html`, có sáu danh mục và tìm kiếm/lọc; hiện là giao diện xem trống, chưa nhận upload và chưa dùng lưu trữ cloud. Thư viện ảnh/font bên trong project vẫn hoạt động độc lập.
+- Community Asset Library v2: kho cộng đồng công khai tại `/library.html`, lấy danh mục từ `assets/community-library.json`; ảnh/âm thanh được nạp trực tiếp từ URL HTTPS bên ngoài. Người đóng góp gửi đề xuất liên kết công khai qua GitHub Issues, không upload nhị phân lên Geed. Editor nhận ảnh/âm thanh từ cùng danh mục và lưu URL vào project.
 - Export v1.27: xuất frame hiện tại PNG/JPEG/WebP; chọn độ phân giải 50–200% và chất lượng; xuất PNG Sequence trong ZIP kèm manifest và nền trong suốt; xuất GIF động nhiều cảnh với FPS, bảng màu 3-3-2 và dithering tùy chất lượng; xuất video với FPS, bitrate theo chất lượng và chọn Auto/WebM/MP4 tùy khả năng MediaRecorder.
 
 
