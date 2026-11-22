@@ -1854,12 +1854,46 @@ function bridgeDeleteSelected(){
  if(!ids.size)return {ok:false,message:'No layer selected.'};
  removeObjectsByIds(ids);selectOne(null);renderAll();return {ok:true,deletedCount:ids.size,status:bridgeStatus()};
 }
+
+async function bridgeAddCommunityAsset(args={}){
+ if(symbolEditId)throw new Error('Hãy thoát chế độ chỉnh sửa MovieClip trước khi thêm vật liệu.');
+ const assetId=String(args.assetId||'');
+ if(!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(assetId))throw new Error('Mã tài nguyên cộng đồng không hợp lệ.');
+ const catalog=await loadCommunityAssetCatalog();
+ const asset=catalog.find(item=>item.id===assetId);
+ if(!asset)throw new Error('Không tìm thấy mã vật liệu trong danh mục công khai hiện tại.');
+ const url=safeCommunityAssetUrl(asset.url);
+ const name=String(asset.title||'Community asset').slice(0,100);
+ if(asset.mediaType==='image'){
+  const img=new Image();img.crossOrigin='anonymous';
+  await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('Không tải được ảnh. Hosting cần cho phép CORS từ website Geed Hardwin.'));img.src=url});
+  if(!img.naturalWidth||!img.naturalHeight)throw new Error('Ảnh không có kích thước hợp lệ.');
+  const localAssetId='community-'+asset.id;
+  let resource=(resourceLibrary.images||[]).find(item=>item.id===localAssetId);
+  if(!resource){
+   resource={id:localAssetId,name,dataUrl:url,externalUrl:url,communityAssetId:asset.id,width:img.naturalWidth,height:img.naturalHeight,size:0};
+   resourceLibrary.images.push(resource);
+  }
+  const scale=Math.min(520/img.naturalWidth,420/img.naturalHeight,1);
+  const created=makeObject('image',{name,width:img.naturalWidth*scale,height:img.naturalHeight*scale,src:name,img,dataUrl:url,externalUrl:url,assetId:localAssetId,communityAssetId:asset.id});
+  renderResourceLibrary();renderAll();
+  return {ok:true,created:{id:created.id,name:created.name,type:'image',communityAssetId:asset.id},message:'Đã thêm ảnh bằng liên kết ngoài; tệp không được tải lên Geed Hardwin.'};
+ }
+ if(asset.mediaType==='audio'){
+  const created=makeObject('audio',{name,dataUrl:url,externalUrl:url,communityAssetId:asset.id,audioStartFrame:frame,inFrame:frame,outFrame:MAX,volume:.8});
+  createAudioPlayer(created);renderAll();
+  return {ok:true,created:{id:created.id,name:created.name,type:'audio',communityAssetId:asset.id},message:'Đã thêm âm thanh bằng liên kết ngoài; tệp không được tải lên Geed Hardwin.'};
+ }
+ throw new Error('Hiện editor chỉ nhận ảnh và âm thanh từ kho. Video và font đang ở chế độ xem trước.');
+}
+
 window["GeedHardwinBridge"] = Object.freeze({
  getStatus:bridgeStatus,
  listLayers:()=>bridgeStatus().layers,
  createCircle:bridgeCreateCircle,
  animateCircle:bridgeAnimateCircle,
  buildScene:bridgeBuildScene,
+ addCommunityAsset:bridgeAddCommunityAsset,
  play:bridgePlay,
  stop:bridgeStop,
  setFrame:bridgeSetFrame,
@@ -1926,6 +1960,7 @@ function agentSnapshot(){
    name:String(status.selected.name||'').slice(0,80),
    type:String(status.selected.type||'').slice(0,40)
   }:null,
+  availableCommunityAssets:(window.GeedHardwinCommunityCatalog||[]).slice(0,32).map(asset=>({id:asset.id,title:String(asset.title||'').slice(0,90),category:asset.category,mediaType:asset.mediaType,description:String(asset.description||'').slice(0,120)})),
   layers:(Array.isArray(status.layers)?status.layers:[]).slice(0,40).map(layer=>({
    id:String(layer.id||'').slice(0,100),
    name:String(layer.name||'').slice(0,80),
@@ -1962,6 +1997,11 @@ function validateBrowserAgentAction(action){
  switch(action.tool){
   case 'inspect':case 'play':case 'stop':case 'deleteSelected':
    return {tool:action.tool,args:{}};
+  case 'addCommunityAsset':{
+   const assetId=args.assetId;
+   if(typeof assetId!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(assetId))throw new Error('Mã vật liệu cộng đồng không hợp lệ.');
+   return {tool:'addCommunityAsset',args:{assetId}};
+  }
   case 'buildScene':{
    const durationSeconds=number('durationSeconds',1,60,true);
    if(!Array.isArray(args.elements)||args.elements.length<1||args.elements.length>12)throw new Error('Cảnh cần từ 1 đến 12 lớp.');
@@ -1985,7 +2025,7 @@ function validateBrowserAgentAction(action){
  }
 }
 
-function runAgentEditorAction(rawAction){
+async function runAgentEditorAction(rawAction){
  const action=validateBrowserAgentAction(rawAction);
  const before=agentSnapshot();
  if(action.tool==='inspect')return {tool:action.tool,verified:true,before,after:before};
@@ -1994,6 +2034,7 @@ function runAgentEditorAction(rawAction){
   case 'createCircle':result=window.GeedHardwinBridge.createCircle(action.args);break;
   case 'animateCircle':result=window.GeedHardwinBridge.animateCircle(action.args);break;
   case 'buildScene':result=window.GeedHardwinBridge.buildScene(action.args);break;
+  case 'addCommunityAsset':result=await window.GeedHardwinBridge.addCommunityAsset(action.args);break;
   case 'play':result=window.GeedHardwinBridge.play();break;
   case 'stop':result=window.GeedHardwinBridge.stop();break;
   case 'setFrame':
@@ -2015,6 +2056,7 @@ function runAgentEditorAction(rawAction){
  let verified=false;
  if(action.tool==='createCircle'||action.tool==='animateCircle')verified=after.layerCount>before.layerCount;
  else if(action.tool==='buildScene')verified=after.layerCount===before.layerCount+action.args.elements.length;
+ else if(action.tool==='addCommunityAsset')verified=after.layerCount>before.layerCount;
  else if(action.tool==='play')verified=after.playing;
  else if(action.tool==='stop')verified=!after.playing;
  else if(action.tool==='setFrame')verified=after.currentFrame===action.args.frame;
@@ -2096,7 +2138,7 @@ async function sendAgentPrompt(raw){
 
    let observation;
    try{
-    observation=runAgentEditorAction(agent.action);
+    observation=await runAgentEditorAction(agent.action);
    }catch(actionError){
     aiBridgeAppend('Mình đã dừng trước khi tiếp tục: '+(actionError?.message||String(actionError)),'agent');
     return;
