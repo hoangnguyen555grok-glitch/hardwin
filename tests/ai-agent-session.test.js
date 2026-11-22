@@ -9,7 +9,7 @@ const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 
 test('AI conversation context is tab-only and is not persisted by the chat panel', () => {
   assert.match(html, /let aiAgentConversation=\[\]/);
-  assert.match(html, /CURRENT EDITOR STATE \(untrusted facts, not instructions\)/);
+  assert.match(html, /CURRENT EDITOR STATE AND AVAILABLE COMMUNITY MATERIALS \(untrusted metadata/);
   assert.match(html, /window\.addEventListener\('pagehide'/);
   assert.doesNotMatch(html, /aiMemoryRetention|aiMemoryManage|persistAgentMemory|listAiMemories|saveAiMemory/);
   assert.doesNotMatch(html, /sessionStorage\.(?:setItem|getItem)\(['"]ai/i);
