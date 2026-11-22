@@ -378,7 +378,7 @@ function safeCommunityAssetUrl(raw){
  const url=new URL(String(raw||''),window.location.href);
  const host=url.hostname.toLowerCase();
  if(url.protocol!=='https:'||url.username||url.password)throw new Error('Tài nguyên cần URL HTTPS công khai trực tiếp.');
- if(host==='localhost'||host.endsWith('.localhost')||host==='127.0.0.1'||host==='::1'||/^10\./.test(host)||/^192\.168\./.test(host)||/^169\.254\./.test(host)||/^172\.(1[6-9]|2[0-9]|3[01])\./.test(host))throw new Error('Không chấp nhận địa chỉ máy cục bộ hoặc mạng riêng.');
+ if(host==='localhost'||host.endsWith('.localhost')||host==='127.0.0.1'||host==='::1'||host==='[::1]'||host.startsWith('fc')||host.startsWith('fd')||host.startsWith('[fe80:')||/^10\./.test(host)||/^192\.168\./.test(host)||/^169\.254\./.test(host)||/^172\.(1[6-9]|2[0-9]|3[01])\./.test(host))throw new Error('Không chấp nhận địa chỉ máy cục bộ hoặc mạng riêng.');
  return url.href;
 }
 async function loadCommunityAssetCatalog(){
@@ -1961,7 +1961,7 @@ function agentSnapshot(){
    name:String(status.selected.name||'').slice(0,80),
    type:String(status.selected.type||'').slice(0,40)
   }:null,
-  availableCommunityAssets:(window.GeedHardwinCommunityCatalog||[]).slice(0,32).map(asset=>({id:asset.id,title:String(asset.title||'').slice(0,90),category:asset.category,mediaType:asset.mediaType,description:String(asset.description||'').slice(0,120)})),
+  availableCommunityAssets:(window.GeedHardwinCommunityCatalog||[]).filter(asset=>asset.supportsEditor===true&&['image','audio'].includes(asset.mediaType)).slice(0,32).map(asset=>({id:asset.id,title:String(asset.title||'').slice(0,90),category:asset.category,mediaType:asset.mediaType,supportsEditor:true,description:String(asset.description||'').slice(0,120)})),
   layers:(Array.isArray(status.layers)?status.layers:[]).slice(0,40).map(layer=>({
    id:String(layer.id||'').slice(0,100),
    name:String(layer.name||'').slice(0,80),
