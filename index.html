@@ -2042,8 +2042,8 @@ function validateBrowserAgentAction(action){
    if(typeof assetId!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(assetId))throw new Error('Mã vật liệu cộng đồng không hợp lệ.');
    const clean={assetId,durationSeconds:number('durationSeconds',1,60,true),toX:number('toX',0,1280,true),toY:number('toY',0,720,true)};
    for(const [key,min,max] of [['startX',0,1280],['startY',0,720],['rotation',-720,720],['scale',0.1,5],['opacity',0,1]]){const v=number(key,min,max);if(v!==undefined)clean[key]=v;}
-   if(before.selectedCommunityAssetId!==assetId)throw new Error('AI chỉ được tạo chuyển động cho đúng ảnh cộng đồng đang được chọn.');
-   if(!selectedObjectSafeForAgent(before))throw new Error('Ảnh đang chọn không phải layer cộng đồng mới có thể tạo chuyển động.');
+   const currentSnapshot=agentSnapshot();
+   if(currentSnapshot.selectedCommunityAssetId!==assetId||!selectedObjectSafeForAgent(currentSnapshot))throw new Error('AI chỉ được tạo chuyển động cho đúng ảnh cộng đồng mới đang được chọn.');
    return {tool:'animateCommunityImage',args:clean};
   }
   case 'buildScene':{
