@@ -305,7 +305,7 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
 <section id="aiBridgePanel" class="ai-bridge" aria-label="Geed Hardwin AI Agent" hidden>
   <div class="ai-bridge-head">
     <div class="ai-bridge-mark">✦</div>
-    <div class="ai-bridge-heading"><strong>Geed Hardwin AI Agent</strong><small>Session context · Scene builder · Verify each action</small></div>
+    <div class="ai-bridge-heading"><strong>Geed Hardwin AI Agent</strong><small>Creative toolkit · Crop · Vector shapes · Layer control · Verified actions</small></div>
     <button id="aiBridgeClose" class="ghost" title="Close">✕</button>
   </div>
   <div class="ai-bridge-status">
@@ -314,7 +314,7 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
     <span id="aiBridgeAiStatus" class="ai-bridge-chip pending">AI backend chờ cấu hình</span>
   </div>
   <div id="aiBridgeLog" class="ai-bridge-log" aria-live="polite">
-    <div class="ai-bridge-message agent">Xin chào! Hãy mô tả cảnh hoạt hình bạn muốn tạo. AI sẽ đọc trạng thái editor trong tab này, dùng các công cụ dựng cảnh được cho phép và kiểm tra kết quả sau từng bước. Nội dung trò chuyện chỉ nằm trong bộ nhớ của tab; tải lại hoặc đóng tab sẽ xóa phiên. Dịch vụ AI cloud cần được cấu hình ở máy chủ.</div>
+    <div class="ai-bridge-message agent">Xin chào! Bạn có thể giao việc sáng tạo bằng tiếng Việt. AI có thể tạo hình vector, cắt ảnh, chỉnh layer, nhóm, nhân bản, sắp xếp, tạo keyframe và điều khiển timeline. Lệnh cắt ảnh giữ bản gốc; lệnh xóa luôn hỏi bạn trước.</div>
   </div>
   <div class="ai-bridge-examples">
     <button type="button" data-ai-prompt="Kiểm tra trạng thái cảnh, layer và timeline hiện tại rồi tóm tắt.">Kiểm tra dự án</button>
@@ -333,7 +333,7 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
     </label>
     <button id="aiBridgeSend" class="primary" type="submit">Gửi cho AI</button>
   </form>
-  <div class="ai-bridge-foot">Ngữ cảnh và cuộc trò chuyện chỉ được giữ tạm trong tab hiện tại, không ghi vào cơ sở dữ liệu hay bộ nhớ trình duyệt. Đóng hoặc tải lại tab sẽ bắt đầu phiên mới. Ở giai đoạn này AI có thể dựng cảnh bằng hình chữ nhật, hình tròn và chữ; ảnh, âm thanh và xuất video tự động sẽ được bổ sung sau. Xóa layer cần xác nhận riêng.</div>
+  <div class="ai-bridge-foot">AI có thể dựng hình vector (chữ nhật, tròn, tam giác, đa giác, sao, ellipse, đường nét), chỉnh và sắp xếp layer, nhóm, nhân bản, tạo keyframe, điều khiển timeline, cắt ảnh và hoàn tác/làm lại. Cắt ảnh giữ bản gốc trong Resource Library. Xóa layer luôn cần bạn xác nhận; xuất video vẫn qua bước xác nhận của trình biên tập. Hội thoại AI chỉ tồn tại trong tab hiện tại.</div>
 </section>
 
 
@@ -2113,35 +2113,24 @@ updateAgentStatus(false);
 window.addEventListener('pagehide',()=>{aiAgentConversation=[];const log=$('aiBridgeLog');if(log)log.replaceChildren();});
 
 function agentSnapshot(){
- const status=window.GeedHardwinBridge.getStatus();
- const selectedObject=selected();
+ const status=window.GeedHardwinBridge.getStatus(),selectedObject=selected();
  return {
   scene:String(status.scene||'Scene').slice(0,100),
   canvas:{width:Number(status.width)||1280,height:Number(status.height)||720},
-  sceneIndex:Number(status.sceneIndex)||0,
-  fps:Number(status.fps)||24,
-  durationSeconds:Number(status.durationSeconds)||0,
-  maxFrame:Number(status.maxFrame)||0,
-  currentFrame:Number(status.currentFrame)||0,
-  playing:Boolean(status.playing),
-  layerCount:Number(status.layerCount)||0,
-  selectedCount:Number(status.selectedCount)||0,
-  selectedLayers:(Array.isArray(status.selectedLayers)?status.selectedLayers:[]).slice(0,20).map(layer=>({id:String(layer.id||'').slice(0,100),name:String(layer.name||'').slice(0,80),type:String(layer.type||'').slice(0,40)})),
-  selected:status.selected?{
-   id:String(status.selected.id||'').slice(0,100),
-   name:String(status.selected.name||'').slice(0,80),
-   type:String(status.selected.type||'').slice(0,40)
-  }:null,
+  sceneIndex:Number(status.sceneIndex)||0,fps:Number(status.fps)||24,
+  durationSeconds:Number(status.durationSeconds)||0,maxFrame:Number(status.maxFrame)||0,
+  currentFrame:Number(status.currentFrame)||0,playing:Boolean(status.playing),
+  layerCount:Number(status.layerCount)||0,selectedCount:Number(status.selectedCount)||0,
+  selectedLayers:(Array.isArray(status.selectedLayers)?status.selectedLayers:[]).slice(0,24).map(layer=>({id:String(layer.id||'').slice(0,100),name:String(layer.name||'').slice(0,80),type:String(layer.type||'').slice(0,40),groupId:layer.groupId||null})),
+  selected:status.selected?{id:String(status.selected.id||'').slice(0,100),name:String(status.selected.name||'').slice(0,80),type:String(status.selected.type||'').slice(0,40)}:null,
   selectedCommunityAssetId:selectedObject?.communityAssetId?String(selectedObject.communityAssetId).slice(0,80):null,
   selectedLayerKeyCount:Array.isArray(selectedObject?.keys)?selectedObject.keys.length:0,
+  selectedLayerKeyframes:Array.isArray(status.selectedLayerKeyframes)?status.selectedLayerKeyframes.slice(0,120):[],
+  selectedImageDimensions:status.selectedImageDimensions||null,
+  selectedTransform:status.selectedTransform||null,
+  history:status.history||null,
   availableCommunityAssets:(window.GeedHardwinCommunityCatalog||[]).filter(asset=>asset.supportsEditor===true&&['image','audio'].includes(asset.mediaType)).slice(0,32).map(asset=>({id:asset.id,title:String(asset.title||'').slice(0,90),category:asset.category,mediaType:asset.mediaType,supportsEditor:true,description:String(asset.description||'').slice(0,120)})),
-  layers:(Array.isArray(status.layers)?status.layers:[]).slice(0,40).map(layer=>({
-   id:String(layer.id||'').slice(0,100),
-   name:String(layer.name||'').slice(0,80),
-   type:String(layer.type||'').slice(0,40),
-   visible:layer.visible!==false,
-   locked:Boolean(layer.locked)
-  }))
+  layers:(Array.isArray(status.layers)?status.layers:[]).slice(0,80).map(layer=>({id:String(layer.id||'').slice(0,100),name:String(layer.name||'').slice(0,80),type:String(layer.type||'').slice(0,40),visible:layer.visible!==false,locked:Boolean(layer.locked),groupId:layer.groupId||null,zIndex:Number(layer.zIndex)||0}))
  };
 }
 
@@ -2152,69 +2141,80 @@ function selectedObjectSafeForAgent(snapshot){
 function validateBrowserAgentAction(action){
  if(!action||typeof action!=='object'||Array.isArray(action)||typeof action.tool!=='string')throw new Error('Tác vụ AI không hợp lệ.');
  const args=action.args&&typeof action.args==='object'&&!Array.isArray(action.args)?action.args:{};
- const number=(key,min,max,required=false)=>{
-  const value=args[key];
-  if(value===undefined&&!required)return undefined;
-  if(typeof value!=='number'||!Number.isFinite(value)||value<min||value>max)throw new Error('Tham số không hợp lệ: '+key);
-  return value;
- };
- const text=(key,max)=>{
-  const value=args[key];
-  if(value===undefined)return undefined;
-  if(typeof value!=='string'||value.length>max)throw new Error('Văn bản tham số quá dài hoặc không hợp lệ.');
-  return value;
- };
- const bounded=(keys)=>{
-  const out={};
-  for(const [key,min,max] of keys){const v=number(key,min,max);if(v!==undefined)out[key]=v;}
-  const color=text('color',7);
-  if(color!==undefined){if(!/^#[0-9a-f]{6}$/i.test(color))throw new Error('Mã màu không hợp lệ.');out.color=color;}
-  const name=text('name',60);if(name!==undefined)out.name=name;
-  return out;
- };
+ const number=(key,min,max,required=false)=>{const value=args[key];if(value===undefined&&!required)return undefined;if(typeof value!=='number'||!Number.isFinite(value)||value<min||value>max)throw new Error('Tham số không hợp lệ: '+key);return value};
+ const text=(key,max,required=false)=>{const value=args[key];if(value===undefined&&!required)return undefined;if(typeof value!=='string'||!value.trim()||value.length>max)throw new Error('Văn bản tham số không hợp lệ: '+key);return value.trim()};
+ const color=(source,key)=>{const value=source[key];if(value===undefined)return undefined;if(typeof value!=='string'||!/^#[0-9a-f]{6}$/i.test(value))throw new Error('Mã màu không hợp lệ: '+key);return value};
+ const layerId=value=>{if(typeof value!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/.test(value))throw new Error('Mã layer không hợp lệ.');return value};
  switch(action.tool){
-  case 'inspect':case 'play':case 'stop':case 'deleteSelected':
-   return {tool:action.tool,args:{}};
+  case 'inspect':case 'play':case 'stop':case 'deleteSelected':case 'groupSelected':case 'ungroupSelected':case 'addKeyframe':case 'undo':case 'redo':return {tool:action.tool,args:{}};
+  case 'selectLayer':return {tool:action.tool,args:{layerId:layerId(args.layerId)}};
+  case 'renameLayer':return {tool:action.tool,args:{name:text('name',80,true)}};
+  case 'setLayerVisibility':if(typeof args.visible!=='boolean')throw new Error('Visibility must be true or false.');return {tool:action.tool,args:{visible:args.visible}};
+  case 'duplicateSelected':{
+   const clean={};for(const [key,min,max] of [['offsetX',-1280,1280],['offsetY',-720,720]]){const value=number(key,min,max);if(value!==undefined)clean[key]=value}
+   return {tool:action.tool,args:clean};
+  }
+  case 'moveLayer':if(!['front','back'].includes(args.direction))throw new Error('Thứ tự layer chỉ nhận front hoặc back.');return {tool:action.tool,args:{direction:args.direction}};
+  case 'transformSelected':{
+   const clean={};for(const [key,min,max] of [['x',0,1280],['y',0,720],['width',1,2560],['height',1,1440],['rotation',-720,720],['scale',0.1,5],['opacity',0,1]]){const value=number(key,min,max);if(value!==undefined)clean[key]=value}
+   if(!Object.keys(clean).length)throw new Error('Cần ít nhất một thuộc tính biến đổi.');
+   return {tool:action.tool,args:clean};
+  }
+  case 'setTimeline':{
+   const clean={durationSeconds:number('durationSeconds',1,120,true)},fps=args.fps===undefined?undefined:args.fps;
+   if(fps!==undefined){if(![12,24,30,60].includes(fps))throw new Error('FPS không được hỗ trợ.');clean.fps=fps}
+   return {tool:action.tool,args:clean};
+  }
+  case 'cropSelectedImage':{
+   const clean={left:number('left',0,0.95,true),top:number('top',0,0.95,true),width:number('width',0.05,1,true),height:number('height',0.05,1,true)};
+   if(clean.left+clean.width>1.000001||clean.top+clean.height>1.000001||(clean.left===0&&clean.top===0&&clean.width===1&&clean.height===1))throw new Error('Vùng crop phải nằm trọn trong ảnh và tạo thay đổi.');
+   return {tool:action.tool,args:clean};
+  }
   case 'addCommunityAsset':{
-   const assetId=args.assetId;
-   if(typeof assetId!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(assetId))throw new Error('Mã vật liệu cộng đồng không hợp lệ.');
-   return {tool:'addCommunityAsset',args:{assetId}};
+   const assetId=text('assetId',80,true);if(!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(assetId))throw new Error('Mã vật liệu cộng đồng không hợp lệ.');
+   return {tool:action.tool,args:{assetId}};
   }
   case 'animateCommunityImage':{
-   const assetId=text('assetId',80);
-   if(typeof assetId!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(assetId))throw new Error('Mã vật liệu cộng đồng không hợp lệ.');
+   const assetId=text('assetId',80,true);if(!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(assetId))throw new Error('Mã vật liệu cộng đồng không hợp lệ.');
    const clean={assetId,durationSeconds:number('durationSeconds',1,60,true),toX:number('toX',0,1280,true),toY:number('toY',0,720,true)};
-   for(const [key,min,max] of [['startX',0,1280],['startY',0,720],['rotation',-720,720],['scale',0.1,5],['opacity',0,1]]){const v=number(key,min,max);if(v!==undefined)clean[key]=v;}
-   const currentSnapshot=agentSnapshot();
-   if(currentSnapshot.selectedCommunityAssetId!==assetId||!selectedObjectSafeForAgent(currentSnapshot))throw new Error('AI chỉ được tạo chuyển động cho đúng ảnh cộng đồng mới đang được chọn.');
-   return {tool:'animateCommunityImage',args:clean};
+   for(const [key,min,max] of [['startX',0,1280],['startY',0,720],['rotation',-720,720],['scale',0.1,5],['opacity',0,1]]){const value=number(key,min,max);if(value!==undefined)clean[key]=value}
+   const currentSnapshot=agentSnapshot();if(currentSnapshot.selectedCommunityAssetId!==assetId||!selectedObjectSafeForAgent(currentSnapshot))throw new Error('AI chỉ được tạo chuyển động cho đúng ảnh cộng đồng mới đang được chọn.');
+   return {tool:action.tool,args:clean};
   }
   case 'buildScene':{
-   const durationSeconds=number('durationSeconds',1,60,true);
-   if(!Array.isArray(args.elements)||args.elements.length<1||args.elements.length>12)throw new Error('Cảnh cần từ 1 đến 12 lớp.');
+   const durationSeconds=number('durationSeconds',1,120,true);
+   if(!Array.isArray(args.elements)||args.elements.length<1||args.elements.length>24)throw new Error('Cảnh cần từ 1 đến 24 lớp.');
+   const types=['rect','circle','ellipse','triangle','polygon','star','line','text'];
    const sceneElements=args.elements.map(element=>{
-    if(!element||typeof element!=='object'||Array.isArray(element)||!['rect','circle','text'].includes(element.type))throw new Error('Loại lớp cảnh không hợp lệ.');
-    const num=(key,min,max,required=false)=>{const v=element[key];if(v===undefined&&!required)return undefined;if(typeof v!=='number'||!Number.isFinite(v)||v<min||v>max)throw new Error('Tham số cảnh không hợp lệ: '+key);return v};
-    const str=(key,max,required=false)=>{const v=element[key];if(v===undefined&&!required)return undefined;if(typeof v!=='string'||!v.trim()||v.length>max)throw new Error('Văn bản cảnh không hợp lệ: '+key);return v.trim()};
+    if(!element||typeof element!=='object'||Array.isArray(element)||!types.includes(element.type))throw new Error('Loại lớp cảnh không hợp lệ.');
+    const num=(key,min,max,required=false)=>{const value=element[key];if(value===undefined&&!required)return undefined;if(typeof value!=='number'||!Number.isFinite(value)||value<min||value>max)throw new Error('Tham số cảnh không hợp lệ: '+key);return value};
+    const str=(key,max,required=false)=>{const value=element[key];if(value===undefined&&!required)return undefined;if(typeof value!=='string'||!value.trim()||value.length>max)throw new Error('Văn bản cảnh không hợp lệ: '+key);return value.trim()};
     const clean={type:element.type,x:num('x',0,1280,true),y:num('y',0,720,true),width:num('width',8,1280,true),height:num('height',8,720,true)};
     const name=str('name',60);if(name!==undefined)clean.name=name;
-    const color=str('color',7);if(color!==undefined){if(!/^#[0-9a-f]{6}$/i.test(color))throw new Error('Mã màu không hợp lệ.');clean.color=color}
+    for(const key of ['color','fillColor']){const value=color(element,key);if(value!==undefined)clean[key]=value}
+    const strokeWidth=num('strokeWidth',1,80);if(strokeWidth!==undefined)clean.strokeWidth=strokeWidth;
+    if(element.type==='polygon'){clean.sides=num('sides',3,12,true);if(!Number.isInteger(clean.sides))throw new Error('Polygon side count must be an integer.')}
+    if(element.type==='star'){const innerRatio=num('innerRatio',0.15,0.85);if(innerRatio!==undefined)clean.innerRatio=innerRatio}
     if(element.type==='text'){clean.text=str('text',180,true);const fontSize=num('fontSize',8,200);if(fontSize!==undefined)clean.fontSize=fontSize}
-    for(const [key,min,max] of [['rotation',-720,720],['scale',0.1,5],['opacity',0,1],['startX',0,1280],['startY',0,720],['startRotation',-720,720],['startScale',0.1,5],['startOpacity',0,1]]){const v=num(key,min,max);if(v!==undefined)clean[key]=v}
+    for(const [key,min,max] of [['rotation',-720,720],['scale',0.1,5],['opacity',0,1],['startX',0,1280],['startY',0,720],['startRotation',-720,720],['startScale',0.1,5],['startOpacity',0,1]]){const value=num(key,min,max);if(value!==undefined)clean[key]=value}
     return clean;
    });
    return {tool:'buildScene',args:{durationSeconds,elements:sceneElements}};
   }
-  case 'setFrame':return {tool:'setFrame',args:{frame:number('frame',0,7199,true)}};
-  case 'createCircle':return {tool:'createCircle',args:bounded([['x',40,1240],['y',40,680],['radius',12,220]])};
-  case 'animateCircle':return {tool:'animateCircle',args:bounded([['durationSeconds',1,120],['fromX',60,1220],['toX',60,1220],['y',60,660],['radius',12,180]])};
+  case 'setFrame':return {tool:action.tool,args:{frame:number('frame',0,7199,true)}};
+  case 'createCircle':{
+   const clean={};for(const [key,min,max] of [['x',40,1240],['y',40,680],['radius',12,220]]){const value=number(key,min,max);if(value!==undefined)clean[key]=value}
+   const c=color(args,'color');if(c!==undefined)clean.color=c;const n=text('name',60);if(n!==undefined)clean.name=n;return {tool:action.tool,args:clean};
+  }
+  case 'animateCircle':{
+   const clean={};for(const [key,min,max] of [['durationSeconds',1,120],['fromX',60,1220],['toX',60,1220],['y',60,660],['radius',12,180]]){const value=number(key,min,max);if(value!==undefined)clean[key]=value}
+   const c=color(args,'color');if(c!==undefined)clean.color=c;const n=text('name',60);if(n!==undefined)clean.name=n;return {tool:action.tool,args:clean};
+  }
   default:throw new Error('Tác tử đề xuất một công cụ chưa được cho phép.');
  }
 }
-
 async function runAgentEditorAction(rawAction){
- const action=validateBrowserAgentAction(rawAction);
- const before=agentSnapshot();
+ const action=validateBrowserAgentAction(rawAction),before=agentSnapshot();
  if(action.tool==='inspect')return {tool:action.tool,verified:true,before,after:before};
  let result=null;
  switch(action.tool){
@@ -2223,43 +2223,58 @@ async function runAgentEditorAction(rawAction){
   case 'buildScene':result=window.GeedHardwinBridge.buildScene(action.args);break;
   case 'addCommunityAsset':result=await window.GeedHardwinBridge.addCommunityAsset(action.args);break;
   case 'animateCommunityImage':result=window.GeedHardwinBridge.animateCommunityImage(action.args);break;
+  case 'selectLayer':result=window.GeedHardwinBridge.selectLayer(action.args);break;
+  case 'renameLayer':result=window.GeedHardwinBridge.renameLayer(action.args);break;
+  case 'setLayerVisibility':result=window.GeedHardwinBridge.setLayerVisibility(action.args);break;
+  case 'duplicateSelected':result=window.GeedHardwinBridge.duplicateSelected(action.args);break;
+  case 'moveLayer':result=window.GeedHardwinBridge.moveLayer(action.args);break;
+  case 'transformSelected':result=window.GeedHardwinBridge.transformSelected(action.args);break;
+  case 'groupSelected':result=window.GeedHardwinBridge.groupSelected();break;
+  case 'ungroupSelected':result=window.GeedHardwinBridge.ungroupSelected();break;
+  case 'addKeyframe':result=window.GeedHardwinBridge.addKeyframe();break;
+  case 'setTimeline':result=window.GeedHardwinBridge.setTimeline(action.args);break;
+  case 'cropSelectedImage':result=await window.GeedHardwinBridge.cropSelectedImage(action.args);break;
+  case 'undo':result=window.GeedHardwinBridge.undo();break;
+  case 'redo':result=window.GeedHardwinBridge.redo();break;
   case 'play':result=window.GeedHardwinBridge.play();break;
   case 'stop':result=window.GeedHardwinBridge.stop();break;
   case 'setFrame':
    if(action.args.frame>before.maxFrame)throw new Error('Frame được yêu cầu nằm ngoài timeline hiện tại.');
-   result=window.GeedHardwinBridge.setFrame(action.args.frame);
-   break;
+   result=window.GeedHardwinBridge.setFrame(action.args.frame);break;
   case 'deleteSelected':{
    if(before.selectedCount<1)throw new Error('Chưa có layer nào được chọn. Hãy chọn layer cần xóa trước.');
    const names=before.selectedLayers.map(layer=>layer.name||layer.id).join(', ');
    const confirmed=window.confirm('AI muốn xóa '+before.selectedCount+' layer đang chọn ('+names+'). Bạn có chắc chắn muốn xóa đúng các layer này không?');
    if(!confirmed)return {tool:action.tool,cancelled:true,verified:false,before,after:before};
-   result=window.GeedHardwinBridge.deleteSelected();
-   if(!result?.ok)throw new Error(result?.message||'Không có layer nào được xóa.');
-   break;
+   result=window.GeedHardwinBridge.deleteSelected();if(!result?.ok)throw new Error(result?.message||'Không có layer nào được xóa.');break;
   }
   default:throw new Error('Công cụ editor không được hỗ trợ.');
  }
- const after=agentSnapshot();
- let verified=false;
+ const after=agentSnapshot();let verified=false;
  if(action.tool==='createCircle'||action.tool==='animateCircle')verified=after.layerCount>before.layerCount;
  else if(action.tool==='buildScene')verified=after.layerCount===before.layerCount+action.args.elements.length;
  else if(action.tool==='addCommunityAsset')verified=after.layerCount>before.layerCount;
  else if(action.tool==='animateCommunityImage')verified=after.selectedCommunityAssetId===action.args.assetId&&after.selectedLayerKeyCount>=2&&after.selected?.type==='image';
+ else if(action.tool==='selectLayer')verified=after.selected?.id===action.args.layerId;
+ else if(action.tool==='renameLayer')verified=after.selected?.name===action.args.name;
+ else if(action.tool==='setLayerVisibility')verified=after.layers.some(layer=>layer.id===before.selected?.id&&layer.visible===action.args.visible);
+ else if(action.tool==='duplicateSelected')verified=after.layerCount===before.layerCount+before.selectedCount&&after.selectedCount===before.selectedCount;
+ else if(action.tool==='moveLayer'){const index=after.layers.findIndex(layer=>layer.id===before.selected?.id);verified=action.args.direction==='front'?index===after.layers.length-1:index===0}
+ else if(action.tool==='transformSelected')verified=Object.entries(action.args).every(([key,value])=>Math.abs(Number(after.selectedTransform?.[key])-value)<0.01);
+ else if(action.tool==='groupSelected')verified=after.selectedLayers.length>=2&&after.selectedLayers.every(layer=>layer.groupId&&layer.groupId===after.selectedLayers[0].groupId);
+ else if(action.tool==='ungroupSelected')verified=after.selectedLayers.length>0&&after.selectedLayers.every(layer=>!layer.groupId);
+ else if(action.tool==='addKeyframe')verified=after.selectedLayerKeyframes.includes(before.currentFrame);
+ else if(action.tool==='setTimeline')verified=after.durationSeconds===result.durationSeconds&&after.fps===result.fps;
+ else if(action.tool==='cropSelectedImage')verified=after.selected?.id===before.selected?.id&&after.selected?.type==='image'&&after.selectedImageDimensions?.width===result.cropped?.width&&after.selectedImageDimensions?.height===result.cropped?.height;
+ else if(action.tool==='undo')verified=result?.ok===true&&after.history?.index<before.history?.index;
+ else if(action.tool==='redo')verified=result?.ok===true&&after.history?.index>before.history?.index;
  else if(action.tool==='play')verified=after.playing;
  else if(action.tool==='stop')verified=!after.playing;
  else if(action.tool==='setFrame')verified=after.currentFrame===action.args.frame;
  else if(action.tool==='deleteSelected')verified=before.selectedCount>0&&after.layerCount===before.layerCount-before.selectedCount;
  if(!verified)throw new Error('Editor chưa xác nhận được kết quả của thao tác '+action.tool+'. Mình đã dừng để tránh báo sai.');
- return {
-  tool:action.tool,
-  verified:true,
-  result:result?{ok:result.ok===true,created:result.created||null,message:result.message||null}:null,
-  before,
-  after
- };
+ return {tool:action.tool,verified:true,result:result?{ok:result.ok===true,created:result.created||null,cropped:result.cropped||null,message:result.message||null}:null,before,after};
 }
-
 function setAgentBusy(busy){
  aiAgentBusy=busy;
  $('aiBridgeInput').disabled=busy;
