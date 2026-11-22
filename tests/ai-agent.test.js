@@ -10,6 +10,8 @@ test('agent prompt defines tab-only context and a safe batch scene builder', () 
   assert.match(AGENT_SYSTEM_PROMPT, /buildScene/i);
   assert.match(AGENT_SYSTEM_PROMPT, /wait for the next observation/i);
   assert.match(AGENT_SYSTEM_PROMPT, /deleteSelected is destructive/i);
+  assert.match(AGENT_SYSTEM_PROMPT, /Never use deleteSelected when the user asks to crop, trim, clip or cut an image/i);
+  assert.match(AGENT_SYSTEM_PROMPT, /cropSelectedImage is a non-destructive image edit/i);
   assert.match(AGENT_SYSTEM_PROMPT, /Video export is a manual user action/i);
   assert.match(AGENT_SYSTEM_PROMPT, /Never output code/i);
 });
@@ -21,7 +23,16 @@ test('agent action sanitizer accepts only allow-listed safe tools', () => {
   assert.throws(() => sanitizeAgentAction({ tool: 'runShell', args: { command: 'rm -rf /' } }));
   assert.throws(() => sanitizeAgentAction({ tool: 'eval', args: { code: 'alert(1)' } }));
   assert.throws(() => sanitizeAgentAction({ tool: 'exportVideo' }));
-  assert.throws(() => sanitizeAgentAction({ tool: 'undo' }));
+  assert.deepEqual(sanitizeAgentAction({ tool: 'undo' }), { tool: 'undo', args: {} });
+  assert.deepEqual(sanitizeAgentAction({ tool: 'redo' }), { tool: 'redo', args: {} });
+  assert.deepEqual(sanitizeAgentAction({ tool: 'cropSelectedImage', args: { left: 0.1, top: 0.1, width: 0.8, height: 0.8 } }), { tool: 'cropSelectedImage', args: { left: 0.1, top: 0.1, width: 0.8, height: 0.8 } });
+  assert.deepEqual(sanitizeAgentAction({ tool: 'renameLayer', args: { name: 'Sky layer' } }), { tool: 'renameLayer', args: { name: 'Sky layer' } });
+  assert.deepEqual(sanitizeAgentAction({ tool: 'setLayerVisibility', args: { visible: false } }), { tool: 'setLayerVisibility', args: { visible: false } });
+  assert.deepEqual(sanitizeAgentAction({ tool: 'moveLayer', args: { direction: 'front' } }), { tool: 'moveLayer', args: { direction: 'front' } });
+  assert.throws(() => sanitizeAgentAction({ tool: 'cropSelectedImage', args: { left: -0.1, top: 0, width: 0.8, height: 0.8 } }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'cropSelectedImage', args: { left: 0, top: 0, width: 1, height: 1 } }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'moveLayer', args: { direction: 'sideways' } }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'transformSelected', args: { opacity: 2 } }));
 });
 
 test('circle tools enforce numeric, name and color bounds', () => {
@@ -46,13 +57,21 @@ test('buildScene accepts bounded shape and text layers with keyframe positions',
       elements: [
         { type: 'rect', name: 'Sky', x: 640, y: 360, width: 1280, height: 720, color: '#86c7ff', script: 'ignored' },
         { type: 'circle', name: 'Sun', x: 1050, y: 150, width: 120, height: 120, color: '#ffd166', startY: 210 },
+        { type: 'triangle', x: 640, y: 400, width: 220, height: 180, color: '#23aa44' },
+        { type: 'polygon', x: 400, y: 300, width: 90, height: 90, sides: 7 },
+        { type: 'star', x: 800, y: 200, width: 70, height: 70, innerRatio: 0.4 },
+        { type: 'ellipse', x: 500, y: 500, width: 180, height: 80 },
+        { type: 'line', x: 100, y: 100, width: 180, height: 180 },
         { type: 'text', name: 'Title', x: 640, y: 110, width: 760, height: 80, text: 'Hello Geed', fontSize: 56, color: '#18324a' }
       ]
     }
   });
   assert.equal(action.tool, 'buildScene');
   assert.equal(action.args.durationSeconds, 8);
-  assert.equal(action.args.elements.length, 3);
+  assert.equal(action.args.elements.length, 8);
+  assert.equal(action.args.elements[2].type, 'triangle');
+  assert.equal(action.args.elements[3].sides, 7);
+  assert.equal(action.args.elements[4].innerRatio, 0.4);
   assert.deepEqual(action.args.elements[0], {
     type: 'rect', name: 'Sky', x: 640, y: 360, width: 1280, height: 720, color: '#86c7ff'
   });
@@ -62,7 +81,8 @@ test('buildScene accepts bounded shape and text layers with keyframe positions',
   assert.throws(() => sanitizeAgentAction({ tool: 'buildScene', args: { durationSeconds: 0, elements: [] } }));
   assert.throws(() => sanitizeAgentAction({ tool: 'buildScene', args: { durationSeconds: 8, elements: [{ type: 'image', x: 1, y: 1, width: 10, height: 10 }] } }));
   assert.throws(() => sanitizeAgentAction({ tool: 'buildScene', args: { durationSeconds: 8, elements: [{ type: 'text', x: 1, y: 1, width: 10, height: 10 }] } }));
-  assert.throws(() => sanitizeAgentAction({ tool: 'buildScene', args: { durationSeconds: 8, elements: Array(13).fill({ type: 'rect', x: 1, y: 1, width: 10, height: 10 }) } }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'buildScene', args: { durationSeconds: 8, elements: Array(25).fill({ type: 'rect', x: 1, y: 1, width: 10, height: 10 }) } }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'buildScene', args: { durationSeconds: 8, elements: [{ type: 'polygon', x: 1, y: 1, width: 10, height: 10, sides: 4.5 }] } }));
   assert.throws(() => sanitizeAgentAction({ tool: 'buildScene', args: { durationSeconds: 8, elements: [{ type: 'rect', x: 2000, y: 1, width: 10, height: 10 }] } }));
 });
 
