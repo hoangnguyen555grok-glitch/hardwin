@@ -195,6 +195,77 @@ test('chat endpoint records ambiguous timeouts and does not retry provider calls
 });
 
 
+test('Cloudflare agent requests disable reasoning and require JSON before parsing editor actions', async () => {
+  const cloudflareEnv = { ...baseEnv };
+  delete cloudflareEnv.GEED_AI_OPENAI_API_KEY;
+  delete cloudflareEnv.GEED_AI_OPENAI_MODEL;
+  delete cloudflareEnv.GEED_AI_ALLOW_PAID_PROVIDERS;
+  Object.assign(cloudflareEnv, {
+    GEED_AI_PROVIDER_ORDER: 'cloudflare',
+    GEED_AI_CLOUDFLARE_API_KEY: 'cloudflare-test-secret',
+    GEED_AI_CLOUDFLARE_MODEL: '@cf/google/gemma-4-26b-a4b-it',
+    GEED_AI_CLOUDFLARE_BASE_URL: 'https://api.cloudflare.com/client/v4/accounts/test-account/ai/v1',
+    GEED_AI_CLOUDFLARE_FREE_TIER_CONFIRMED: 'true',
+    GEED_AI_CLOUDFLARE_BILLING_DISABLED: 'true'
+  });
+  await withEnv(cloudflareEnv, async () => {
+    let providerRequest;
+    globalThis.fetch = async (url, options = {}) => {
+      const target = String(url);
+      if (target.endsWith('/auth/v1/user')) return response(200, { id: 'user-cloudflare-agent' });
+      if (target.endsWith('/rpc/geed_reserve_ai_request')) return response(200, { allowed: true, request_limit: 5, token_limit: 3000 });
+      if (target.endsWith('/rpc/geed_finalize_ai_request')) {
+        const body = JSON.parse(options.body);
+        assert.equal(body.p_provider, 'cloudflare');
+        assert.equal(body.p_model, '@cf/google/gemma-4-26b-a4b-it');
+        return response(200, true);
+      }
+      if (target.endsWith('/chat/completions')) {
+        providerRequest = JSON.parse(options.body);
+        return response(200, {
+          model: '@cf/google/gemma-4-26b-a4b-it',
+          choices: [{
+            message: {
+              content: JSON.stringify({
+                message: 'Đang tạo hình vuông màu xanh ở chính giữa khung hình.',
+                action: {
+                  tool: 'buildScene',
+                  args: {
+                    durationSeconds: 5,
+                    elements: [{ type: 'rect', x: 640, y: 360, width: 180, height: 180, color: '#2563EB' }]
+                  }
+                },
+                done: false
+              })
+            }
+          }],
+          usage: { prompt_tokens: 135, completion_tokens: 97 }
+        });
+      }
+      throw new Error('Unexpected URL: ' + target);
+    };
+    const res = responseMock();
+    await handler({
+      method: 'POST',
+      headers: { authorization: 'Bearer valid-supabase-user-token' },
+      body: { mode: 'agent', messages: [{ role: 'user', content: 'Tạo một hình vuông màu xanh ở chính giữa khung hình bằng công cụ vẽ.' }] }
+    }, res);
+    assert.equal(res.statusCode, 200);
+    assert.ok(providerRequest);
+    assert.deepEqual(providerRequest.chat_template_kwargs, { enable_thinking: false, clear_thinking: true });
+    assert.deepEqual(providerRequest.response_format, { type: 'json_object' });
+    assert.equal(res.body.agent_format_valid, true);
+    assert.deepEqual(res.body.agent.action, {
+      tool: 'buildScene',
+      args: {
+        durationSeconds: 5,
+        elements: [{ type: 'rect', x: 640, y: 360, width: 180, height: 180, color: '#2563EB' }]
+      }
+    });
+    assert.equal(res.body.agent.done, false);
+  });
+});
+
 test('agent mode injects server instructions, ignores client system prompts and returns a safe action', async () => {
   const { AGENT_SYSTEM_PROMPT } = require('../lib/ai-agent');
   await withEnv(baseEnv, async () => {
