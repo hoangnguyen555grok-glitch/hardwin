@@ -321,6 +321,9 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
     <button type="button" data-ai-prompt="Tạo một cảnh hoạt hình 8 giây về mặt trời mọc trên đồi: nền trời xanh, mặt trời vàng đi từ thấp lên cao, hai ngọn đồi xanh và tiêu đề ngắn. Dùng các lớp hình và chữ trong editor, sau đó kiểm tra kết quả.">Dựng cảnh hoạt hình</button>
     <button type="button" data-ai-prompt="Phát timeline hiện tại.">Phát</button>
     <button type="button" data-ai-prompt="Dừng timeline hiện tại.">Dừng</button>
+    <button type="button" data-ai-prompt="Tạo một hình tam giác màu xanh ở chính giữa khung hình, kích thước 180 x 180, bằng công cụ vẽ vector.">Vẽ tam giác</button>
+    <button type="button" data-ai-prompt="Cắt ảnh đang được chọn, lấy vùng chính giữa chiếm 80% chiều rộng và 80% chiều cao. Giữ ảnh gốc trong Resource Library, không xóa layer.">Cắt ảnh</button>
+    <button type="button" data-ai-prompt="Hoàn tác thao tác chỉnh sửa gần nhất trong editor.">Hoàn tác</button>
   </div>
   <form id="aiBridgeForm" class="ai-bridge-form ai-bridge-dual-form">
     <label class="ai-input-field" for="aiScriptInput">KỊCH BẢN / VĂN BẢN TRONG PHIM
@@ -1837,11 +1840,13 @@ function bridgeBuildScene(args={}){
   if(['triangle','polygon','star','ellipse','line'].includes(element.type)){
    const sides=element.type==='triangle'?3:element.type==='star'?10:element.type==='ellipse'?40:element.type==='line'?2:element.sides;
    const innerRatio=element.innerRatio??.45;
-   const points=Array.from({length:sides},(_,i)=>{
-    const angle=-Math.PI/2+i*Math.PI*2/sides;
-    const radius=element.type==='star'&&i%2===1?innerRatio:1;
-    return {x:Math.cos(angle)*element.width/2*radius,y:Math.sin(angle)*element.height/2*radius};
-   });
+   const points=element.type==='line'?
+    [{x:-element.width/2,y:-element.height/2},{x:element.width/2,y:element.height/2}]:
+    Array.from({length:sides},(_,i)=>{
+     const angle=-Math.PI/2+i*Math.PI*2/sides;
+     const radius=element.type==='star'&&i%2===1?innerRatio:1;
+     return {x:Math.cos(angle)*element.width/2*radius,y:Math.sin(angle)*element.height/2*radius};
+    });
    o=makeObject('path',{
     name:element.name||({triangle:'AI Triangle',polygon:'AI Polygon',star:'AI Star',ellipse:'AI Ellipse',line:'AI Line'}[element.type]),
     x:startX,y:startY,width:element.width,height:element.height,points,closed:element.type!=='line',
@@ -1970,8 +1975,9 @@ async function bridgeCropSelectedImage(args={}){
  if(cropWidth<8||cropHeight<8)throw new Error('The crop area is too small.');
  if(cropWidth*cropHeight>20000000)throw new Error('The crop area is too large for a safe browser edit.');
  if(x===0&&y===0&&cropWidth===sourceWidth&&cropHeight===sourceHeight)throw new Error('The crop rectangle covers the whole image; choose a smaller area.');
- if(o.assetId&&!resourceLibrary.images.some(item=>item.id===o.assetId)){
-  resourceLibrary.images.push({id:o.assetId,name:(o.name||'Image')+' · original',dataUrl:sourceUrl,externalUrl:o.externalUrl||undefined,communityAssetId:o.communityAssetId||undefined,width:sourceWidth,height:sourceHeight,size:0});
+ const originalAssetId=o.assetId||('img-'+uid());
+ if(!resourceLibrary.images.some(item=>item.id===originalAssetId)){
+  resourceLibrary.images.push({id:originalAssetId,name:(o.name||'Image')+' · original',dataUrl:sourceUrl,externalUrl:o.externalUrl||undefined,communityAssetId:o.communityAssetId||undefined,width:sourceWidth,height:sourceHeight,size:0});
  }
  const output=document.createElement('canvas');output.width=cropWidth;output.height=cropHeight;
  const outputContext=output.getContext('2d');if(!outputContext)throw new Error('Image crop canvas is not available.');
@@ -2161,7 +2167,8 @@ function validateBrowserAgentAction(action){
    return {tool:action.tool,args:clean};
   }
   case 'setTimeline':{
-   const clean={durationSeconds:number('durationSeconds',1,120,true)},fps=args.fps===undefined?undefined:args.fps;
+   const durationSeconds=number('durationSeconds',1,120,true);if(!Number.isInteger(durationSeconds))throw new Error('Thời lượng timeline phải là số nguyên.');
+   const clean={durationSeconds},fps=args.fps===undefined?undefined:args.fps;
    if(fps!==undefined){if(![12,24,30,60].includes(fps))throw new Error('FPS không được hỗ trợ.');clean.fps=fps}
    return {tool:action.tool,args:clean};
   }
@@ -2183,6 +2190,7 @@ function validateBrowserAgentAction(action){
   }
   case 'buildScene':{
    const durationSeconds=number('durationSeconds',1,120,true);
+   if(!Number.isInteger(durationSeconds))throw new Error('Thời lượng cảnh phải là số nguyên.');
    if(!Array.isArray(args.elements)||args.elements.length<1||args.elements.length>24)throw new Error('Cảnh cần từ 1 đến 24 lớp.');
    const types=['rect','circle','ellipse','triangle','polygon','star','line','text'];
    const sceneElements=args.elements.map(element=>{
@@ -2201,7 +2209,7 @@ function validateBrowserAgentAction(action){
    });
    return {tool:'buildScene',args:{durationSeconds,elements:sceneElements}};
   }
-  case 'setFrame':return {tool:action.tool,args:{frame:number('frame',0,7199,true)}};
+  case 'setFrame':{const frame=number('frame',0,7199,true);if(!Number.isInteger(frame))throw new Error('Frame phải là số nguyên.');return {tool:action.tool,args:{frame}};}
   case 'createCircle':{
    const clean={};for(const [key,min,max] of [['x',40,1240],['y',40,680],['radius',12,220]]){const value=number(key,min,max);if(value!==undefined)clean[key]=value}
    const c=color(args,'color');if(c!==undefined)clean.color=c;const n=text('name',60);if(n!==undefined)clean.name=n;return {tool:action.tool,args:clean};
