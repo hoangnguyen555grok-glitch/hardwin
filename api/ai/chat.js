@@ -139,7 +139,7 @@ module.exports = async function handler(req, res) {
   const taskType = classifyTask(messages);
   let result;
   try {
-    result = await routeChat({ messages, maxTokens });
+    result = await routeChat({ messages, maxTokens, jsonMode: agentMode });
   } catch (error) {
     const attempts = Array.isArray(error.attempts) ? error.attempts : [];
     const firstProvider = attempts[0]?.provider || 'router';
