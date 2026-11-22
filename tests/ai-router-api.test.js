@@ -243,8 +243,7 @@ test('agent mode injects server instructions, ignores client system prompts and 
     assert.deepEqual(res.body.agent, {
       message: 'Tôi sẽ tạo chuyển động rồi kiểm tra lại.',
       action: { tool: 'animateCircle', args: { durationSeconds: 5, fromX: 200, toX: 1000 } },
-      done: false,
-      memory: null
+      done: false
     });
   });
 });
