@@ -39,3 +39,10 @@ test('AI can request catalog assets by id without exposing arbitrary media URLs'
   assert.match(html, /addCommunityAsset/);
   assert.match(html, /loadCommunityAssetCatalog/);
 });
+
+test('AI community image animation is scoped to an allow-listed selected asset ID', () => {
+  assert.match(html, /animateCommunityImage/);
+  assert.match(html, /selectedCommunityAssetId/);
+  assert.match(html, /selectedObjectSafeForAgent/);
+  assert.match(html, /communityAssetId!==assetId/);
+});
