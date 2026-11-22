@@ -1771,6 +1771,30 @@ function bridgeAnimateCircle(args={}){
  selectOne(o.id);setFrame(0);renderAll();
  return {ok:true,message:'Created a circle animation with start/end keyframes.',durationSeconds:seconds,fps:FPS,totalFrames:MAX+1,objectId:o.id,start:{x:fromX,y},end:{x:toX,y},status:bridgeStatus()};
 }
+function bridgeBuildScene(args={}){
+ if(symbolEditId)throw new Error('Exit MovieClip edit mode before building a scene.');
+ const safe=validateBrowserAgentAction({tool:'buildScene',args}).args;
+ pause();setTimelineSettings(FPS,safe.durationSeconds);setFrame(0);
+ const created=[];
+ for(const element of safe.elements){
+  const startX=element.startX??element.x,startY=element.startY??element.y;
+  const startRotation=element.startRotation??element.rotation??0,startScale=element.startScale??element.scale??1,startOpacity=element.startOpacity??element.opacity??1;
+  const o=makeObject(element.type,{
+   name:element.name||({rect:'AI Rectangle',circle:'AI Circle',text:'AI Text'}[element.type]),
+   x:startX,y:startY,width:element.width,height:element.height,
+   color:element.color||({rect:'#4d8ff0',circle:'#f2a65a',text:'#18243a'}[element.type]),
+   ...(element.type==='text'?{text:element.text,fontSize:element.fontSize||48}:{}),
+   rotation:startRotation,scale:startScale,opacity:startOpacity,inFrame:0,outFrame:MAX
+  });
+  const start={...baseState(o),x:startX,y:startY,rotation:startRotation,scale:startScale,opacity:startOpacity};
+  const end={...baseState(o),x:element.x,y:element.y,rotation:element.rotation??0,scale:element.scale??1,opacity:element.opacity??1};
+  o.keys=[{frame:0,state:start,easing:'easeInOut'},{frame:MAX,state:end,easing:'easeInOut'}];
+  o.inFrame=0;o.outFrame=MAX;
+  created.push({id:o.id,name:o.name,type:o.type,x:element.x,y:element.y,width:o.width,height:o.height});
+ }
+ if(created.length)selectOne(created[created.length-1].id);setFrame(0);renderAll();
+ return {ok:true,message:'Created '+created.length+' scene layers with start/end keyframes.',created,durationSeconds:DURATION,fps:FPS,status:bridgeStatus()};
+}
 function bridgePlay(){if(!playing)$('playBtn').click();return {ok:true,playing:true}}
 function bridgeStop(){$('stopBtn').click();return {ok:true,playing:false,frame}}
 function bridgeExport(){if(symbolEditId)throw new Error('Exit MovieClip edit mode before exporting.');$('exportVideo').click();return {ok:true,message:'Export requested. The editor will show its export progress.'}}
@@ -1785,6 +1809,7 @@ window["GeedHardwinBridge"] = Object.freeze({
  listLayers:()=>bridgeStatus().layers,
  createCircle:bridgeCreateCircle,
  animateCircle:bridgeAnimateCircle,
+ buildScene:bridgeBuildScene,
  play:bridgePlay,
  stop:bridgeStop,
  setFrame:bridgeSetFrame,
@@ -1887,6 +1912,22 @@ function validateBrowserAgentAction(action){
  switch(action.tool){
   case 'inspect':case 'play':case 'stop':case 'deleteSelected':
    return {tool:action.tool,args:{}};
+  case 'buildScene':{
+   const durationSeconds=number('durationSeconds',1,60,true);
+   if(!Array.isArray(args.elements)||args.elements.length<1||args.elements.length>12)throw new Error('Cảnh cần từ 1 đến 12 lớp.');
+   const sceneElements=args.elements.map(element=>{
+    if(!element||typeof element!=='object'||Array.isArray(element)||!['rect','circle','text'].includes(element.type))throw new Error('Loại lớp cảnh không hợp lệ.');
+    const num=(key,min,max,required=false)=>{const v=element[key];if(v===undefined&&!required)return undefined;if(typeof v!=='number'||!Number.isFinite(v)||v<min||v>max)throw new Error('Tham số cảnh không hợp lệ: '+key);return v};
+    const str=(key,max,required=false)=>{const v=element[key];if(v===undefined&&!required)return undefined;if(typeof v!=='string'||!v.trim()||v.length>max)throw new Error('Văn bản cảnh không hợp lệ: '+key);return v.trim()};
+    const clean={type:element.type,x:num('x',0,1280,true),y:num('y',0,720,true),width:num('width',8,1280,true),height:num('height',8,720,true)};
+    const name=str('name',60);if(name!==undefined)clean.name=name;
+    const color=str('color',7);if(color!==undefined){if(!/^#[0-9a-f]{6}$/i.test(color))throw new Error('Mã màu không hợp lệ.');clean.color=color}
+    if(element.type==='text'){clean.text=str('text',180,true);const fontSize=num('fontSize',8,200);if(fontSize!==undefined)clean.fontSize=fontSize}
+    for(const [key,min,max] of [['rotation',-720,720],['scale',0.1,5],['opacity',0,1],['startX',0,1280],['startY',0,720],['startRotation',-720,720],['startScale',0.1,5],['startOpacity',0,1]]){const v=num(key,min,max);if(v!==undefined)clean[key]=v}
+    return clean;
+   });
+   return {tool:'buildScene',args:{durationSeconds,elements:sceneElements}};
+  }
   case 'setFrame':return {tool:'setFrame',args:{frame:number('frame',0,7199,true)}};
   case 'createCircle':return {tool:'createCircle',args:bounded([['x',40,1240],['y',40,680],['radius',12,220]])};
   case 'animateCircle':return {tool:'animateCircle',args:bounded([['durationSeconds',1,120],['fromX',60,1220],['toX',60,1220],['y',60,660],['radius',12,180]])};
@@ -1902,6 +1943,7 @@ function runAgentEditorAction(rawAction){
  switch(action.tool){
   case 'createCircle':result=window.GeedHardwinBridge.createCircle(action.args);break;
   case 'animateCircle':result=window.GeedHardwinBridge.animateCircle(action.args);break;
+  case 'buildScene':result=window.GeedHardwinBridge.buildScene(action.args);break;
   case 'play':result=window.GeedHardwinBridge.play();break;
   case 'stop':result=window.GeedHardwinBridge.stop();break;
   case 'setFrame':
@@ -1922,6 +1964,7 @@ function runAgentEditorAction(rawAction){
  const after=agentSnapshot();
  let verified=false;
  if(action.tool==='createCircle'||action.tool==='animateCircle')verified=after.layerCount>before.layerCount;
+ else if(action.tool==='buildScene')verified=after.layerCount===before.layerCount+action.args.elements.length;
  else if(action.tool==='play')verified=after.playing;
  else if(action.tool==='stop')verified=!after.playing;
  else if(action.tool==='setFrame')verified=after.currentFrame===action.args.frame;
