@@ -100,7 +100,7 @@ module.exports = async function handler(req, res) {
   }
 
   const agentMode = body.mode === 'agent';
-  const requestedMaxTokens = body.max_tokens === undefined ? (agentMode ? 512 : undefined) : body.max_tokens;
+  const requestedMaxTokens = body.max_tokens === undefined ? (agentMode ? 1200 : undefined) : body.max_tokens;
   const maxTokens = resolveMaxTokens(requestedMaxTokens);
   const reservedTokens = estimateReservationTokens(messages, maxTokens);
   const requestId = createRequestId();
