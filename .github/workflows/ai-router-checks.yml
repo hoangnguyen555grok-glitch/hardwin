@@ -9,6 +9,8 @@ on:
       - "lib/ai-agent.js"
       - "lib/supabase-*.js"
       - "index.html"
+      - "library.html"
+      - "lib/community-library.js"
       - "supabase/migrations/**"
       - "tests/*.test.js"
       - "docs/GOAL8-*.md"
@@ -19,6 +21,8 @@ on:
       - "lib/ai-router.js"
       - "lib/supabase-*.js"
       - "index.html"
+      - "library.html"
+      - "lib/community-library.js"
       - "supabase/migrations/**"
       - "tests/*.test.js"
       - "docs/GOAL8-*.md"
@@ -46,3 +50,4 @@ jobs:
           node --check lib/gif-export.mjs
           node --check lib/supabase-ai-gateway.js
           node --input-type=module --check < lib/supabase-auth.js
+          node --check lib/community-library.js
