@@ -41,7 +41,7 @@ test('contributions submit only public HTTPS URLs through GitHub Issues, never f
   assert.match(page, /Đề xuất tài nguyên bằng link/);
   assert.match(page, /Đường dẫn tệp HTTPS công khai/);
   assert.match(script, /https:\/\/github\.com\/hoangnguyen555grok-glitch\/hardwin\/issues\/new/);
-  assert.match(script, /URL công khai/);
+  assert.match(script, /HTTPS công khai trực tiếp đến tệp/);
   assert.doesNotMatch(page, /<input[^>]+type="file"/i);
   assert.doesNotMatch(script, /FileReader|XMLHttpRequest|FormData\([^)]*files/i);
 });
