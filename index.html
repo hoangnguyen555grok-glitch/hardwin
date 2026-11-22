@@ -166,10 +166,10 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
 <body>
 <header class="topbar">
   <div class="brand"><img class="brandlogo" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRYHE1V2gwMtLSOzrCNG-C3zeWnRj-i1GtkR8pLxDeUJQ&amp;s=10" alt="Geed Hardwin brand image" referrerpolicy="no-referrer" onerror="this.style.display='none'" /><span>GEED HARDWIN</span></div>
-  <span class="topmeta">2D Animation Editor · v1.29</span>
+  <span class="topmeta">2D Animation Editor · v1.30</span>
   <a class="library-nav-link" href="/library.html" title="Mở kho vật liệu cộng đồng">▧ Kho vật liệu</a>
   <div class="topspacer"></div>
-  <span class="status">Animation workspace · v1.29</span>
+  <span class="status">Animation workspace · v1.30</span>
   <button class="ghost" id="undoBtn" title="Undo (Ctrl+Z)">↶</button>
   <button class="ghost" id="redoBtn" title="Redo (Ctrl+Shift+Z)">↷</button>
   <button class="ghost" id="openProject">Open project</button>
@@ -1781,14 +1781,18 @@ selectedId=title.id;renderAll();appReady=true;restoreAutosave();
 /* Controlled API for trusted local agents and the in-app bridge demo.
    Keep this surface narrow: validate all input and never expose eval/code execution. */
 function bridgeStatus(){
- const all=objects(),sel=selected();
+ const all=objects(),sel=selected(),state=sel?currentState(sel):null;
  return {
-  app:'Geed Hardwin',version:'v1.29',scene:scene()?.name||'Scene',sceneIndex,
+  app:'Geed Hardwin',version:'v1.30',scene:scene()?.name||'Scene',sceneIndex,
   fps:FPS,durationSeconds:DURATION,maxFrame:MAX,currentFrame:frame,playing,width:W,height:H,
   layerCount:all.length,selectedCount:(selectedIds.length?selectedIds:(selectedId?[selectedId]:[])).length,
-  selectedLayers:(selectedIds.length?selectedIds:(selectedId?[selectedId]:[])).map(id=>all.find(o=>o.id===id)).filter(Boolean).map(o=>({id:o.id,name:o.name,type:o.type})),
+  selectedLayers:(selectedIds.length?selectedIds:(selectedId?[selectedId]:[])).map(id=>all.find(o=>o.id===id)).filter(Boolean).map(o=>({id:o.id,name:o.name,type:o.type,groupId:o.groupId||null})),
   selected:sel?{id:sel.id,name:sel.name,type:sel.type}:null,
-  layers:all.map(o=>({id:o.id,name:o.name,type:o.type,visible:o.visible!==false,locked:!!o.locked})),
+  selectedTransform:state?{x:state.x,y:state.y,width:state.width??sel.width,height:state.height??sel.height,rotation:state.rotation,scale:state.scale,opacity:state.opacity}:null,
+  selectedImageDimensions:sel&&sel.type==='image'?{width:sel.img?.naturalWidth||sel.img?.width||0,height:sel.img?.naturalHeight||sel.img?.height||0}:null,
+  selectedLayerKeyframes:sel?(sel.keys||[]).map(key=>key.frame).slice(0,120):[],
+  history:{canUndo:historyIndex>0,canRedo:historyIndex>=0&&historyIndex<history.length-1,index:historyIndex,length:history.length},
+  layers:all.map((o,index)=>({id:o.id,name:o.name,type:o.type,visible:o.visible!==false,locked:!!o.locked,groupId:o.groupId||null,zIndex:index})),
   aiModelConnected:false,mcpConnected:false
  };
 }
@@ -1829,21 +1833,164 @@ function bridgeBuildScene(args={}){
  for(const element of safe.elements){
   const startX=element.startX??element.x,startY=element.startY??element.y;
   const startRotation=element.startRotation??element.rotation??0,startScale=element.startScale??element.scale??1,startOpacity=element.startOpacity??element.opacity??1;
-  const o=makeObject(element.type,{
-   name:element.name||({rect:'AI Rectangle',circle:'AI Circle',text:'AI Text'}[element.type]),
-   x:startX,y:startY,width:element.width,height:element.height,
-   color:element.color||({rect:'#4d8ff0',circle:'#f2a65a',text:'#18243a'}[element.type]),
-   ...(element.type==='text'?{text:element.text,fontSize:element.fontSize||48}:{}),
-   rotation:startRotation,scale:startScale,opacity:startOpacity,inFrame:0,outFrame:MAX
-  });
-  const start={...baseState(o),x:startX,y:startY,rotation:startRotation,scale:startScale,opacity:startOpacity};
-  const end={...baseState(o),x:element.x,y:element.y,rotation:element.rotation??0,scale:element.scale??1,opacity:element.opacity??1};
-  o.keys=[{frame:0,state:start,easing:'easeInOut'},{frame:MAX,state:end,easing:'easeInOut'}];
+  let o;
+  if(['triangle','polygon','star','ellipse','line'].includes(element.type)){
+   const sides=element.type==='triangle'?3:element.type==='star'?10:element.type==='ellipse'?40:element.type==='line'?2:element.sides;
+   const innerRatio=element.innerRatio??.45;
+   const points=Array.from({length:sides},(_,i)=>{
+    const angle=-Math.PI/2+i*Math.PI*2/sides;
+    const radius=element.type==='star'&&i%2===1?innerRatio:1;
+    return {x:Math.cos(angle)*element.width/2*radius,y:Math.sin(angle)*element.height/2*radius};
+   });
+   o=makeObject('path',{
+    name:element.name||({triangle:'AI Triangle',polygon:'AI Polygon',star:'AI Star',ellipse:'AI Ellipse',line:'AI Line'}[element.type]),
+    x:startX,y:startY,width:element.width,height:element.height,points,closed:element.type!=='line',
+    color:element.color||'#24354a',fillColor:element.fillColor||element.color||'#f2a65a',
+    strokeWidth:element.strokeWidth||4,inFrame:0,outFrame:MAX
+   });
+  }else{
+   o=makeObject(element.type,{
+    name:element.name||({rect:'AI Rectangle',circle:'AI Circle',text:'AI Text'}[element.type]),
+    x:startX,y:startY,width:element.width,height:element.height,
+    color:element.color||({rect:'#4d8ff0',circle:'#f2a65a',text:'#18243a'}[element.type]),
+    ...(element.type==='text'?{text:element.text,fontSize:element.fontSize||48}:{}),
+    inFrame:0,outFrame:MAX
+   });
+  }
+  const startState={...baseState(o),x:startX,y:startY,rotation:startRotation,scale:startScale,opacity:startOpacity};
+  const endState={...baseState(o),x:element.x,y:element.y,rotation:element.rotation??0,scale:element.scale??1,opacity:element.opacity??1};
+  o.keys=[{frame:0,state:startState,easing:'easeInOut'},{frame:MAX,state:endState,easing:'easeInOut'}];
   o.inFrame=0;o.outFrame=MAX;
-  created.push({id:o.id,name:o.name,type:o.type,x:element.x,y:element.y,width:o.width,height:o.height});
+  created.push({id:o.id,name:o.name,type:element.type,x:element.x,y:element.y,width:o.width,height:o.height});
  }
  if(created.length)selectOne(created[created.length-1].id);setFrame(0);renderAll();
  return {ok:true,message:'Created '+created.length+' scene layers with start/end keyframes.',created,durationSeconds:DURATION,fps:FPS,status:bridgeStatus()};
+}
+function bridgeSelectLayer(args={}){
+ const id=String(args.layerId||''),o=objects().find(item=>item.id===id);
+ if(!o)throw new Error('Layer ID is not present in the current scene.');
+ selectOne(o.id);renderAll();return {ok:true,selected:{id:o.id,name:o.name,type:o.type},status:bridgeStatus()};
+}
+function bridgeRenameLayer(args={}){
+ const o=selected();if(!o)throw new Error('Select a layer before renaming it.');
+ if(o.locked)throw new Error('Unlock this layer before editing it.');
+ const name=String(args.name||'').trim();if(!name||name.length>80)throw new Error('Layer name must contain 1 to 80 characters.');
+ o.name=name;renderAll();return {ok:true,selected:{id:o.id,name:o.name},status:bridgeStatus()};
+}
+function bridgeSetLayerVisibility(args={}){
+ const o=selected();if(!o)throw new Error('Select a layer before changing its visibility.');
+ if(o.locked)throw new Error('Unlock this layer before editing it.');
+ if(typeof args.visible!=='boolean')throw new Error('Visibility must be true or false.');
+ o.visible=args.visible;renderAll();return {ok:true,visible:o.visible,status:bridgeStatus()};
+}
+function bridgeDuplicateSelected(args={}){
+ const items=selectedObjects();if(!items.length)throw new Error('Select at least one layer to duplicate.');
+ if(items.length>24)throw new Error('Select no more than 24 layers at a time.');
+ if(items.some(item=>item.locked))throw new Error('Unlock selected layers before duplicating.');
+ const offsetX=Number.isFinite(args.offsetX)?args.offsetX:32,offsetY=Number.isFinite(args.offsetY)?args.offsetY:32;
+ const idMap=new Map(items.map(item=>[item.id,uid()])),groupMap=new Map();
+ const copies=items.map(item=>{
+  const copy=JSON.parse(JSON.stringify({...item,img:undefined}));
+  copy.id=idMap.get(item.id);copy.name=String(item.name||'Layer')+' copy';
+  copy.x=(Number(copy.x)||0)+offsetX;copy.y=(Number(copy.y)||0)+offsetY;
+  copy.keys=(copy.keys||[]).map(key=>({...key,state:{...key.state,x:(Number(key.state?.x)||0)+offsetX,y:(Number(key.state?.y)||0)+offsetY}}));
+  copy.parentId=item.parentId&&idMap.has(item.parentId)?idMap.get(item.parentId):item.parentId||null;
+  if(item.groupId){if(!groupMap.has(item.groupId))groupMap.set(item.groupId,'grp-'+(nextGroupId++));copy.groupId=groupMap.get(item.groupId)}
+  copy.img=null;return copy;
+ });
+ objects().push(...copies);selectedIds=copies.map(copy=>copy.id);selectedId=selectedIds[selectedIds.length-1]||null;
+ hydrateImages();renderAll();return {ok:true,created:copies.map(copy=>({id:copy.id,name:copy.name,type:copy.type})),status:bridgeStatus()};
+}
+function bridgeMoveLayer(args={}){
+ const o=selected();if(!o)throw new Error('Select one layer before changing its order.');
+ if(selectedIds.length>1)throw new Error('Choose one layer at a time to move it in front or behind.');
+ if(o.locked)throw new Error('Unlock this layer before reordering it.');
+ const arr=objects(),index=arr.findIndex(item=>item.id===o.id);if(index<0)throw new Error('Selected layer is no longer in this scene.');
+ const direction=args.direction;if(direction!=='front'&&direction!=='back')throw new Error('Direction must be front or back.');
+ arr.splice(index,1);if(direction==='front')arr.push(o);else arr.unshift(o);
+ renderAll();return {ok:true,direction,status:bridgeStatus()};
+}
+function bridgeTransformSelected(args={}){
+ const o=selected();if(!o)throw new Error('Select a layer before transforming it.');
+ if(selectedIds.length>1)throw new Error('Choose one layer at a time for precise transform changes.');
+ if(o.locked||o.type==='audio')throw new Error('This layer cannot be transformed until it is unlocked and visually editable.');
+ const state=currentState(o),allowed=['x','y','width','height','rotation','scale','opacity'];
+ let changed=0;
+ for(const key of allowed){if(args[key]===undefined)continue;state[key]=args[key];changed++}
+ if(!changed)throw new Error('No transform property was provided.');
+ const key=o.keys.find(item=>item.frame===frame);if(key)key.state=state;else o.keys.push({frame,state,easing:easingAt(o,frame)});
+ Object.assign(o,state);o.keys.sort((a,b)=>a.frame-b.frame);renderAll();
+ return {ok:true,frame,transform:{x:state.x,y:state.y,width:state.width??o.width,height:state.height??o.height,rotation:state.rotation,scale:state.scale,opacity:state.opacity},status:bridgeStatus()};
+}
+function bridgeGroupSelected(){
+ const items=selectedObjects();if(items.length<2)throw new Error('Select at least two layers to group.');
+ if(items.some(item=>item.locked))throw new Error('Unlock selected layers before grouping.');
+ const groupId='grp-'+(nextGroupId++);items.forEach(item=>{item.groupId=groupId});
+ renderAll();return {ok:true,groupId,count:items.length,status:bridgeStatus()};
+}
+function bridgeUngroupSelected(){
+ const items=selectedObjects();if(!items.length)throw new Error('Select grouped layers to ungroup.');
+ if(items.some(item=>item.locked))throw new Error('Unlock selected layers before ungrouping.');
+ let changed=0;items.forEach(item=>{if(item.groupId){delete item.groupId;changed++}});
+ if(!changed)throw new Error('The selected layers are not grouped.');
+ renderAll();return {ok:true,count:changed,status:bridgeStatus()};
+}
+function bridgeAddKeyframe(){
+ const o=selected();if(!o||selectedIds.length>1||o.type==='audio')throw new Error('Select one visual layer to add a keyframe.');
+ if(o.locked)throw new Error('Unlock this layer before adding a keyframe.');
+ addKey(o);return {ok:true,frame,keyframeCount:(o.keys||[]).length,status:bridgeStatus()};
+}
+function bridgeSetTimeline(args={}){
+ if(symbolEditId)throw new Error('Exit MovieClip edit mode before changing the main timeline.');
+ const durationSeconds=Number(args.durationSeconds),fps=args.fps===undefined?FPS:Number(args.fps);
+ if(!Number.isFinite(durationSeconds)||durationSeconds<1||durationSeconds>120||![12,24,30,60].includes(fps))throw new Error('Timeline settings are outside supported bounds.');
+ setTimelineSettings(fps,durationSeconds);return {ok:true,durationSeconds:DURATION,fps:FPS,status:bridgeStatus()};
+}
+function bridgeUndo(){
+ if(historyIndex<=0)return {ok:false,message:'Nothing to undo.',status:bridgeStatus()};
+ travelHistory(-1);return {ok:true,status:bridgeStatus()};
+}
+function bridgeRedo(){
+ if(historyIndex<0||historyIndex>=history.length-1)return {ok:false,message:'Nothing to redo.',status:bridgeStatus()};
+ travelHistory(1);return {ok:true,status:bridgeStatus()};
+}
+async function bridgeCropSelectedImage(args={}){
+ if(symbolEditId)throw new Error('Exit MovieClip edit mode before cropping an image.');
+ const o=selected();if(!o||o.type!=='image'||selectedIds.length>1)throw new Error('Select exactly one image layer before cropping.');
+ if(o.locked)throw new Error('Unlock this image layer before cropping.');
+ const left=Number(args.left),top=Number(args.top),widthRatio=Number(args.width),heightRatio=Number(args.height);
+ if(![left,top,widthRatio,heightRatio].every(Number.isFinite)||left<0||top<0||widthRatio<.05||heightRatio<.05||left+widthRatio>1.000001||top+heightRatio>1.000001)throw new Error('Crop bounds must be valid normalized fractions inside the image.');
+ const sourceUrl=o.dataUrl||o.img?.src;if(!sourceUrl)throw new Error('This image has no editable pixel source.');
+ pause();
+ const sourceImage=new Image();if(/^https:\/\//i.test(sourceUrl))sourceImage.crossOrigin='anonymous';
+ await new Promise((resolve,reject)=>{sourceImage.onload=resolve;sourceImage.onerror=()=>reject(new Error('Could not load this image for cropping.'));sourceImage.src=sourceUrl});
+ const sourceWidth=sourceImage.naturalWidth||sourceImage.width,sourceHeight=sourceImage.naturalHeight||sourceImage.height;
+ const x=Math.max(0,Math.floor(left*sourceWidth)),y=Math.max(0,Math.floor(top*sourceHeight));
+ const cropWidth=Math.max(1,Math.min(sourceWidth-x,Math.round(widthRatio*sourceWidth))),cropHeight=Math.max(1,Math.min(sourceHeight-y,Math.round(heightRatio*sourceHeight)));
+ if(cropWidth<8||cropHeight<8)throw new Error('The crop area is too small.');
+ if(cropWidth*cropHeight>20000000)throw new Error('The crop area is too large for a safe browser edit.');
+ if(x===0&&y===0&&cropWidth===sourceWidth&&cropHeight===sourceHeight)throw new Error('The crop rectangle covers the whole image; choose a smaller area.');
+ if(o.assetId&&!resourceLibrary.images.some(item=>item.id===o.assetId)){
+  resourceLibrary.images.push({id:o.assetId,name:(o.name||'Image')+' · original',dataUrl:sourceUrl,externalUrl:o.externalUrl||undefined,communityAssetId:o.communityAssetId||undefined,width:sourceWidth,height:sourceHeight,size:0});
+ }
+ const output=document.createElement('canvas');output.width=cropWidth;output.height=cropHeight;
+ const outputContext=output.getContext('2d');if(!outputContext)throw new Error('Image crop canvas is not available.');
+ outputContext.drawImage(sourceImage,x,y,cropWidth,cropHeight,0,0,cropWidth,cropHeight);
+ let dataUrl;try{dataUrl=output.toDataURL('image/png')}catch(error){throw new Error('This image host does not allow safe canvas cropping (CORS).')}
+ const croppedImage=new Image();await new Promise((resolve,reject)=>{croppedImage.onload=resolve;croppedImage.onerror=()=>reject(new Error('Could not reload the cropped image.'));croppedImage.src=dataUrl});
+ const cropCenterX=x+cropWidth/2-sourceWidth/2,cropCenterY=y+cropHeight/2-sourceHeight/2,ratioX=cropWidth/sourceWidth,ratioY=cropHeight/sourceHeight,oldPivotX=Number(o.pivotX)||0,oldPivotY=Number(o.pivotY)||0;
+ const updateState=state=>{
+  const displayW=Number(state.width??o.width)||1,displayH=Number(state.height??o.height)||1,scale=Math.max(.0001,Number(state.scale)||1),rad=(Number(state.rotation)||0)*Math.PI/180,cos=Math.cos(rad)*scale,sin=Math.sin(rad)*scale,qx=cropCenterX*displayW/sourceWidth,qy=cropCenterY*displayH/sourceHeight;
+  state.x=(Number(state.x)||0)+oldPivotX-cos*oldPivotX+(-sin)*(-oldPivotY)+cos*qx-sin*qy;
+  state.y=(Number(state.y)||0)+oldPivotY-sin*oldPivotX-cos*oldPivotY+sin*qx+cos*qy;
+  state.width=displayW*ratioX;state.height=displayH*ratioY;
+ };
+ updateState(o);(o.keys||[]).forEach(key=>{key.state={...key.state};updateState(key.state)});
+ o.pivotX=0;o.pivotY=0;o.dataUrl=dataUrl;o.img=croppedImage;o.width=Math.max(1,Number(o.width)||cropWidth);o.height=Math.max(1,Number(o.height)||cropHeight);
+ o.assetId='img-'+uid();delete o.externalUrl;delete o.communityAssetId;
+ resourceLibrary.images.push({id:o.assetId,name:(o.name||'Image')+' · cropped',dataUrl,width:cropWidth,height:cropHeight,size:Math.round(dataUrl.length*.75)});
+ renderResourceLibrary();renderAll();
+ return {ok:true,cropped:{layerId:o.id,width:cropWidth,height:cropHeight,assetId:o.assetId},message:'Image cropped; original resource remains available in the Resource Library.',status:bridgeStatus()};
 }
 function bridgePlay(){if(!playing)$('playBtn').click();return {ok:true,playing:true}}
 function bridgeStop(){$('stopBtn').click();return {ok:true,playing:false,frame}}
@@ -1915,18 +2062,14 @@ function bridgeAnimateCommunityImage(args={}){
 }
 
 window["GeedHardwinBridge"] = Object.freeze({
- getStatus:bridgeStatus,
- listLayers:()=>bridgeStatus().layers,
- createCircle:bridgeCreateCircle,
- animateCircle:bridgeAnimateCircle,
- buildScene:bridgeBuildScene,
- addCommunityAsset:bridgeAddCommunityAsset,
- animateCommunityImage:bridgeAnimateCommunityImage,
- play:bridgePlay,
- stop:bridgeStop,
- setFrame:bridgeSetFrame,
- deleteSelected:bridgeDeleteSelected,
- exportVideo:bridgeExport
+ getStatus:bridgeStatus,listLayers:()=>bridgeStatus().layers,
+ createCircle:bridgeCreateCircle,animateCircle:bridgeAnimateCircle,buildScene:bridgeBuildScene,
+ addCommunityAsset:bridgeAddCommunityAsset,animateCommunityImage:bridgeAnimateCommunityImage,
+ selectLayer:bridgeSelectLayer,renameLayer:bridgeRenameLayer,setLayerVisibility:bridgeSetLayerVisibility,
+ duplicateSelected:bridgeDuplicateSelected,moveLayer:bridgeMoveLayer,transformSelected:bridgeTransformSelected,
+ groupSelected:bridgeGroupSelected,ungroupSelected:bridgeUngroupSelected,addKeyframe:bridgeAddKeyframe,
+ setTimeline:bridgeSetTimeline,cropSelectedImage:bridgeCropSelectedImage,undo:bridgeUndo,redo:bridgeRedo,
+ play:bridgePlay,stop:bridgeStop,setFrame:bridgeSetFrame,deleteSelected:bridgeDeleteSelected,exportVideo:bridgeExport
 });
 function aiBridgeAppend(text,who='agent'){
  const log=$('aiBridgeLog');if(!log)return;
