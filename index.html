@@ -1888,6 +1888,32 @@ async function bridgeAddCommunityAsset(args={}){
  throw new Error('Hiện editor chỉ nhận ảnh và âm thanh từ kho. Video và font đang ở chế độ xem trước.');
 }
 
+
+function bridgeAnimateCommunityImage(args={}){
+ if(symbolEditId)throw new Error('Hãy thoát chế độ chỉnh sửa MovieClip trước khi tạo chuyển động.');
+ const assetId=String(args.assetId||'');
+ if(!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(assetId))throw new Error('Mã vật liệu cộng đồng không hợp lệ.');
+ const o=selected();
+ if(!o||o.type!=='image'||o.communityAssetId!==assetId)throw new Error('Hãy chọn đúng ảnh cộng đồng có mã '+assetId+' trước khi tạo chuyển động.');
+ if(!Array.isArray(o.keys)||o.keys.length>1)throw new Error('Ảnh này đã có hoạt ảnh. Công cụ hiện chỉ tạo chuyển động ban đầu cho ảnh cộng đồng mới thêm, không ghi đè hoạt ảnh cũ.');
+ const durationSeconds=Math.max(1,Math.min(60,Number(args.durationSeconds)||5));
+ const startX=Number.isFinite(Number(args.startX))?Number(args.startX):o.x;
+ const startY=Number.isFinite(Number(args.startY))?Number(args.startY):o.y;
+ const toX=Number(args.toX),toY=Number(args.toY);
+ const rotation=Number.isFinite(Number(args.rotation))?Number(args.rotation):0;
+ const scale=Number.isFinite(Number(args.scale))?Number(args.scale):1;
+ const opacity=Number.isFinite(Number(args.opacity))?Number(args.opacity):1;
+ pause();
+ setTimelineSettings(FPS,durationSeconds);
+ const start={...baseState(o),x:startX,y:startY};
+ const end={...start,x:toX,y:toY,rotation,scale,opacity};
+ Object.assign(o,start);
+ o.keys=[{frame:0,state:start,easing:'easeInOut'},{frame:MAX,state:end,easing:'easeInOut'}];
+ o.inFrame=0;o.outFrame=MAX;
+ selectOne(o.id);setFrame(0);renderAll();
+ return {ok:true,message:'Created start/end keyframes for the selected community image.',assetId,created:{id:o.id,name:o.name,type:o.type,communityAssetId:o.communityAssetId},durationSeconds:DURATION,fps:FPS,totalFrames:MAX+1,status:bridgeStatus()};
+}
+
 window["GeedHardwinBridge"] = Object.freeze({
  getStatus:bridgeStatus,
  listLayers:()=>bridgeStatus().layers,
@@ -1895,6 +1921,7 @@ window["GeedHardwinBridge"] = Object.freeze({
  animateCircle:bridgeAnimateCircle,
  buildScene:bridgeBuildScene,
  addCommunityAsset:bridgeAddCommunityAsset,
+ animateCommunityImage:bridgeAnimateCommunityImage,
  play:bridgePlay,
  stop:bridgeStop,
  setFrame:bridgeSetFrame,
@@ -1944,6 +1971,7 @@ window.addEventListener('pagehide',()=>{aiAgentConversation=[];const log=$('aiBr
 
 function agentSnapshot(){
  const status=window.GeedHardwinBridge.getStatus();
+ const selectedObject=selected();
  return {
   scene:String(status.scene||'Scene').slice(0,100),
   canvas:{width:Number(status.width)||1280,height:Number(status.height)||720},
@@ -1961,6 +1989,8 @@ function agentSnapshot(){
    name:String(status.selected.name||'').slice(0,80),
    type:String(status.selected.type||'').slice(0,40)
   }:null,
+  selectedCommunityAssetId:selectedObject?.communityAssetId?String(selectedObject.communityAssetId).slice(0,80):null,
+  selectedLayerKeyCount:Array.isArray(selectedObject?.keys)?selectedObject.keys.length:0,
   availableCommunityAssets:(window.GeedHardwinCommunityCatalog||[]).filter(asset=>asset.supportsEditor===true&&['image','audio'].includes(asset.mediaType)).slice(0,32).map(asset=>({id:asset.id,title:String(asset.title||'').slice(0,90),category:asset.category,mediaType:asset.mediaType,supportsEditor:true,description:String(asset.description||'').slice(0,120)})),
   layers:(Array.isArray(status.layers)?status.layers:[]).slice(0,40).map(layer=>({
    id:String(layer.id||'').slice(0,100),
@@ -1972,6 +2002,10 @@ function agentSnapshot(){
  };
 }
 
+function selectedObjectSafeForAgent(snapshot){
+ const current=selected();
+ return Boolean(current&&current.type==='image'&&current.communityAssetId&&Array.isArray(current.keys)&&current.keys.length<=1&&snapshot.selectedCommunityAssetId===current.communityAssetId);
+}
 function validateBrowserAgentAction(action){
  if(!action||typeof action!=='object'||Array.isArray(action)||typeof action.tool!=='string')throw new Error('Tác vụ AI không hợp lệ.');
  const args=action.args&&typeof action.args==='object'&&!Array.isArray(action.args)?action.args:{};
@@ -2002,6 +2036,15 @@ function validateBrowserAgentAction(action){
    const assetId=args.assetId;
    if(typeof assetId!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(assetId))throw new Error('Mã vật liệu cộng đồng không hợp lệ.');
    return {tool:'addCommunityAsset',args:{assetId}};
+  }
+  case 'animateCommunityImage':{
+   const assetId=text('assetId',80);
+   if(typeof assetId!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(assetId))throw new Error('Mã vật liệu cộng đồng không hợp lệ.');
+   const clean={assetId,durationSeconds:number('durationSeconds',1,60,true),toX:number('toX',0,1280,true),toY:number('toY',0,720,true)};
+   for(const [key,min,max] of [['startX',0,1280],['startY',0,720],['rotation',-720,720],['scale',0.1,5],['opacity',0,1]]){const v=number(key,min,max);if(v!==undefined)clean[key]=v;}
+   if(before.selectedCommunityAssetId!==assetId)throw new Error('AI chỉ được tạo chuyển động cho đúng ảnh cộng đồng đang được chọn.');
+   if(!selectedObjectSafeForAgent(before))throw new Error('Ảnh đang chọn không phải layer cộng đồng mới có thể tạo chuyển động.');
+   return {tool:'animateCommunityImage',args:clean};
   }
   case 'buildScene':{
    const durationSeconds=number('durationSeconds',1,60,true);
@@ -2036,6 +2079,7 @@ async function runAgentEditorAction(rawAction){
   case 'animateCircle':result=window.GeedHardwinBridge.animateCircle(action.args);break;
   case 'buildScene':result=window.GeedHardwinBridge.buildScene(action.args);break;
   case 'addCommunityAsset':result=await window.GeedHardwinBridge.addCommunityAsset(action.args);break;
+  case 'animateCommunityImage':result=window.GeedHardwinBridge.animateCommunityImage(action.args);break;
   case 'play':result=window.GeedHardwinBridge.play();break;
   case 'stop':result=window.GeedHardwinBridge.stop();break;
   case 'setFrame':
@@ -2058,6 +2102,7 @@ async function runAgentEditorAction(rawAction){
  if(action.tool==='createCircle'||action.tool==='animateCircle')verified=after.layerCount>before.layerCount;
  else if(action.tool==='buildScene')verified=after.layerCount===before.layerCount+action.args.elements.length;
  else if(action.tool==='addCommunityAsset')verified=after.layerCount>before.layerCount;
+ else if(action.tool==='animateCommunityImage')verified=after.selectedCommunityAssetId===action.args.assetId&&after.selectedLayerKeyCount>=2&&after.selected?.type==='image';
  else if(action.tool==='play')verified=after.playing;
  else if(action.tool==='stop')verified=!after.playing;
  else if(action.tool==='setFrame')verified=after.currentFrame===action.args.frame;
