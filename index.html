@@ -58,25 +58,25 @@ button,input,select{font:inherit}button{border:1px solid var(--line);background:
 .canvasframe{width:min(100%,800px,max(1px,calc((100vh - 395px)*1.77778)));max-width:100%;max-height:100%}
 
 /* AI Bridge panel */
-.ai-bridge{position:fixed;z-index:10000;right:16px;top:68px;width:min(420px,calc(100vw - 32px));height:min(690px,calc(100vh - 88px));display:flex;flex-direction:column;background:#171d27;border:1px solid #42516a;border-radius:14px;box-shadow:0 24px 70px #000b;overflow:hidden}
+.ai-bridge{position:fixed;z-index:10000;right:16px;top:64px;width:min(560px,calc(100vw - 32px));height:min(760px,calc(100vh - 80px));display:flex;flex-direction:column;background:#171d27;border:1px solid #42516a;border-radius:14px;box-shadow:0 24px 70px #000b;overflow:hidden}
 .ai-bridge[hidden]{display:none}
-.ai-bridge-head{display:flex;align-items:center;gap:12px;padding:13px 15px;background:#202a39;border-bottom:1px solid #35445a}
-.ai-bridge-mark{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(135deg,#6aa8ff,#8e79ff);color:#101827;font-size:19px;font-weight:900}
+.ai-bridge-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#202a39;border-bottom:1px solid #35445a}
+.ai-bridge-mark{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,#6aa8ff,#8e79ff);color:#101827;font-size:18px;font-weight:900}
 .ai-bridge-heading{flex:1;min-width:0}.ai-bridge-heading strong{display:block;font-size:14px}.ai-bridge-heading small{color:#9eacc0;font-size:11px}
-.ai-bridge-status{display:flex;flex-wrap:wrap;gap:7px;padding:10px 14px;background:#141a23;border-bottom:1px solid #2e3949}
+.ai-bridge-status{display:flex;flex-wrap:wrap;gap:6px;padding:7px 12px;background:#141a23;border-bottom:1px solid #2e3949}
 .ai-bridge-chip{font-size:10px;padding:4px 7px;border-radius:999px;background:#1e3b34;color:#9be2c2;border:1px solid #315a4d}
 .ai-bridge-chip.pending{background:#43331c;color:#f2c78b;border-color:#6c512e}
-.ai-bridge-log{flex:1;min-height:0;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
-.ai-bridge-message{max-width:94%;padding:10px 12px;border-radius:11px;font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
-.ai-bridge-message.agent{align-self:flex-start;background:#242e3d;color:#dce7f5;border:1px solid #34445a}
-.ai-bridge-message.user{align-self:flex-end;background:#2b4770;color:#f4f8ff;border:1px solid #42699e}
-.ai-bridge-examples{padding:10px 12px;border-top:1px solid #2e3949;display:flex;flex-wrap:wrap;gap:6px}
-.ai-bridge-examples button{font-size:10px;padding:6px 8px}
-.ai-bridge-form{padding:11px 12px;display:flex;gap:7px;border-top:1px solid #2e3949;background:#141a23}
+.ai-bridge-log{flex:1;min-height:170px;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin;scrollbar-color:#536782 #171d27}
+.ai-bridge-message{max-width:100%;padding:12px 14px;border-radius:12px;font-size:14px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.ai-bridge-message.agent{align-self:stretch;background:#242e3d;color:#e4edf9;border:1px solid #34445a}
+.ai-bridge-message.user{align-self:flex-end;max-width:90%;background:#2b4770;color:#f4f8ff;border:1px solid #42699e}
+.ai-bridge-examples{padding:7px 12px;border-top:1px solid #2e3949;display:flex;flex-wrap:nowrap;gap:7px;overflow-x:auto;scrollbar-width:thin}
+.ai-bridge-examples button{flex:0 0 auto;white-space:nowrap;font-size:11px;padding:7px 10px}
+.ai-bridge-form{padding:9px 12px;display:flex;gap:7px;border-top:1px solid #2e3949;background:#141a23}
 .ai-bridge-form input{min-width:0;flex:1;border:1px solid #3a485a;border-radius:8px;background:#0f141c;color:#edf2f8;padding:10px 11px;outline:none}
 .ai-bridge-form input:focus{border-color:#709de7}
-.ai-bridge-foot{padding:0 13px 11px;color:#9da9b8;font-size:10px;line-height:1.45;background:#141a23}
-@media(max-width:700px){.ai-bridge{right:8px;top:64px;width:calc(100vw - 16px);height:calc(100vh - 76px)}}
+.ai-bridge-foot{padding:0 13px 9px;color:#9da9b8;font-size:10px;line-height:1.4;background:#141a23}
+@media(max-width:700px){.ai-bridge{right:8px;top:64px;width:calc(100vw - 16px);height:calc(100vh - 76px)}.ai-bridge-log{min-height:140px;padding:12px}.ai-bridge-message{font-size:13px;padding:10px 12px}}
 
 
 /* In-app raster image editor: crop and transparent pixel eraser. */
@@ -153,13 +153,13 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
 
 .library-nav-link{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #3b4b63;border-radius:8px;background:#1a2636;color:#d5e5ff;text-decoration:none;font-size:11px;font-weight:650;white-space:nowrap;transition:.15s}
 .library-nav-link:hover{border-color:#78a8ee;background:#243752;color:#fff}
-.ai-bridge-dual-form{display:grid;grid-template-columns:1fr;gap:8px;padding:10px 14px;background:#141a23;border-top:1px solid #2e3949}
-.ai-input-field{display:flex;flex-direction:column;gap:5px;color:#aebdd0;font-size:10px;font-weight:700;letter-spacing:.04em}
-.ai-input-field textarea{width:100%;resize:vertical;min-height:54px;max-height:130px;padding:9px 10px;border:1px solid #37465a;border-radius:8px;background:#0f151e;color:#edf2f8;font:12px/1.5 Inter,system-ui,sans-serif}
+.ai-bridge-dual-form{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;padding:9px 12px;background:#141a23;border-top:1px solid #2e3949}
+.ai-input-field{display:flex;flex-direction:column;gap:5px;color:#c0cde0;font-size:10px;font-weight:700;letter-spacing:.035em}
+.ai-input-field textarea{width:100%;resize:vertical;min-height:42px;max-height:96px;padding:8px 10px;border:1px solid #37465a;border-radius:8px;background:#0f151e;color:#edf2f8;font:13px/1.45 Inter,system-ui,sans-serif}
 .ai-input-field textarea:focus{outline:2px solid #709ee4;outline-offset:1px}
-.ai-input-field small{color:#7e8ea4;font-size:9px;font-weight:400;letter-spacing:0}
-.ai-bridge-dual-form button{justify-self:end;min-width:88px}
-@media(max-width:700px){.library-nav-link{padding:6px 8px;font-size:10px}}
+.ai-input-field small{display:none}
+.ai-bridge-dual-form button{grid-column:1/-1;justify-self:end;min-width:104px;padding:8px 14px}
+@media(max-width:700px){.ai-bridge-dual-form{grid-template-columns:1fr;gap:7px}.ai-input-field textarea{min-height:40px;max-height:84px}.ai-bridge-dual-form button{grid-column:1;justify-self:stretch}.library-nav-link{padding:6px 8px;font-size:10px}}
 
 </style>
 </head>
@@ -314,29 +314,23 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
     <span id="aiBridgeAiStatus" class="ai-bridge-chip pending">AI backend chờ cấu hình</span>
   </div>
   <div id="aiBridgeLog" class="ai-bridge-log" aria-live="polite">
-    <div class="ai-bridge-message agent">Xin chào! Bạn có thể giao việc sáng tạo bằng tiếng Việt. AI có thể tạo hình vector, cắt ảnh, chỉnh layer, nhóm, nhân bản, sắp xếp, tạo keyframe và điều khiển timeline. Lệnh cắt ảnh giữ bản gốc; lệnh xóa luôn hỏi bạn trước.</div>
+    <div class="ai-bridge-message agent">Chào bạn! Cứ giao việc bằng tiếng Việt. Geed có thể dựng hình, chỉnh layer, cắt ảnh và tạo chuyển động. Lệnh xóa luôn hỏi bạn trước.</div>
   </div>
-  <div class="ai-bridge-examples">
-    <button type="button" data-ai-prompt="Kiểm tra trạng thái cảnh, layer và timeline hiện tại rồi tóm tắt.">Kiểm tra dự án</button>
-    <button type="button" data-ai-prompt="Tạo một cảnh hoạt hình 8 giây về mặt trời mọc trên đồi: nền trời xanh, mặt trời vàng đi từ thấp lên cao, hai ngọn đồi xanh và tiêu đề ngắn. Dùng các lớp hình và chữ trong editor, sau đó kiểm tra kết quả.">Dựng cảnh hoạt hình</button>
-    <button type="button" data-ai-prompt="Phát timeline hiện tại.">Phát</button>
-    <button type="button" data-ai-prompt="Dừng timeline hiện tại.">Dừng</button>
-    <button type="button" data-ai-prompt="Tạo một hình tam giác màu xanh ở chính giữa khung hình, kích thước 180 x 180, bằng công cụ vẽ vector.">Vẽ tam giác</button>
+  <div class="ai-bridge-examples" aria-label="Gợi ý nhanh">
+    <button type="button" data-ai-prompt="Tạo một cảnh hoạt hình 8 giây về mặt trời mọc trên đồi: nền trời xanh, mặt trời vàng đi từ thấp lên cao, hai ngọn đồi xanh và tiêu đề ngắn. Dùng các lớp hình và chữ trong editor, sau đó kiểm tra kết quả.">Dựng cảnh</button>
     <button type="button" data-ai-prompt="Cắt ảnh đang được chọn, lấy vùng chính giữa chiếm 80% chiều rộng và 80% chiều cao. Giữ ảnh gốc trong Resource Library, không xóa layer.">Cắt ảnh</button>
     <button type="button" data-ai-prompt="Hoàn tác thao tác chỉnh sửa gần nhất trong editor.">Hoàn tác</button>
   </div>
   <form id="aiBridgeForm" class="ai-bridge-form ai-bridge-dual-form">
     <label class="ai-input-field" for="aiScriptInput">KỊCH BẢN / VĂN BẢN TRONG PHIM
-      <textarea id="aiScriptInput" maxlength="4000" rows="3" placeholder="Nhập lời thoại, lời kể hoặc nội dung chữ muốn xuất hiện trong phim. AI coi đây là nội dung sáng tạo, không phải lệnh thao tác."></textarea>
-      <small>Nội dung để AI đưa vào cảnh, lời thoại hoặc lớp chữ.</small>
+      <textarea id="aiScriptInput" maxlength="4000" rows="2" placeholder="Lời thoại hoặc chữ xuất hiện trong phim…"></textarea>
     </label>
     <label class="ai-input-field" for="aiBridgeInput">CHỈ ĐẠO / LỆNH CHO AI
-      <textarea id="aiBridgeInput" maxlength="1200" rows="2" placeholder="Ví dụ: Dùng cảnh nền và nhân vật đã chọn, dựng phim hoạt hình 10 giây, chuyển cảnh nhẹ và thêm lời thoại ở trên."></textarea>
-      <small>Đây là phần AI đọc như yêu cầu thực hiện trên editor.</small>
+      <textarea id="aiBridgeInput" maxlength="1200" rows="2" placeholder="Bạn muốn AI làm gì? Ví dụ: tạo cảnh 10 giây…"></textarea>
     </label>
     <button id="aiBridgeSend" class="primary" type="submit">Gửi cho AI</button>
   </form>
-  <div class="ai-bridge-foot">AI có thể dựng hình vector (chữ nhật, tròn, tam giác, đa giác, sao, ellipse, đường nét), chỉnh và sắp xếp layer, nhóm, nhân bản, tạo keyframe, điều khiển timeline, cắt ảnh và hoàn tác/làm lại. Cắt ảnh giữ bản gốc trong Resource Library. Xóa layer luôn cần bạn xác nhận; xuất video vẫn qua bước xác nhận của trình biên tập. Hội thoại AI chỉ tồn tại trong tab hiện tại.</div>
+  <div class="ai-bridge-foot">Cắt ảnh giữ bản gốc · Xóa layer luôn cần bạn xác nhận · Hội thoại chỉ tồn tại trong tab hiện tại.</div>
 </section>
 
 
