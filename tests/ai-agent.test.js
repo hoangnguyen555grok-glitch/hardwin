@@ -108,3 +108,16 @@ test('community asset action accepts only a bounded catalog asset id and never a
   assert.throws(() => sanitizeAgentAction({ tool: 'addCommunityAsset', args: { assetId: 'javascript:alert(1)' } }));
   assert.throws(() => sanitizeAgentAction({ tool: 'addCommunityAsset', args: { assetId: '../private' } }));
 });
+
+test('community image animation is bounded and requires a catalog asset id', () => {
+  assert.deepEqual(sanitizeAgentAction({
+    tool: 'animateCommunityImage',
+    args: { assetId: 'forest-dawn-bg', durationSeconds: 6, toX: 920, toY: 280, rotation: 12, scale: 1.2, opacity: 0.9, url: 'https://evil.example/x.png' }
+  }), {
+    tool: 'animateCommunityImage',
+    args: { assetId: 'forest-dawn-bg', durationSeconds: 6, toX: 920, toY: 280, rotation: 12, scale: 1.2, opacity: 0.9 }
+  });
+  assert.throws(() => sanitizeAgentAction({ tool: 'animateCommunityImage', args: { assetId: '../x', durationSeconds: 6, toX: 20, toY: 20 } }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'animateCommunityImage', args: { assetId: 'forest-dawn-bg', durationSeconds: 61, toX: 20, toY: 20 } }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'animateCommunityImage', args: { assetId: 'forest-dawn-bg', durationSeconds: 6, toX: 1400, toY: 20 } }));
+});
