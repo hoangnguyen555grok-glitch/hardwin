@@ -39,7 +39,7 @@ test('AI editor exposes verified creative tools and non-destructive cropping', (
   for (const shape of ['triangle', 'polygon', 'star', 'ellipse', 'line']) {
     assert.match(html, new RegExp(shape));
   }
-  assert.match(html, /Original resource remains available in the Resource Library/);
+  assert.match(html, /original resource remains available in the Resource Library/i);
   assert.match(html, /Cắt ảnh giữ bản gốc/);
   assert.match(html, /window\.confirm\('AI muốn xóa /);
 });
