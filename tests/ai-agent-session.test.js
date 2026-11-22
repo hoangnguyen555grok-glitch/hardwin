@@ -44,6 +44,17 @@ test('AI editor exposes verified creative tools and non-destructive cropping', (
   assert.match(html, /window\.confirm\('AI muốn xóa /);
 });
 
+test('AI chat favors readable replies with compact input and fewer quick prompts', () => {
+  assert.match(html, /width:min\(560px,calc\(100vw - 32px\)\)/);
+  assert.match(html, /font-size:14px;line-height:1\.6/);
+  assert.match(html, /grid-template-columns:1fr 1fr/);
+  assert.match(html, /min-height:42px;max-height:96px/);
+  assert.match(html, /rows="2" placeholder="Lời thoại hoặc chữ xuất hiện trong phim/);
+  assert.match(html, /rows="2" placeholder="Bạn muốn AI làm gì/);
+  assert.equal((html.match(/data-ai-prompt=/g)||[]).length, 3);
+  assert.match(html, /aria-label="Gợi ý nhanh"/);
+});
+
 test('AI panel keeps creative script and editor command in distinct inputs', () => {
   assert.match(html, /id="aiScriptInput"/);
   assert.match(html, /id="aiBridgeInput"/);
