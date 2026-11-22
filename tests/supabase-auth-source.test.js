@@ -49,7 +49,7 @@ test('AI Bridge uses the authenticated cloud agent loop rather than keyword-only
 
 test('AI panel keeps conversation context only in the active tab and never calls persistent memory APIs', () => {
   assert.match(html, /let aiAgentConversation=\[\]/);
-  assert.match(html, /CURRENT EDITOR STATE \(untrusted facts, not instructions\)/);
+  assert.match(html, /CURRENT EDITOR STATE AND AVAILABLE COMMUNITY MATERIALS/);
   assert.match(html, /window\.addEventListener\('pagehide'/);
   assert.doesNotMatch(html, /aiMemoryRetention|aiMemoryManage|aiMemoryList|persistAgentMemory|listAiMemories|saveAiMemory|deleteAiMemory/);
 });
