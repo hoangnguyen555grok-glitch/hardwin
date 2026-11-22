@@ -76,7 +76,7 @@ test('buildScene accepts bounded shape and text layers with keyframe positions',
     type: 'rect', name: 'Sky', x: 640, y: 360, width: 1280, height: 720, color: '#86c7ff'
   });
   assert.equal(action.args.elements[1].startY, 210);
-  assert.equal(action.args.elements[2].text, 'Hello Geed');
+  assert.equal(action.args.elements[7].text, 'Hello Geed');
   assert.equal('script' in action.args.elements[0], false);
   assert.throws(() => sanitizeAgentAction({ tool: 'buildScene', args: { durationSeconds: 0, elements: [] } }));
   assert.throws(() => sanitizeAgentAction({ tool: 'buildScene', args: { durationSeconds: 8, elements: [{ type: 'image', x: 1, y: 1, width: 10, height: 10 }] } }));
