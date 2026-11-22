@@ -371,6 +371,37 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
 const W=1280,H=720;let FPS=24,DURATION=5,MAX=FPS*DURATION;
 const canvas=document.getElementById('stage');let ctx=canvas.getContext('2d');
 const $=id=>document.getElementById(id);
+
+window.GeedHardwinCommunityCatalog=[];
+let communityCatalogPromise=null;
+function safeCommunityAssetUrl(raw){
+ const url=new URL(String(raw||''),window.location.href);
+ const host=url.hostname.toLowerCase();
+ if(url.protocol!=='https:'||url.username||url.password)throw new Error('Tài nguyên cần URL HTTPS công khai trực tiếp.');
+ if(host==='localhost'||host.endsWith('.localhost')||host==='127.0.0.1'||host==='::1'||/^10\\./.test(host)||/^192\\.168\\./.test(host)||/^169\\.254\\./.test(host)||/^172\\.(1[6-9]|2[0-9]|3[01])\\./.test(host))throw new Error('Không chấp nhận địa chỉ máy cục bộ hoặc mạng riêng.');
+ return url.href;
+}
+async function loadCommunityAssetCatalog(){
+ if(communityCatalogPromise)return communityCatalogPromise;
+ communityCatalogPromise=(async()=>{
+  const response=await fetch('/assets/community-library.json',{cache:'no-cache',credentials:'same-origin'});
+  if(!response.ok)throw new Error('Không tải được danh mục vật liệu cộng đồng.');
+  const data=await response.json();
+  if(!data||!Array.isArray(data.assets))throw new Error('Danh mục vật liệu không đúng định dạng.');
+  const allowedCategories=new Set(['backgrounds','characters','props','audio','effects','fonts']);
+  const allowedMedia=new Set(['image','audio','video','font']);
+  window.GeedHardwinCommunityCatalog=data.assets.filter(asset=>{
+   try{
+    return asset&&asset.status==='published'&&typeof asset.id==='string'&&/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(asset.id)&&
+     typeof asset.title==='string'&&asset.title.trim().length>0&&asset.title.length<=120&&
+     allowedCategories.has(asset.category)&&allowedMedia.has(asset.mediaType)&&safeCommunityAssetUrl(asset.url);
+   }catch{return false}
+  }).slice(0,500);
+  return window.GeedHardwinCommunityCatalog;
+ })().catch(error=>{communityCatalogPromise=null;throw error});
+ return communityCatalogPromise;
+}
+
 let imageEditorState=null;
 let resourceLibrary={images:[],fonts:[]},fontLoadPromises=new Map();
 let scenes=[{name:'Scene 01',objects:[],camera:defaultCamera()}],sceneIndex=0,selectedId=null,selectedIds=[],nextGroupId=1,frame=0,playing=false,raf=0,lastTick=0,loopPlayback=true,nextId=1,drag=null,transformDrag=null;
@@ -1333,8 +1364,8 @@ function renderResourceLibrary(){
  });
 }
 function addImageResourceToStage(asset){
- const img=new Image();img.onload=()=>{const scale=Math.min(520/img.width,420/img.height,1);makeObject('image',{name:asset.name,width:img.width*scale,height:img.height*scale,src:asset.name,img,dataUrl:asset.dataUrl,assetId:asset.id})};
- img.onerror=()=>toast('Image resource could not be loaded');img.src=asset.dataUrl;
+ const img=new Image();img.onload=()=>{const scale=Math.min(520/img.width,420/img.height,1);makeObject('image',{name:asset.name,width:img.width*scale,height:img.height*scale,src:asset.name,img,dataUrl:asset.dataUrl,assetId:asset.id,externalUrl:asset.externalUrl||undefined,communityAssetId:asset.communityAssetId||undefined})};
+ img.onerror=()=>toast('Image resource could not be loaded');if(/^https:\/\//i.test(asset.dataUrl||''))img.crossOrigin='anonymous';img.src=asset.dataUrl;
 }
 function applyFontToSelectedText(family){
  const o=selected();if(!o||o.type!=='text'){toast('Select a text layer first');return}
@@ -1370,10 +1401,10 @@ function renderAll(full=true){if(full){renderExposureSheet();const cb=$('cameraM
 function projectSnapshot(){return {format:'geed-hardwin-project',version:24,resourceLibrary,fps:FPS,duration:DURATION,sceneIndex,nextId,nextGroupId,selectedId,selectedIds,frame,frameByFrame,nextSymbolId,symbolLibrary:symbolLibrary.map(def=>({...def,objects:(def.objects||[]).map(o=>({...o,img:undefined}))})),symbolEditId,symbolEditStack:symbolEditStack.map(x=>({...x,selectedIds:[...(x.selectedIds||[])]})),scenes:scenes.map(sc=>({...sc,workArea:normalizeWorkArea(sc.workArea,MAX),objects:sc.objects.map(o=>({...o,img:undefined}))}))}}
 function recordHistory(){if(restoringHistory)return;const snap=JSON.stringify(projectSnapshot());if(history[historyIndex]===snap)return;history=history.slice(0,historyIndex+1);history.push(snap);if(history.length>60)history.shift();historyIndex=history.length-1;updateHistoryButtons();if(appReady)scheduleAutosave(snap)}
 function updateHistoryButtons(){const u=$('undoBtn'),r=$('redoBtn');if(u)u.disabled=historyIndex<=0;if(r)r.disabled=historyIndex<0||historyIndex>=history.length-1}
-function createAudioPlayer(o){if(!o||o.type!=='audio'||!o.dataUrl)return null;let player=audioPlayers.get(o.id);if(!player){player=new Audio(o.dataUrl);player.preload='auto';audioPlayers.set(o.id,player)}return player}
+function createAudioPlayer(o){if(!o||o.type!=='audio'||!o.dataUrl)return null;let player=audioPlayers.get(o.id);if(!player){player=new Audio();player.crossOrigin='anonymous';player.preload='auto';player.src=o.dataUrl;audioPlayers.set(o.id,player)}return player}
 function hydrateImages(){
  audioPlayers.forEach(a=>{a.pause();a.src=''});audioPlayers.clear();
- const hydrate=o=>{o.img=null;if(o.type==='image'&&o.dataUrl){const im=new Image();im.onload=()=>draw();im.src=o.dataUrl;o.img=im}else if(o.type==='audio')createAudioPlayer(o)};
+ const hydrate=o=>{o.img=null;if(o.type==='image'&&o.dataUrl){const im=new Image();im.onload=()=>draw();if(/^https:\/\//i.test(o.dataUrl))im.crossOrigin='anonymous';im.src=o.dataUrl;o.img=im}else if(o.type==='audio')createAudioPlayer(o)};
  for(const sc of scenes)for(const o of sc.objects)hydrate(o);
  for(const def of symbolLibrary)for(const o of def.objects||[])hydrate(o);
 }
