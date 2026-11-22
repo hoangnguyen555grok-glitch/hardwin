@@ -166,10 +166,10 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
 <body>
 <header class="topbar">
   <div class="brand"><img class="brandlogo" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRYHE1V2gwMtLSOzrCNG-C3zeWnRj-i1GtkR8pLxDeUJQ&amp;s=10" alt="Geed Hardwin brand image" referrerpolicy="no-referrer" onerror="this.style.display='none'" /><span>GEED HARDWIN</span></div>
-  <span class="topmeta">2D Animation Editor · v1.29</span>
+  <span class="topmeta">2D Animation Editor · v1.30</span>
   <a class="library-nav-link" href="/library.html" title="Mở kho vật liệu cộng đồng">▧ Kho vật liệu</a>
   <div class="topspacer"></div>
-  <span class="status">Animation workspace · v1.29</span>
+  <span class="status">Animation workspace · v1.30</span>
   <button class="ghost" id="undoBtn" title="Undo (Ctrl+Z)">↶</button>
   <button class="ghost" id="redoBtn" title="Redo (Ctrl+Shift+Z)">↷</button>
   <button class="ghost" id="openProject">Open project</button>
@@ -305,7 +305,7 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
 <section id="aiBridgePanel" class="ai-bridge" aria-label="Geed Hardwin AI Agent" hidden>
   <div class="ai-bridge-head">
     <div class="ai-bridge-mark">✦</div>
-    <div class="ai-bridge-heading"><strong>Geed Hardwin AI Agent</strong><small>Session context · Scene builder · Verify each action</small></div>
+    <div class="ai-bridge-heading"><strong>Geed Hardwin AI Agent</strong><small>Creative toolkit · Crop · Vector shapes · Layer control · Verified actions</small></div>
     <button id="aiBridgeClose" class="ghost" title="Close">✕</button>
   </div>
   <div class="ai-bridge-status">
@@ -314,13 +314,16 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
     <span id="aiBridgeAiStatus" class="ai-bridge-chip pending">AI backend chờ cấu hình</span>
   </div>
   <div id="aiBridgeLog" class="ai-bridge-log" aria-live="polite">
-    <div class="ai-bridge-message agent">Xin chào! Hãy mô tả cảnh hoạt hình bạn muốn tạo. AI sẽ đọc trạng thái editor trong tab này, dùng các công cụ dựng cảnh được cho phép và kiểm tra kết quả sau từng bước. Nội dung trò chuyện chỉ nằm trong bộ nhớ của tab; tải lại hoặc đóng tab sẽ xóa phiên. Dịch vụ AI cloud cần được cấu hình ở máy chủ.</div>
+    <div class="ai-bridge-message agent">Xin chào! Bạn có thể giao việc sáng tạo bằng tiếng Việt. AI có thể tạo hình vector, cắt ảnh, chỉnh layer, nhóm, nhân bản, sắp xếp, tạo keyframe và điều khiển timeline. Lệnh cắt ảnh giữ bản gốc; lệnh xóa luôn hỏi bạn trước.</div>
   </div>
   <div class="ai-bridge-examples">
     <button type="button" data-ai-prompt="Kiểm tra trạng thái cảnh, layer và timeline hiện tại rồi tóm tắt.">Kiểm tra dự án</button>
     <button type="button" data-ai-prompt="Tạo một cảnh hoạt hình 8 giây về mặt trời mọc trên đồi: nền trời xanh, mặt trời vàng đi từ thấp lên cao, hai ngọn đồi xanh và tiêu đề ngắn. Dùng các lớp hình và chữ trong editor, sau đó kiểm tra kết quả.">Dựng cảnh hoạt hình</button>
     <button type="button" data-ai-prompt="Phát timeline hiện tại.">Phát</button>
     <button type="button" data-ai-prompt="Dừng timeline hiện tại.">Dừng</button>
+    <button type="button" data-ai-prompt="Tạo một hình tam giác màu xanh ở chính giữa khung hình, kích thước 180 x 180, bằng công cụ vẽ vector.">Vẽ tam giác</button>
+    <button type="button" data-ai-prompt="Cắt ảnh đang được chọn, lấy vùng chính giữa chiếm 80% chiều rộng và 80% chiều cao. Giữ ảnh gốc trong Resource Library, không xóa layer.">Cắt ảnh</button>
+    <button type="button" data-ai-prompt="Hoàn tác thao tác chỉnh sửa gần nhất trong editor.">Hoàn tác</button>
   </div>
   <form id="aiBridgeForm" class="ai-bridge-form ai-bridge-dual-form">
     <label class="ai-input-field" for="aiScriptInput">KỊCH BẢN / VĂN BẢN TRONG PHIM
@@ -333,7 +336,7 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
     </label>
     <button id="aiBridgeSend" class="primary" type="submit">Gửi cho AI</button>
   </form>
-  <div class="ai-bridge-foot">Ngữ cảnh và cuộc trò chuyện chỉ được giữ tạm trong tab hiện tại, không ghi vào cơ sở dữ liệu hay bộ nhớ trình duyệt. Đóng hoặc tải lại tab sẽ bắt đầu phiên mới. Ở giai đoạn này AI có thể dựng cảnh bằng hình chữ nhật, hình tròn và chữ; ảnh, âm thanh và xuất video tự động sẽ được bổ sung sau. Xóa layer cần xác nhận riêng.</div>
+  <div class="ai-bridge-foot">AI có thể dựng hình vector (chữ nhật, tròn, tam giác, đa giác, sao, ellipse, đường nét), chỉnh và sắp xếp layer, nhóm, nhân bản, tạo keyframe, điều khiển timeline, cắt ảnh và hoàn tác/làm lại. Cắt ảnh giữ bản gốc trong Resource Library. Xóa layer luôn cần bạn xác nhận; xuất video vẫn qua bước xác nhận của trình biên tập. Hội thoại AI chỉ tồn tại trong tab hiện tại.</div>
 </section>
 
 
@@ -1781,14 +1784,18 @@ selectedId=title.id;renderAll();appReady=true;restoreAutosave();
 /* Controlled API for trusted local agents and the in-app bridge demo.
    Keep this surface narrow: validate all input and never expose eval/code execution. */
 function bridgeStatus(){
- const all=objects(),sel=selected();
+ const all=objects(),sel=selected(),state=sel?currentState(sel):null;
  return {
-  app:'Geed Hardwin',version:'v1.29',scene:scene()?.name||'Scene',sceneIndex,
+  app:'Geed Hardwin',version:'v1.30',scene:scene()?.name||'Scene',sceneIndex,
   fps:FPS,durationSeconds:DURATION,maxFrame:MAX,currentFrame:frame,playing,width:W,height:H,
   layerCount:all.length,selectedCount:(selectedIds.length?selectedIds:(selectedId?[selectedId]:[])).length,
-  selectedLayers:(selectedIds.length?selectedIds:(selectedId?[selectedId]:[])).map(id=>all.find(o=>o.id===id)).filter(Boolean).map(o=>({id:o.id,name:o.name,type:o.type})),
+  selectedLayers:(selectedIds.length?selectedIds:(selectedId?[selectedId]:[])).map(id=>all.find(o=>o.id===id)).filter(Boolean).map(o=>({id:o.id,name:o.name,type:o.type,groupId:o.groupId||null})),
   selected:sel?{id:sel.id,name:sel.name,type:sel.type}:null,
-  layers:all.map(o=>({id:o.id,name:o.name,type:o.type,visible:o.visible!==false,locked:!!o.locked})),
+  selectedTransform:state?{x:state.x,y:state.y,width:state.width??sel.width,height:state.height??sel.height,rotation:state.rotation,scale:state.scale,opacity:state.opacity}:null,
+  selectedImageDimensions:sel&&sel.type==='image'?{width:sel.img?.naturalWidth||sel.img?.width||0,height:sel.img?.naturalHeight||sel.img?.height||0}:null,
+  selectedLayerKeyframes:sel?(sel.keys||[]).map(key=>key.frame).slice(0,120):[],
+  history:{canUndo:historyIndex>0,canRedo:historyIndex>=0&&historyIndex<history.length-1,index:historyIndex,length:history.length},
+  layers:all.map((o,index)=>({id:o.id,name:o.name,type:o.type,visible:o.visible!==false,locked:!!o.locked,groupId:o.groupId||null,zIndex:index})),
   aiModelConnected:false,mcpConnected:false
  };
 }
@@ -1829,21 +1836,167 @@ function bridgeBuildScene(args={}){
  for(const element of safe.elements){
   const startX=element.startX??element.x,startY=element.startY??element.y;
   const startRotation=element.startRotation??element.rotation??0,startScale=element.startScale??element.scale??1,startOpacity=element.startOpacity??element.opacity??1;
-  const o=makeObject(element.type,{
-   name:element.name||({rect:'AI Rectangle',circle:'AI Circle',text:'AI Text'}[element.type]),
-   x:startX,y:startY,width:element.width,height:element.height,
-   color:element.color||({rect:'#4d8ff0',circle:'#f2a65a',text:'#18243a'}[element.type]),
-   ...(element.type==='text'?{text:element.text,fontSize:element.fontSize||48}:{}),
-   rotation:startRotation,scale:startScale,opacity:startOpacity,inFrame:0,outFrame:MAX
-  });
-  const start={...baseState(o),x:startX,y:startY,rotation:startRotation,scale:startScale,opacity:startOpacity};
-  const end={...baseState(o),x:element.x,y:element.y,rotation:element.rotation??0,scale:element.scale??1,opacity:element.opacity??1};
-  o.keys=[{frame:0,state:start,easing:'easeInOut'},{frame:MAX,state:end,easing:'easeInOut'}];
+  let o;
+  if(['triangle','polygon','star','ellipse','line'].includes(element.type)){
+   const sides=element.type==='triangle'?3:element.type==='star'?10:element.type==='ellipse'?40:element.type==='line'?2:element.sides;
+   const innerRatio=element.innerRatio??.45;
+   const points=element.type==='line'?
+    [{x:-element.width/2,y:-element.height/2},{x:element.width/2,y:element.height/2}]:
+    Array.from({length:sides},(_,i)=>{
+     const angle=-Math.PI/2+i*Math.PI*2/sides;
+     const radius=element.type==='star'&&i%2===1?innerRatio:1;
+     return {x:Math.cos(angle)*element.width/2*radius,y:Math.sin(angle)*element.height/2*radius};
+    });
+   o=makeObject('path',{
+    name:element.name||({triangle:'AI Triangle',polygon:'AI Polygon',star:'AI Star',ellipse:'AI Ellipse',line:'AI Line'}[element.type]),
+    x:startX,y:startY,width:element.width,height:element.height,points,closed:element.type!=='line',
+    color:element.color||'#24354a',fillColor:element.fillColor||element.color||'#f2a65a',
+    strokeWidth:element.strokeWidth||4,inFrame:0,outFrame:MAX
+   });
+  }else{
+   o=makeObject(element.type,{
+    name:element.name||({rect:'AI Rectangle',circle:'AI Circle',text:'AI Text'}[element.type]),
+    x:startX,y:startY,width:element.width,height:element.height,
+    color:element.color||({rect:'#4d8ff0',circle:'#f2a65a',text:'#18243a'}[element.type]),
+    ...(element.type==='text'?{text:element.text,fontSize:element.fontSize||48}:{}),
+    inFrame:0,outFrame:MAX
+   });
+  }
+  const startState={...baseState(o),x:startX,y:startY,rotation:startRotation,scale:startScale,opacity:startOpacity};
+  const endState={...baseState(o),x:element.x,y:element.y,rotation:element.rotation??0,scale:element.scale??1,opacity:element.opacity??1};
+  o.keys=[{frame:0,state:startState,easing:'easeInOut'},{frame:MAX,state:endState,easing:'easeInOut'}];
   o.inFrame=0;o.outFrame=MAX;
-  created.push({id:o.id,name:o.name,type:o.type,x:element.x,y:element.y,width:o.width,height:o.height});
+  created.push({id:o.id,name:o.name,type:element.type,x:element.x,y:element.y,width:o.width,height:o.height});
  }
  if(created.length)selectOne(created[created.length-1].id);setFrame(0);renderAll();
  return {ok:true,message:'Created '+created.length+' scene layers with start/end keyframes.',created,durationSeconds:DURATION,fps:FPS,status:bridgeStatus()};
+}
+function bridgeSelectLayer(args={}){
+ const id=String(args.layerId||''),o=objects().find(item=>item.id===id);
+ if(!o)throw new Error('Layer ID is not present in the current scene.');
+ selectOne(o.id);renderAll();return {ok:true,selected:{id:o.id,name:o.name,type:o.type},status:bridgeStatus()};
+}
+function bridgeRenameLayer(args={}){
+ const o=selected();if(!o)throw new Error('Select a layer before renaming it.');
+ if(o.locked)throw new Error('Unlock this layer before editing it.');
+ const name=String(args.name||'').trim();if(!name||name.length>80)throw new Error('Layer name must contain 1 to 80 characters.');
+ o.name=name;renderAll();return {ok:true,selected:{id:o.id,name:o.name},status:bridgeStatus()};
+}
+function bridgeSetLayerVisibility(args={}){
+ const o=selected();if(!o)throw new Error('Select a layer before changing its visibility.');
+ if(o.locked)throw new Error('Unlock this layer before editing it.');
+ if(typeof args.visible!=='boolean')throw new Error('Visibility must be true or false.');
+ o.visible=args.visible;renderAll();return {ok:true,visible:o.visible,status:bridgeStatus()};
+}
+function bridgeDuplicateSelected(args={}){
+ const items=selectedObjects();if(!items.length)throw new Error('Select at least one layer to duplicate.');
+ if(items.length>24)throw new Error('Select no more than 24 layers at a time.');
+ if(items.some(item=>item.locked))throw new Error('Unlock selected layers before duplicating.');
+ const offsetX=Number.isFinite(args.offsetX)?args.offsetX:32,offsetY=Number.isFinite(args.offsetY)?args.offsetY:32;
+ const idMap=new Map(items.map(item=>[item.id,uid()])),groupMap=new Map();
+ const copies=items.map(item=>{
+  const copy=JSON.parse(JSON.stringify({...item,img:undefined}));
+  copy.id=idMap.get(item.id);copy.name=String(item.name||'Layer')+' copy';
+  copy.x=(Number(copy.x)||0)+offsetX;copy.y=(Number(copy.y)||0)+offsetY;
+  copy.keys=(copy.keys||[]).map(key=>({...key,state:{...key.state,x:(Number(key.state?.x)||0)+offsetX,y:(Number(key.state?.y)||0)+offsetY}}));
+  copy.parentId=item.parentId&&idMap.has(item.parentId)?idMap.get(item.parentId):item.parentId||null;
+  if(item.groupId){if(!groupMap.has(item.groupId))groupMap.set(item.groupId,'grp-'+(nextGroupId++));copy.groupId=groupMap.get(item.groupId)}
+  copy.img=null;return copy;
+ });
+ objects().push(...copies);selectedIds=copies.map(copy=>copy.id);selectedId=selectedIds[selectedIds.length-1]||null;
+ hydrateImages();renderAll();return {ok:true,created:copies.map(copy=>({id:copy.id,name:copy.name,type:copy.type})),status:bridgeStatus()};
+}
+function bridgeMoveLayer(args={}){
+ const o=selected();if(!o)throw new Error('Select one layer before changing its order.');
+ if(selectedIds.length>1)throw new Error('Choose one layer at a time to move it in front or behind.');
+ if(o.locked)throw new Error('Unlock this layer before reordering it.');
+ const arr=objects(),index=arr.findIndex(item=>item.id===o.id);if(index<0)throw new Error('Selected layer is no longer in this scene.');
+ const direction=args.direction;if(direction!=='front'&&direction!=='back')throw new Error('Direction must be front or back.');
+ arr.splice(index,1);if(direction==='front')arr.push(o);else arr.unshift(o);
+ renderAll();return {ok:true,direction,status:bridgeStatus()};
+}
+function bridgeTransformSelected(args={}){
+ const o=selected();if(!o)throw new Error('Select a layer before transforming it.');
+ if(selectedIds.length>1)throw new Error('Choose one layer at a time for precise transform changes.');
+ if(o.locked||o.type==='audio')throw new Error('This layer cannot be transformed until it is unlocked and visually editable.');
+ const state=currentState(o),allowed=['x','y','width','height','rotation','scale','opacity'];
+ let changed=0;
+ for(const key of allowed){if(args[key]===undefined)continue;state[key]=args[key];changed++}
+ if(!changed)throw new Error('No transform property was provided.');
+ const key=o.keys.find(item=>item.frame===frame);if(key)key.state=state;else o.keys.push({frame,state,easing:easingAt(o,frame)});
+ Object.assign(o,state);o.keys.sort((a,b)=>a.frame-b.frame);renderAll();
+ return {ok:true,frame,transform:{x:state.x,y:state.y,width:state.width??o.width,height:state.height??o.height,rotation:state.rotation,scale:state.scale,opacity:state.opacity},status:bridgeStatus()};
+}
+function bridgeGroupSelected(){
+ const items=selectedObjects();if(items.length<2)throw new Error('Select at least two layers to group.');
+ if(items.some(item=>item.locked))throw new Error('Unlock selected layers before grouping.');
+ const groupId='grp-'+(nextGroupId++);items.forEach(item=>{item.groupId=groupId});
+ renderAll();return {ok:true,groupId,count:items.length,status:bridgeStatus()};
+}
+function bridgeUngroupSelected(){
+ const items=selectedObjects();if(!items.length)throw new Error('Select grouped layers to ungroup.');
+ if(items.some(item=>item.locked))throw new Error('Unlock selected layers before ungrouping.');
+ let changed=0;items.forEach(item=>{if(item.groupId){delete item.groupId;changed++}});
+ if(!changed)throw new Error('The selected layers are not grouped.');
+ renderAll();return {ok:true,count:changed,status:bridgeStatus()};
+}
+function bridgeAddKeyframe(){
+ const o=selected();if(!o||selectedIds.length>1||o.type==='audio')throw new Error('Select one visual layer to add a keyframe.');
+ if(o.locked)throw new Error('Unlock this layer before adding a keyframe.');
+ addKey(o);return {ok:true,frame,keyframeCount:(o.keys||[]).length,status:bridgeStatus()};
+}
+function bridgeSetTimeline(args={}){
+ if(symbolEditId)throw new Error('Exit MovieClip edit mode before changing the main timeline.');
+ const durationSeconds=Number(args.durationSeconds),fps=args.fps===undefined?FPS:Number(args.fps);
+ if(!Number.isFinite(durationSeconds)||durationSeconds<1||durationSeconds>120||![12,24,30,60].includes(fps))throw new Error('Timeline settings are outside supported bounds.');
+ setTimelineSettings(fps,durationSeconds);return {ok:true,durationSeconds:DURATION,fps:FPS,status:bridgeStatus()};
+}
+function bridgeUndo(){
+ if(historyIndex<=0)return {ok:false,message:'Nothing to undo.',status:bridgeStatus()};
+ travelHistory(-1);return {ok:true,status:bridgeStatus()};
+}
+function bridgeRedo(){
+ if(historyIndex<0||historyIndex>=history.length-1)return {ok:false,message:'Nothing to redo.',status:bridgeStatus()};
+ travelHistory(1);return {ok:true,status:bridgeStatus()};
+}
+async function bridgeCropSelectedImage(args={}){
+ if(symbolEditId)throw new Error('Exit MovieClip edit mode before cropping an image.');
+ const o=selected();if(!o||o.type!=='image'||selectedIds.length>1)throw new Error('Select exactly one image layer before cropping.');
+ if(o.locked)throw new Error('Unlock this image layer before cropping.');
+ const left=Number(args.left),top=Number(args.top),widthRatio=Number(args.width),heightRatio=Number(args.height);
+ if(![left,top,widthRatio,heightRatio].every(Number.isFinite)||left<0||top<0||widthRatio<.05||heightRatio<.05||left+widthRatio>1.000001||top+heightRatio>1.000001)throw new Error('Crop bounds must be valid normalized fractions inside the image.');
+ const sourceUrl=o.dataUrl||o.img?.src;if(!sourceUrl)throw new Error('This image has no editable pixel source.');
+ pause();
+ const sourceImage=new Image();if(/^https:\/\//i.test(sourceUrl))sourceImage.crossOrigin='anonymous';
+ await new Promise((resolve,reject)=>{sourceImage.onload=resolve;sourceImage.onerror=()=>reject(new Error('Could not load this image for cropping.'));sourceImage.src=sourceUrl});
+ const sourceWidth=sourceImage.naturalWidth||sourceImage.width,sourceHeight=sourceImage.naturalHeight||sourceImage.height;
+ const x=Math.max(0,Math.floor(left*sourceWidth)),y=Math.max(0,Math.floor(top*sourceHeight));
+ const cropWidth=Math.max(1,Math.min(sourceWidth-x,Math.round(widthRatio*sourceWidth))),cropHeight=Math.max(1,Math.min(sourceHeight-y,Math.round(heightRatio*sourceHeight)));
+ if(cropWidth<8||cropHeight<8)throw new Error('The crop area is too small.');
+ if(cropWidth*cropHeight>20000000)throw new Error('The crop area is too large for a safe browser edit.');
+ if(x===0&&y===0&&cropWidth===sourceWidth&&cropHeight===sourceHeight)throw new Error('The crop rectangle covers the whole image; choose a smaller area.');
+ const originalAssetId=o.assetId||('img-'+uid());
+ if(!resourceLibrary.images.some(item=>item.id===originalAssetId)){
+  resourceLibrary.images.push({id:originalAssetId,name:(o.name||'Image')+' · original',dataUrl:sourceUrl,externalUrl:o.externalUrl||undefined,communityAssetId:o.communityAssetId||undefined,width:sourceWidth,height:sourceHeight,size:0});
+ }
+ const output=document.createElement('canvas');output.width=cropWidth;output.height=cropHeight;
+ const outputContext=output.getContext('2d');if(!outputContext)throw new Error('Image crop canvas is not available.');
+ outputContext.drawImage(sourceImage,x,y,cropWidth,cropHeight,0,0,cropWidth,cropHeight);
+ let dataUrl;try{dataUrl=output.toDataURL('image/png')}catch(error){throw new Error('This image host does not allow safe canvas cropping (CORS).')}
+ const croppedImage=new Image();await new Promise((resolve,reject)=>{croppedImage.onload=resolve;croppedImage.onerror=()=>reject(new Error('Could not reload the cropped image.'));croppedImage.src=dataUrl});
+ const cropCenterX=x+cropWidth/2-sourceWidth/2,cropCenterY=y+cropHeight/2-sourceHeight/2,ratioX=cropWidth/sourceWidth,ratioY=cropHeight/sourceHeight,oldPivotX=Number(o.pivotX)||0,oldPivotY=Number(o.pivotY)||0;
+ const updateState=state=>{
+  const displayW=Number(state.width??o.width)||1,displayH=Number(state.height??o.height)||1,scale=Math.max(.0001,Number(state.scale)||1),rad=(Number(state.rotation)||0)*Math.PI/180,cos=Math.cos(rad)*scale,sin=Math.sin(rad)*scale,qx=cropCenterX*displayW/sourceWidth,qy=cropCenterY*displayH/sourceHeight;
+  state.x=(Number(state.x)||0)+oldPivotX-cos*oldPivotX+(-sin)*(-oldPivotY)+cos*qx-sin*qy;
+  state.y=(Number(state.y)||0)+oldPivotY-sin*oldPivotX-cos*oldPivotY+sin*qx+cos*qy;
+  state.width=displayW*ratioX;state.height=displayH*ratioY;
+ };
+ updateState(o);(o.keys||[]).forEach(key=>{key.state={...key.state};updateState(key.state)});
+ o.pivotX=0;o.pivotY=0;o.dataUrl=dataUrl;o.img=croppedImage;o.width=Math.max(1,Number(o.width)||cropWidth);o.height=Math.max(1,Number(o.height)||cropHeight);
+ o.assetId='img-'+uid();delete o.externalUrl;delete o.communityAssetId;
+ resourceLibrary.images.push({id:o.assetId,name:(o.name||'Image')+' · cropped',dataUrl,width:cropWidth,height:cropHeight,size:Math.round(dataUrl.length*.75)});
+ renderResourceLibrary();renderAll();
+ return {ok:true,cropped:{layerId:o.id,width:cropWidth,height:cropHeight,assetId:o.assetId},message:'Image cropped; original resource remains available in the Resource Library.',status:bridgeStatus()};
 }
 function bridgePlay(){if(!playing)$('playBtn').click();return {ok:true,playing:true}}
 function bridgeStop(){$('stopBtn').click();return {ok:true,playing:false,frame}}
@@ -1915,18 +2068,14 @@ function bridgeAnimateCommunityImage(args={}){
 }
 
 window["GeedHardwinBridge"] = Object.freeze({
- getStatus:bridgeStatus,
- listLayers:()=>bridgeStatus().layers,
- createCircle:bridgeCreateCircle,
- animateCircle:bridgeAnimateCircle,
- buildScene:bridgeBuildScene,
- addCommunityAsset:bridgeAddCommunityAsset,
- animateCommunityImage:bridgeAnimateCommunityImage,
- play:bridgePlay,
- stop:bridgeStop,
- setFrame:bridgeSetFrame,
- deleteSelected:bridgeDeleteSelected,
- exportVideo:bridgeExport
+ getStatus:bridgeStatus,listLayers:()=>bridgeStatus().layers,
+ createCircle:bridgeCreateCircle,animateCircle:bridgeAnimateCircle,buildScene:bridgeBuildScene,
+ addCommunityAsset:bridgeAddCommunityAsset,animateCommunityImage:bridgeAnimateCommunityImage,
+ selectLayer:bridgeSelectLayer,renameLayer:bridgeRenameLayer,setLayerVisibility:bridgeSetLayerVisibility,
+ duplicateSelected:bridgeDuplicateSelected,moveLayer:bridgeMoveLayer,transformSelected:bridgeTransformSelected,
+ groupSelected:bridgeGroupSelected,ungroupSelected:bridgeUngroupSelected,addKeyframe:bridgeAddKeyframe,
+ setTimeline:bridgeSetTimeline,cropSelectedImage:bridgeCropSelectedImage,undo:bridgeUndo,redo:bridgeRedo,
+ play:bridgePlay,stop:bridgeStop,setFrame:bridgeSetFrame,deleteSelected:bridgeDeleteSelected,exportVideo:bridgeExport
 });
 function aiBridgeAppend(text,who='agent'){
  const log=$('aiBridgeLog');if(!log)return;
@@ -1970,35 +2119,24 @@ updateAgentStatus(false);
 window.addEventListener('pagehide',()=>{aiAgentConversation=[];const log=$('aiBridgeLog');if(log)log.replaceChildren();});
 
 function agentSnapshot(){
- const status=window.GeedHardwinBridge.getStatus();
- const selectedObject=selected();
+ const status=window.GeedHardwinBridge.getStatus(),selectedObject=selected();
  return {
   scene:String(status.scene||'Scene').slice(0,100),
   canvas:{width:Number(status.width)||1280,height:Number(status.height)||720},
-  sceneIndex:Number(status.sceneIndex)||0,
-  fps:Number(status.fps)||24,
-  durationSeconds:Number(status.durationSeconds)||0,
-  maxFrame:Number(status.maxFrame)||0,
-  currentFrame:Number(status.currentFrame)||0,
-  playing:Boolean(status.playing),
-  layerCount:Number(status.layerCount)||0,
-  selectedCount:Number(status.selectedCount)||0,
-  selectedLayers:(Array.isArray(status.selectedLayers)?status.selectedLayers:[]).slice(0,20).map(layer=>({id:String(layer.id||'').slice(0,100),name:String(layer.name||'').slice(0,80),type:String(layer.type||'').slice(0,40)})),
-  selected:status.selected?{
-   id:String(status.selected.id||'').slice(0,100),
-   name:String(status.selected.name||'').slice(0,80),
-   type:String(status.selected.type||'').slice(0,40)
-  }:null,
+  sceneIndex:Number(status.sceneIndex)||0,fps:Number(status.fps)||24,
+  durationSeconds:Number(status.durationSeconds)||0,maxFrame:Number(status.maxFrame)||0,
+  currentFrame:Number(status.currentFrame)||0,playing:Boolean(status.playing),
+  layerCount:Number(status.layerCount)||0,selectedCount:Number(status.selectedCount)||0,
+  selectedLayers:(Array.isArray(status.selectedLayers)?status.selectedLayers:[]).slice(0,24).map(layer=>({id:String(layer.id||'').slice(0,100),name:String(layer.name||'').slice(0,80),type:String(layer.type||'').slice(0,40),groupId:layer.groupId||null})),
+  selected:status.selected?{id:String(status.selected.id||'').slice(0,100),name:String(status.selected.name||'').slice(0,80),type:String(status.selected.type||'').slice(0,40)}:null,
   selectedCommunityAssetId:selectedObject?.communityAssetId?String(selectedObject.communityAssetId).slice(0,80):null,
   selectedLayerKeyCount:Array.isArray(selectedObject?.keys)?selectedObject.keys.length:0,
+  selectedLayerKeyframes:Array.isArray(status.selectedLayerKeyframes)?status.selectedLayerKeyframes.slice(0,120):[],
+  selectedImageDimensions:status.selectedImageDimensions||null,
+  selectedTransform:status.selectedTransform||null,
+  history:status.history||null,
   availableCommunityAssets:(window.GeedHardwinCommunityCatalog||[]).filter(asset=>asset.supportsEditor===true&&['image','audio'].includes(asset.mediaType)).slice(0,32).map(asset=>({id:asset.id,title:String(asset.title||'').slice(0,90),category:asset.category,mediaType:asset.mediaType,supportsEditor:true,description:String(asset.description||'').slice(0,120)})),
-  layers:(Array.isArray(status.layers)?status.layers:[]).slice(0,40).map(layer=>({
-   id:String(layer.id||'').slice(0,100),
-   name:String(layer.name||'').slice(0,80),
-   type:String(layer.type||'').slice(0,40),
-   visible:layer.visible!==false,
-   locked:Boolean(layer.locked)
-  }))
+  layers:(Array.isArray(status.layers)?status.layers:[]).slice(0,80).map(layer=>({id:String(layer.id||'').slice(0,100),name:String(layer.name||'').slice(0,80),type:String(layer.type||'').slice(0,40),visible:layer.visible!==false,locked:Boolean(layer.locked),groupId:layer.groupId||null,zIndex:Number(layer.zIndex)||0}))
  };
 }
 
@@ -2009,69 +2147,82 @@ function selectedObjectSafeForAgent(snapshot){
 function validateBrowserAgentAction(action){
  if(!action||typeof action!=='object'||Array.isArray(action)||typeof action.tool!=='string')throw new Error('Tác vụ AI không hợp lệ.');
  const args=action.args&&typeof action.args==='object'&&!Array.isArray(action.args)?action.args:{};
- const number=(key,min,max,required=false)=>{
-  const value=args[key];
-  if(value===undefined&&!required)return undefined;
-  if(typeof value!=='number'||!Number.isFinite(value)||value<min||value>max)throw new Error('Tham số không hợp lệ: '+key);
-  return value;
- };
- const text=(key,max)=>{
-  const value=args[key];
-  if(value===undefined)return undefined;
-  if(typeof value!=='string'||value.length>max)throw new Error('Văn bản tham số quá dài hoặc không hợp lệ.');
-  return value;
- };
- const bounded=(keys)=>{
-  const out={};
-  for(const [key,min,max] of keys){const v=number(key,min,max);if(v!==undefined)out[key]=v;}
-  const color=text('color',7);
-  if(color!==undefined){if(!/^#[0-9a-f]{6}$/i.test(color))throw new Error('Mã màu không hợp lệ.');out.color=color;}
-  const name=text('name',60);if(name!==undefined)out.name=name;
-  return out;
- };
+ const number=(key,min,max,required=false)=>{const value=args[key];if(value===undefined&&!required)return undefined;if(typeof value!=='number'||!Number.isFinite(value)||value<min||value>max)throw new Error('Tham số không hợp lệ: '+key);return value};
+ const text=(key,max,required=false)=>{const value=args[key];if(value===undefined&&!required)return undefined;if(typeof value!=='string'||!value.trim()||value.length>max)throw new Error('Văn bản tham số không hợp lệ: '+key);return value.trim()};
+ const color=(source,key)=>{const value=source[key];if(value===undefined)return undefined;if(typeof value!=='string'||!/^#[0-9a-f]{6}$/i.test(value))throw new Error('Mã màu không hợp lệ: '+key);return value};
+ const layerId=value=>{if(typeof value!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/.test(value))throw new Error('Mã layer không hợp lệ.');return value};
  switch(action.tool){
-  case 'inspect':case 'play':case 'stop':case 'deleteSelected':
-   return {tool:action.tool,args:{}};
+  case 'inspect':case 'play':case 'stop':case 'deleteSelected':case 'groupSelected':case 'ungroupSelected':case 'addKeyframe':case 'undo':case 'redo':return {tool:action.tool,args:{}};
+  case 'selectLayer':return {tool:action.tool,args:{layerId:layerId(args.layerId)}};
+  case 'renameLayer':return {tool:action.tool,args:{name:text('name',80,true)}};
+  case 'setLayerVisibility':if(typeof args.visible!=='boolean')throw new Error('Visibility must be true or false.');return {tool:action.tool,args:{visible:args.visible}};
+  case 'duplicateSelected':{
+   const clean={};for(const [key,min,max] of [['offsetX',-1280,1280],['offsetY',-720,720]]){const value=number(key,min,max);if(value!==undefined)clean[key]=value}
+   return {tool:action.tool,args:clean};
+  }
+  case 'moveLayer':if(!['front','back'].includes(args.direction))throw new Error('Thứ tự layer chỉ nhận front hoặc back.');return {tool:action.tool,args:{direction:args.direction}};
+  case 'transformSelected':{
+   const clean={};for(const [key,min,max] of [['x',0,1280],['y',0,720],['width',1,2560],['height',1,1440],['rotation',-720,720],['scale',0.1,5],['opacity',0,1]]){const value=number(key,min,max);if(value!==undefined)clean[key]=value}
+   if(!Object.keys(clean).length)throw new Error('Cần ít nhất một thuộc tính biến đổi.');
+   return {tool:action.tool,args:clean};
+  }
+  case 'setTimeline':{
+   const durationSeconds=number('durationSeconds',1,120,true);if(!Number.isInteger(durationSeconds))throw new Error('Thời lượng timeline phải là số nguyên.');
+   const clean={durationSeconds},fps=args.fps===undefined?undefined:args.fps;
+   if(fps!==undefined){if(![12,24,30,60].includes(fps))throw new Error('FPS không được hỗ trợ.');clean.fps=fps}
+   return {tool:action.tool,args:clean};
+  }
+  case 'cropSelectedImage':{
+   const clean={left:number('left',0,0.95,true),top:number('top',0,0.95,true),width:number('width',0.05,1,true),height:number('height',0.05,1,true)};
+   if(clean.left+clean.width>1.000001||clean.top+clean.height>1.000001||(clean.left===0&&clean.top===0&&clean.width===1&&clean.height===1))throw new Error('Vùng crop phải nằm trọn trong ảnh và tạo thay đổi.');
+   return {tool:action.tool,args:clean};
+  }
   case 'addCommunityAsset':{
-   const assetId=args.assetId;
-   if(typeof assetId!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(assetId))throw new Error('Mã vật liệu cộng đồng không hợp lệ.');
-   return {tool:'addCommunityAsset',args:{assetId}};
+   const assetId=text('assetId',80,true);if(!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(assetId))throw new Error('Mã vật liệu cộng đồng không hợp lệ.');
+   return {tool:action.tool,args:{assetId}};
   }
   case 'animateCommunityImage':{
-   const assetId=text('assetId',80);
-   if(typeof assetId!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(assetId))throw new Error('Mã vật liệu cộng đồng không hợp lệ.');
+   const assetId=text('assetId',80,true);if(!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(assetId))throw new Error('Mã vật liệu cộng đồng không hợp lệ.');
    const clean={assetId,durationSeconds:number('durationSeconds',1,60,true),toX:number('toX',0,1280,true),toY:number('toY',0,720,true)};
-   for(const [key,min,max] of [['startX',0,1280],['startY',0,720],['rotation',-720,720],['scale',0.1,5],['opacity',0,1]]){const v=number(key,min,max);if(v!==undefined)clean[key]=v;}
-   const currentSnapshot=agentSnapshot();
-   if(currentSnapshot.selectedCommunityAssetId!==assetId||!selectedObjectSafeForAgent(currentSnapshot))throw new Error('AI chỉ được tạo chuyển động cho đúng ảnh cộng đồng mới đang được chọn.');
-   return {tool:'animateCommunityImage',args:clean};
+   for(const [key,min,max] of [['startX',0,1280],['startY',0,720],['rotation',-720,720],['scale',0.1,5],['opacity',0,1]]){const value=number(key,min,max);if(value!==undefined)clean[key]=value}
+   const currentSnapshot=agentSnapshot();if(currentSnapshot.selectedCommunityAssetId!==assetId||!selectedObjectSafeForAgent(currentSnapshot))throw new Error('AI chỉ được tạo chuyển động cho đúng ảnh cộng đồng mới đang được chọn.');
+   return {tool:action.tool,args:clean};
   }
   case 'buildScene':{
-   const durationSeconds=number('durationSeconds',1,60,true);
-   if(!Array.isArray(args.elements)||args.elements.length<1||args.elements.length>12)throw new Error('Cảnh cần từ 1 đến 12 lớp.');
+   const durationSeconds=number('durationSeconds',1,120,true);
+   if(!Number.isInteger(durationSeconds))throw new Error('Thời lượng cảnh phải là số nguyên.');
+   if(!Array.isArray(args.elements)||args.elements.length<1||args.elements.length>24)throw new Error('Cảnh cần từ 1 đến 24 lớp.');
+   const types=['rect','circle','ellipse','triangle','polygon','star','line','text'];
    const sceneElements=args.elements.map(element=>{
-    if(!element||typeof element!=='object'||Array.isArray(element)||!['rect','circle','text'].includes(element.type))throw new Error('Loại lớp cảnh không hợp lệ.');
-    const num=(key,min,max,required=false)=>{const v=element[key];if(v===undefined&&!required)return undefined;if(typeof v!=='number'||!Number.isFinite(v)||v<min||v>max)throw new Error('Tham số cảnh không hợp lệ: '+key);return v};
-    const str=(key,max,required=false)=>{const v=element[key];if(v===undefined&&!required)return undefined;if(typeof v!=='string'||!v.trim()||v.length>max)throw new Error('Văn bản cảnh không hợp lệ: '+key);return v.trim()};
+    if(!element||typeof element!=='object'||Array.isArray(element)||!types.includes(element.type))throw new Error('Loại lớp cảnh không hợp lệ.');
+    const num=(key,min,max,required=false)=>{const value=element[key];if(value===undefined&&!required)return undefined;if(typeof value!=='number'||!Number.isFinite(value)||value<min||value>max)throw new Error('Tham số cảnh không hợp lệ: '+key);return value};
+    const str=(key,max,required=false)=>{const value=element[key];if(value===undefined&&!required)return undefined;if(typeof value!=='string'||!value.trim()||value.length>max)throw new Error('Văn bản cảnh không hợp lệ: '+key);return value.trim()};
     const clean={type:element.type,x:num('x',0,1280,true),y:num('y',0,720,true),width:num('width',8,1280,true),height:num('height',8,720,true)};
     const name=str('name',60);if(name!==undefined)clean.name=name;
-    const color=str('color',7);if(color!==undefined){if(!/^#[0-9a-f]{6}$/i.test(color))throw new Error('Mã màu không hợp lệ.');clean.color=color}
+    for(const key of ['color','fillColor']){const value=color(element,key);if(value!==undefined)clean[key]=value}
+    const strokeWidth=num('strokeWidth',1,80);if(strokeWidth!==undefined)clean.strokeWidth=strokeWidth;
+    if(element.type==='polygon'){clean.sides=num('sides',3,12,true);if(!Number.isInteger(clean.sides))throw new Error('Polygon side count must be an integer.')}
+    if(element.type==='star'){const innerRatio=num('innerRatio',0.15,0.85);if(innerRatio!==undefined)clean.innerRatio=innerRatio}
     if(element.type==='text'){clean.text=str('text',180,true);const fontSize=num('fontSize',8,200);if(fontSize!==undefined)clean.fontSize=fontSize}
-    for(const [key,min,max] of [['rotation',-720,720],['scale',0.1,5],['opacity',0,1],['startX',0,1280],['startY',0,720],['startRotation',-720,720],['startScale',0.1,5],['startOpacity',0,1]]){const v=num(key,min,max);if(v!==undefined)clean[key]=v}
+    for(const [key,min,max] of [['rotation',-720,720],['scale',0.1,5],['opacity',0,1],['startX',0,1280],['startY',0,720],['startRotation',-720,720],['startScale',0.1,5],['startOpacity',0,1]]){const value=num(key,min,max);if(value!==undefined)clean[key]=value}
     return clean;
    });
    return {tool:'buildScene',args:{durationSeconds,elements:sceneElements}};
   }
-  case 'setFrame':return {tool:'setFrame',args:{frame:number('frame',0,7199,true)}};
-  case 'createCircle':return {tool:'createCircle',args:bounded([['x',40,1240],['y',40,680],['radius',12,220]])};
-  case 'animateCircle':return {tool:'animateCircle',args:bounded([['durationSeconds',1,120],['fromX',60,1220],['toX',60,1220],['y',60,660],['radius',12,180]])};
+  case 'setFrame':{const frame=number('frame',0,7199,true);if(!Number.isInteger(frame))throw new Error('Frame phải là số nguyên.');return {tool:action.tool,args:{frame}};}
+  case 'createCircle':{
+   const clean={};for(const [key,min,max] of [['x',40,1240],['y',40,680],['radius',12,220]]){const value=number(key,min,max);if(value!==undefined)clean[key]=value}
+   const c=color(args,'color');if(c!==undefined)clean.color=c;const n=text('name',60);if(n!==undefined)clean.name=n;return {tool:action.tool,args:clean};
+  }
+  case 'animateCircle':{
+   const clean={};for(const [key,min,max] of [['durationSeconds',1,120],['fromX',60,1220],['toX',60,1220],['y',60,660],['radius',12,180]]){const value=number(key,min,max);if(value!==undefined)clean[key]=value}
+   const c=color(args,'color');if(c!==undefined)clean.color=c;const n=text('name',60);if(n!==undefined)clean.name=n;return {tool:action.tool,args:clean};
+  }
   default:throw new Error('Tác tử đề xuất một công cụ chưa được cho phép.');
  }
 }
-
 async function runAgentEditorAction(rawAction){
- const action=validateBrowserAgentAction(rawAction);
- const before=agentSnapshot();
+ const action=validateBrowserAgentAction(rawAction),before=agentSnapshot();
  if(action.tool==='inspect')return {tool:action.tool,verified:true,before,after:before};
  let result=null;
  switch(action.tool){
@@ -2080,43 +2231,58 @@ async function runAgentEditorAction(rawAction){
   case 'buildScene':result=window.GeedHardwinBridge.buildScene(action.args);break;
   case 'addCommunityAsset':result=await window.GeedHardwinBridge.addCommunityAsset(action.args);break;
   case 'animateCommunityImage':result=window.GeedHardwinBridge.animateCommunityImage(action.args);break;
+  case 'selectLayer':result=window.GeedHardwinBridge.selectLayer(action.args);break;
+  case 'renameLayer':result=window.GeedHardwinBridge.renameLayer(action.args);break;
+  case 'setLayerVisibility':result=window.GeedHardwinBridge.setLayerVisibility(action.args);break;
+  case 'duplicateSelected':result=window.GeedHardwinBridge.duplicateSelected(action.args);break;
+  case 'moveLayer':result=window.GeedHardwinBridge.moveLayer(action.args);break;
+  case 'transformSelected':result=window.GeedHardwinBridge.transformSelected(action.args);break;
+  case 'groupSelected':result=window.GeedHardwinBridge.groupSelected();break;
+  case 'ungroupSelected':result=window.GeedHardwinBridge.ungroupSelected();break;
+  case 'addKeyframe':result=window.GeedHardwinBridge.addKeyframe();break;
+  case 'setTimeline':result=window.GeedHardwinBridge.setTimeline(action.args);break;
+  case 'cropSelectedImage':result=await window.GeedHardwinBridge.cropSelectedImage(action.args);break;
+  case 'undo':result=window.GeedHardwinBridge.undo();break;
+  case 'redo':result=window.GeedHardwinBridge.redo();break;
   case 'play':result=window.GeedHardwinBridge.play();break;
   case 'stop':result=window.GeedHardwinBridge.stop();break;
   case 'setFrame':
    if(action.args.frame>before.maxFrame)throw new Error('Frame được yêu cầu nằm ngoài timeline hiện tại.');
-   result=window.GeedHardwinBridge.setFrame(action.args.frame);
-   break;
+   result=window.GeedHardwinBridge.setFrame(action.args.frame);break;
   case 'deleteSelected':{
    if(before.selectedCount<1)throw new Error('Chưa có layer nào được chọn. Hãy chọn layer cần xóa trước.');
    const names=before.selectedLayers.map(layer=>layer.name||layer.id).join(', ');
    const confirmed=window.confirm('AI muốn xóa '+before.selectedCount+' layer đang chọn ('+names+'). Bạn có chắc chắn muốn xóa đúng các layer này không?');
    if(!confirmed)return {tool:action.tool,cancelled:true,verified:false,before,after:before};
-   result=window.GeedHardwinBridge.deleteSelected();
-   if(!result?.ok)throw new Error(result?.message||'Không có layer nào được xóa.');
-   break;
+   result=window.GeedHardwinBridge.deleteSelected();if(!result?.ok)throw new Error(result?.message||'Không có layer nào được xóa.');break;
   }
   default:throw new Error('Công cụ editor không được hỗ trợ.');
  }
- const after=agentSnapshot();
- let verified=false;
+ const after=agentSnapshot();let verified=false;
  if(action.tool==='createCircle'||action.tool==='animateCircle')verified=after.layerCount>before.layerCount;
  else if(action.tool==='buildScene')verified=after.layerCount===before.layerCount+action.args.elements.length;
  else if(action.tool==='addCommunityAsset')verified=after.layerCount>before.layerCount;
  else if(action.tool==='animateCommunityImage')verified=after.selectedCommunityAssetId===action.args.assetId&&after.selectedLayerKeyCount>=2&&after.selected?.type==='image';
+ else if(action.tool==='selectLayer')verified=after.selected?.id===action.args.layerId;
+ else if(action.tool==='renameLayer')verified=after.selected?.name===action.args.name;
+ else if(action.tool==='setLayerVisibility')verified=after.layers.some(layer=>layer.id===before.selected?.id&&layer.visible===action.args.visible);
+ else if(action.tool==='duplicateSelected')verified=after.layerCount===before.layerCount+before.selectedCount&&after.selectedCount===before.selectedCount;
+ else if(action.tool==='moveLayer'){const index=after.layers.findIndex(layer=>layer.id===before.selected?.id);verified=action.args.direction==='front'?index===after.layers.length-1:index===0}
+ else if(action.tool==='transformSelected')verified=Object.entries(action.args).every(([key,value])=>Math.abs(Number(after.selectedTransform?.[key])-value)<0.01);
+ else if(action.tool==='groupSelected')verified=after.selectedLayers.length>=2&&after.selectedLayers.every(layer=>layer.groupId&&layer.groupId===after.selectedLayers[0].groupId);
+ else if(action.tool==='ungroupSelected')verified=after.selectedLayers.length>0&&after.selectedLayers.every(layer=>!layer.groupId);
+ else if(action.tool==='addKeyframe')verified=after.selectedLayerKeyframes.includes(before.currentFrame);
+ else if(action.tool==='setTimeline')verified=after.durationSeconds===result.durationSeconds&&after.fps===result.fps;
+ else if(action.tool==='cropSelectedImage')verified=after.selected?.id===before.selected?.id&&after.selected?.type==='image'&&after.selectedImageDimensions?.width===result.cropped?.width&&after.selectedImageDimensions?.height===result.cropped?.height;
+ else if(action.tool==='undo')verified=result?.ok===true&&after.history?.index<before.history?.index;
+ else if(action.tool==='redo')verified=result?.ok===true&&after.history?.index>before.history?.index;
  else if(action.tool==='play')verified=after.playing;
  else if(action.tool==='stop')verified=!after.playing;
  else if(action.tool==='setFrame')verified=after.currentFrame===action.args.frame;
  else if(action.tool==='deleteSelected')verified=before.selectedCount>0&&after.layerCount===before.layerCount-before.selectedCount;
  if(!verified)throw new Error('Editor chưa xác nhận được kết quả của thao tác '+action.tool+'. Mình đã dừng để tránh báo sai.');
- return {
-  tool:action.tool,
-  verified:true,
-  result:result?{ok:result.ok===true,created:result.created||null,message:result.message||null}:null,
-  before,
-  after
- };
+ return {tool:action.tool,verified:true,result:result?{ok:result.ok===true,created:result.created||null,cropped:result.cropped||null,message:result.message||null}:null,before,after};
 }
-
 function setAgentBusy(busy){
  aiAgentBusy=busy;
  $('aiBridgeInput').disabled=busy;
