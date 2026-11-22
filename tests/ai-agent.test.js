@@ -79,6 +79,9 @@ test('buildScene accepts bounded shape and text layers with keyframe positions',
   assert.equal(action.args.elements[7].text, 'Hello Geed');
   assert.equal('script' in action.args.elements[0], false);
   assert.throws(() => sanitizeAgentAction({ tool: 'buildScene', args: { durationSeconds: 0, elements: [] } }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'buildScene', args: { durationSeconds: 1.5, elements: [{ type: 'triangle', x: 100, y: 100, width: 60, height: 60 }] } }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'setTimeline', args: { durationSeconds: 2.5 } }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'setFrame', args: { frame: 2.5 } }));
   assert.throws(() => sanitizeAgentAction({ tool: 'buildScene', args: { durationSeconds: 8, elements: [{ type: 'image', x: 1, y: 1, width: 10, height: 10 }] } }));
   assert.throws(() => sanitizeAgentAction({ tool: 'buildScene', args: { durationSeconds: 8, elements: [{ type: 'text', x: 1, y: 1, width: 10, height: 10 }] } }));
   assert.throws(() => sanitizeAgentAction({ tool: 'buildScene', args: { durationSeconds: 8, elements: Array(25).fill({ type: 'rect', x: 1, y: 1, width: 10, height: 10 }) } }));
