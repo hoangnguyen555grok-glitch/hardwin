@@ -40,7 +40,7 @@ test('AI editor exposes verified creative tools and non-destructive cropping', (
     assert.match(html, new RegExp(shape));
   }
   assert.match(html, /Original resource remains available in the Resource Library/);
-  assert.match(html, /Never use deleteSelected when the user asks to crop, trim, clip or cut an image/);
+  assert.match(html, /Cắt ảnh giữ bản gốc/);
   assert.match(html, /window\.confirm\('AI muốn xóa /);
 });
 
