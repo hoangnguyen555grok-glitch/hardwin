@@ -1896,6 +1896,7 @@ function bridgeStatus(){
  return {
   app:'Geed Hardwin',version:'v1.30',scene:scene()?.name||'Scene',sceneIndex,
   fps:FPS,durationSeconds:DURATION,maxFrame:MAX,currentFrame:frame,playing,width:W,height:H,
+  playbackOptions:{loopPlayback,frameByFrame,onionSkin,onionPrevCount,onionNextCount,onionPrevOpacity:Math.round(onionPrevOpacity*100),onionNextOpacity:Math.round(onionNextOpacity*100),onionSelectedOnly},
   layerCount:all.length,selectedCount:(selectedIds.length?selectedIds:(selectedId?[selectedId]:[])).length,
   selectedLayers:(selectedIds.length?selectedIds:(selectedId?[selectedId]:[])).map(id=>all.find(o=>o.id===id)).filter(Boolean).map(o=>({id:o.id,name:o.name,type:o.type,groupId:o.groupId||null})),
   selected:sel?{id:sel.id,name:sel.name,type:sel.type}:null,
@@ -2141,6 +2142,25 @@ function bridgeSetTimeline(args={}){
  const durationSeconds=Number(args.durationSeconds),fps=args.fps===undefined?FPS:Number(args.fps);
  if(!Number.isFinite(durationSeconds)||durationSeconds<1||durationSeconds>120||![12,24,30,60].includes(fps))throw new Error('Timeline settings are outside supported bounds.');
  setTimelineSettings(fps,durationSeconds);return {ok:true,durationSeconds:DURATION,fps:FPS,status:bridgeStatus()};
+}
+function bridgeSetPlaybackOptions(args={}){
+ const allowed=['loopPlayback','frameByFrame','onionSkin','onionSelectedOnly'];
+ const numeric=['onionPrevCount','onionNextCount','onionPrevOpacity','onionNextOpacity'];
+ if(!allowed.some(key=>args[key]!==undefined)&&!numeric.some(key=>args[key]!==undefined))throw new Error('Cần ít nhất một tùy chọn phát hoặc onion skin.');
+ for(const key of allowed)if(args[key]!==undefined&&typeof args[key]!=='boolean')throw new Error(key+' phải là true hoặc false.');
+ for(const [key,min,max] of [['onionPrevCount',0,5],['onionNextCount',0,5],['onionPrevOpacity',5,50],['onionNextOpacity',5,50]]){
+  if(args[key]!==undefined&&(!Number.isInteger(args[key])||args[key]<min||args[key]>max))throw new Error(key+' nằm ngoài giới hạn cho phép.');
+ }
+ if(args.loopPlayback!==undefined){loopPlayback=args.loopPlayback;$('loopPlayback').textContent='Loop: '+(loopPlayback?'On':'Off');$('loopPlayback').classList.toggle('active',loopPlayback)}
+ if(args.frameByFrame!==undefined){frameByFrame=args.frameByFrame;$('frameModeBtn').textContent='Frame-by-frame: '+(frameByFrame?'ON':'OFF');$('frameModeBtn').classList.toggle('active',frameByFrame);$('stageHint').textContent=frameByFrame?'Frame-by-frame ON · New drawings last one frame':'Select and drag objects · Add keyframes to animate';}
+ if(args.onionSkin!==undefined){onionSkin=args.onionSkin;$('onionToggle').checked=onionSkin}
+ if(args.onionSelectedOnly!==undefined){onionSelectedOnly=args.onionSelectedOnly;$('onionSelectedOnly').checked=onionSelectedOnly}
+ if(args.onionPrevCount!==undefined){onionPrevCount=args.onionPrevCount;$('onionPrevCount').value=String(onionPrevCount)}
+ if(args.onionNextCount!==undefined){onionNextCount=args.onionNextCount;$('onionNextCount').value=String(onionNextCount)}
+ if(args.onionPrevOpacity!==undefined){onionPrevOpacity=args.onionPrevOpacity/100;$('onionPrevOpacity').value=String(args.onionPrevOpacity)}
+ if(args.onionNextOpacity!==undefined){onionNextOpacity=args.onionNextOpacity/100;$('onionNextOpacity').value=String(args.onionNextOpacity)}
+ if(args.frameByFrame!==undefined)recordHistory();
+ draw();return {ok:true,playbackOptions:bridgeStatus().playbackOptions,status:bridgeStatus()};
 }
 function bridgeUndo(){
  if(historyIndex<=0)return {ok:false,message:'Nothing to undo.',status:bridgeStatus()};
@@ -2427,7 +2447,7 @@ window["GeedHardwinBridge"] = Object.freeze({
  selectLayer:bridgeSelectLayer,selectLayers:bridgeSelectLayers,addImageResource:bridgeAddImageResource,setLayerMask:bridgeSetLayerMask,removeLayerMask:bridgeRemoveLayerMask,renameLayer:bridgeRenameLayer,setLayerVisibility:bridgeSetLayerVisibility,
  duplicateSelected:bridgeDuplicateSelected,moveLayer:bridgeMoveLayer,transformSelected:bridgeTransformSelected,
  groupSelected:bridgeGroupSelected,ungroupSelected:bridgeUngroupSelected,addKeyframe:bridgeAddKeyframe,
- setTimeline:bridgeSetTimeline,cropSelectedImage:bridgeCropSelectedImage,addPrivateMaterial:bridgeAddPrivateMaterial,setSelectedProperties:bridgeSetSelectedProperties,setCamera:bridgeSetCamera,manageScene:bridgeManageScene,setWorkArea:bridgeSetWorkArea,setExposure:bridgeSetExposure,exportVideoPreview:bridgeExportVideoPreview,exportStill:bridgeExportStill,exportGif:bridgeExportGif,exportPngSequence:bridgeExportPngSequence,undo:bridgeUndo,redo:bridgeRedo,
+ setTimeline:bridgeSetTimeline,setPlaybackOptions:bridgeSetPlaybackOptions,cropSelectedImage:bridgeCropSelectedImage,addPrivateMaterial:bridgeAddPrivateMaterial,setSelectedProperties:bridgeSetSelectedProperties,setCamera:bridgeSetCamera,manageScene:bridgeManageScene,setWorkArea:bridgeSetWorkArea,setExposure:bridgeSetExposure,exportVideoPreview:bridgeExportVideoPreview,exportStill:bridgeExportStill,exportGif:bridgeExportGif,exportPngSequence:bridgeExportPngSequence,undo:bridgeUndo,redo:bridgeRedo,
  play:bridgePlay,stop:bridgeStop,setFrame:bridgeSetFrame,deleteSelected:bridgeDeleteSelected,exportVideo:bridgeExport
 });
 function aiBridgeAppend(text,who='agent'){
@@ -2489,7 +2509,7 @@ function agentSnapshot(){
   bones:(Array.isArray(status.bones)?status.bones:[]).slice(0,80).map(bone=>({id:String(bone.id||'').slice(0,100),name:String(bone.name||'').slice(0,80),parentId:bone.parentId||null,length:Number(bone.length)||0,rotation:Number(bone.rotation)||0,locked:Boolean(bone.locked),keyframes:Array.isArray(bone.keyframes)?bone.keyframes.slice(0,120):[]})),
   selectedImageDimensions:status.selectedImageDimensions||null,
   selectedTransform:status.selectedTransform||null,
-  history:status.history||null,
+  history:status.history||null,playbackOptions:status.playbackOptions||null,
   resourceImages:(Array.isArray(resourceLibrary.images)?resourceLibrary.images:[]).slice(0,60).map(asset=>({id:String(asset.id||'').slice(0,100),name:String(asset.name||'Image').slice(0,80),width:Number(asset.width)||0,height:Number(asset.height)||0})),
   availableCommunityAssets:(window.GeedHardwinCommunityCatalog||[]).filter(asset=>asset.supportsEditor===true&&['image','audio'].includes(asset.mediaType)).slice(0,32).map(asset=>({id:asset.id,title:String(asset.title||'').slice(0,90),category:asset.category,mediaType:asset.mediaType,supportsEditor:true,description:String(asset.description||'').slice(0,120)})),
   layers:(Array.isArray(status.layers)?status.layers:[]).slice(0,80).map(layer=>({id:String(layer.id||'').slice(0,100),name:String(layer.name||'').slice(0,80),type:String(layer.type||'').slice(0,40),visible:layer.visible!==false,locked:Boolean(layer.locked),groupId:layer.groupId||null,maskStack:Array.isArray(layer.maskStack)?layer.maskStack.slice(0,8).map(entry=>({id:String(entry.id||'').slice(0,100),mode:entry.mode})):[],zIndex:Number(layer.zIndex)||0}))
@@ -2591,6 +2611,13 @@ function validateBrowserAgentAction(action){
    if(!Object.keys(clean).length)throw new Error('Cần ít nhất một thuộc tính biến đổi.');
    return {tool:action.tool,args:clean};
   }
+  case 'setPlaybackOptions':{
+   const clean={};
+   for(const key of ['loopPlayback','frameByFrame','onionSkin','onionSelectedOnly'])if(args[key]!==undefined){if(typeof args[key]!=='boolean')throw new Error(key+' phải là boolean.');clean[key]=args[key]}
+   for(const [key,min,max] of [['onionPrevCount',0,5],['onionNextCount',0,5],['onionPrevOpacity',5,50],['onionNextOpacity',5,50]]){const value=number(key,min,max);if(value!==undefined){if(!Number.isInteger(value))throw new Error(key+' phải là số nguyên.');clean[key]=value}}
+   if(!Object.keys(clean).length)throw new Error('Cần ít nhất một tùy chọn phát hoặc onion skin.');
+   return {tool:action.tool,args:clean};
+  }
   case 'setTimeline':{
    const durationSeconds=number('durationSeconds',1,120,true);if(!Number.isInteger(durationSeconds))throw new Error('Thời lượng timeline phải là số nguyên.');
    const clean={durationSeconds},fps=args.fps===undefined?undefined:args.fps;
@@ -2683,6 +2710,7 @@ async function runAgentEditorAction(rawAction){
   case 'ungroupSelected':result=window.GeedHardwinBridge.ungroupSelected();break;
   case 'addKeyframe':result=window.GeedHardwinBridge.addKeyframe();break;
   case 'setTimeline':result=window.GeedHardwinBridge.setTimeline(action.args);break;
+  case 'setPlaybackOptions':result=window.GeedHardwinBridge.setPlaybackOptions(action.args);break;
   case 'cropSelectedImage':result=await window.GeedHardwinBridge.cropSelectedImage(action.args);break;
   case 'undo':result=window.GeedHardwinBridge.undo();break;
   case 'redo':result=window.GeedHardwinBridge.redo();break;
@@ -2730,6 +2758,7 @@ async function runAgentEditorAction(rawAction){
  else if(action.tool==='ungroupSelected')verified=after.selectedLayers.length>0&&after.selectedLayers.every(layer=>!layer.groupId);
  else if(action.tool==='addKeyframe')verified=after.selectedLayerKeyframes.includes(before.currentFrame);
  else if(action.tool==='setTimeline')verified=after.durationSeconds===result.durationSeconds&&after.fps===result.fps;
+ else if(action.tool==='setPlaybackOptions')verified=Object.entries(action.args).every(([key,value])=>after.playbackOptions?.[key]===value);
  else if(action.tool==='cropSelectedImage')verified=after.selected?.id===before.selected?.id&&after.selected?.type==='image'&&after.selectedImageDimensions?.width===result.cropped?.width&&after.selectedImageDimensions?.height===result.cropped?.height;
  else if(action.tool==='undo')verified=result?.ok===true&&after.history?.index<before.history?.index;
  else if(action.tool==='redo')verified=result?.ok===true&&after.history?.index>before.history?.index;
