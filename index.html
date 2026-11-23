@@ -1665,11 +1665,11 @@ function exportCanvasSurface(scale=1){const target=document.createElement('canva
 function renderExportFrame(targetContext,sceneNumber,frameNumber,scale=1,transparent=false){const previousContext=ctx,previousScene=sceneIndex,previousFrame=frame;try{sceneIndex=sceneNumber;frame=frameNumber;ctx=targetContext;draw(true,transparent,scale)}finally{ctx=previousContext;sceneIndex=previousScene;frame=previousFrame}}
 function blobFromCanvas(target,type,quality){return new Promise((resolve,reject)=>target.toBlob(blob=>blob?resolve(blob):reject(new Error('The browser could not encode this image format')),type,quality))}
 async function exportStillFrame(){
- if(symbolEditId){toast('Finish editing the MovieClip before exporting');return}
+ if(symbolEditId){toast('Finish editing the MovieClip before exporting');return false}
  const scale=exportScale(),mime=$('exportImageFormat').value,quality=exportQuality(),transparent=mime!=='image/jpeg',q=quality==='high'?.95:quality==='compact'?.65:.84;
  pause();const surface=exportCanvasSurface(scale),button=$('exportStill');button.disabled=true;
- try{renderExportFrame(surface.context,sceneIndex,frame,scale,transparent);let blob=await blobFromCanvas(surface.canvas,mime,q),extension=mime==='image/jpeg'?'jpg':mime==='image/webp'?'webp':'png';if(blob.type!==mime){blob=await blobFromCanvas(surface.canvas,'image/png');extension='png';toast('This browser does not support that format · exported PNG instead')}download(blob,'geed-hardwin-frame-'+String(frame+1).padStart(5,'0')+'.'+extension);if(blob.type===mime)toast('Current frame exported · '+extension.toUpperCase()+' · '+surface.canvas.width+'×'+surface.canvas.height)}
- catch(err){console.error(err);toast(err?.message||'Frame export failed')}finally{button.disabled=!!symbolEditId;draw();renderInspector()}
+ try{renderExportFrame(surface.context,sceneIndex,frame,scale,transparent);let blob=await blobFromCanvas(surface.canvas,mime,q),extension=mime==='image/jpeg'?'jpg':mime==='image/webp'?'webp':'png';if(blob.type!==mime){blob=await blobFromCanvas(surface.canvas,'image/png');extension='png';toast('This browser does not support that format · exported PNG instead')}download(blob,'geed-hardwin-frame-'+String(frame+1).padStart(5,'0')+'.'+extension);if(blob.type===mime)toast('Current frame exported · '+extension.toUpperCase()+' · '+surface.canvas.width+'×'+surface.canvas.height);return true}
+ catch(err){console.error(err);toast(err?.message||'Frame export failed');return false}finally{button.disabled=!!symbolEditId;draw();renderInspector()}
 }
 $('exportStill').onclick=exportStillFrame;
 async function exportVideo(previewMode=false){
@@ -1810,10 +1810,10 @@ function encodeGif(width,height,frames,delayCs=8,quality='balanced'){
  push([0x3b]);return new Blob(parts,{type:'image/gif'});
 }
 async function exportAnimatedGif(){
- if(symbolEditId){toast('Finish editing the MovieClip before exporting');return}
+ if(symbolEditId){toast('Finish editing the MovieClip before exporting');return false}
  const scale=exportScale(),fps=Math.max(1,Math.min(24,Number($('exportGifFps').value)||12)),quality=exportQuality(),framesPerScene=Math.ceil((MAX+1)*fps/FPS),total=scenes.length*framesPerScene,surface=exportCanvasSurface(scale),totalPixels=surface.canvas.width*surface.canvas.height*total;
- if(total>300){toast('GIF is limited to 300 frames · lower GIF FPS or shorten the project');return}
- if(totalPixels>65000000){toast('GIF is too large at this resolution · choose a lower export resolution');return}
+ if(total>300){toast('GIF is limited to 300 frames · lower GIF FPS or shorten the project');return false}
+ if(totalPixels>65000000){toast('GIF is too large at this resolution · choose a lower export resolution');return false}
  const button=$('exportGif'),pngButton=$('exportPngSequence'),videoButton=$('exportVideo'),stillButton=$('exportStill'),oldLabel=button.textContent,frames=[];let done=0;
  pause();[button,pngButton,videoButton,stillButton].forEach(el=>el.disabled=true);
  try{
@@ -1833,8 +1833,8 @@ async function exportAnimatedGif(){
    encoder='built-in offline fallback';
    gif=encodeGif(surface.canvas.width,surface.canvas.height,frames,Math.max(2,Math.round(100/fps)),quality);
   }
-  download(gif,'geed-hardwin-animation.gif');toast('Animated GIF exported · '+encoder+' · '+total+' frames · '+fps+' FPS');
- }catch(err){console.error(err);toast(err?.message||'GIF export failed')}
+  download(gif,'geed-hardwin-animation.gif');toast('Animated GIF exported · '+encoder+' · '+total+' frames · '+fps+' FPS');return true;
+ }catch(err){console.error(err);toast(err?.message||'GIF export failed');return false}
  finally{frames.length=0;button.textContent=oldLabel;[button,pngButton,videoButton,stillButton].forEach(el=>el.disabled=!!symbolEditId);draw();renderInspector()}
 }
 $('exportGif').onclick=exportAnimatedGif;
@@ -1858,9 +1858,9 @@ function zipStoredBlob(entries){
  return new Blob([...localParts,...centralParts,end],{type:'application/zip'});
 }
 async function exportPngSequence(){
- if(symbolEditId){toast('Finish editing the MovieClip before exporting the scene sequence');return}
+ if(symbolEditId){toast('Finish editing the MovieClip before exporting the scene sequence');return false}
  const scale=exportScale(),totalFrames=scenes.length*(MAX+1),maxFrames=2400,maxBytes=512*1024*1024;
- if(totalFrames>maxFrames){toast('PNG export is limited to 2,400 frames per ZIP · shorten the timeline or export fewer scenes');return}
+ if(totalFrames>maxFrames){toast('PNG export is limited to 2,400 frames per ZIP · shorten the timeline or export fewer scenes');return false}
  const button=$('exportPngSequence'),videoButton=$('exportVideo'),stillButton=$('exportStill'),oldLabel=button.textContent,surface=exportCanvasSurface(scale),entries=[];let totalBytes=0,done=0;
  pause();button.disabled=true;videoButton.disabled=true;stillButton.disabled=true;
  try{
@@ -1876,8 +1876,8 @@ async function exportPngSequence(){
   const manifest={format:'geed-hardwin-png-sequence',version:2,width:surface.canvas.width,height:surface.canvas.height,scale,fps:FPS,frameCountPerScene:MAX+1,durationSeconds:(MAX+1)/FPS,background:'transparent',scenes:scenes.map((sc,i)=>({folder:'scene-'+String(i+1).padStart(2,'0'),name:sc.name}))};
   const manifestBlob=new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'}),manifestBytes=new Uint8Array(await manifestBlob.arrayBuffer());
   entries.push({name:'manifest.json',blob:manifestBlob,size:manifestBlob.size,crc:zipCrc32(manifestBytes)});
-  download(zipStoredBlob(entries),'geed-hardwin-png-sequence.zip');toast('PNG sequence exported · '+done+' transparent frames in ZIP');
- }catch(err){console.error(err);toast(err?.message||'PNG sequence export failed')}
+  download(zipStoredBlob(entries),'geed-hardwin-png-sequence.zip');toast('PNG sequence exported · '+done+' transparent frames in ZIP');return true;
+ }catch(err){console.error(err);toast(err?.message||'PNG sequence export failed');return false}
  finally{draw();updatePlayhead();renderInspector();renderTimeline();button.disabled=!!symbolEditId;button.textContent=oldLabel;videoButton.disabled=!!symbolEditId;stillButton.disabled=!!symbolEditId}
 }
 $('exportPngSequence').onclick=exportPngSequence;
@@ -2415,9 +2415,9 @@ async function bridgeExportVideoPreview(){
  videoExportState='rendering';await exportVideo(true);
  return {ok:true,state:videoExportState,message:'Đã khởi động render video preview. Khi hoàn tất, hộp thoại xem trước sẽ xuất hiện.',status:bridgeStatus()};
 }
-async function bridgeExportStill(){if(symbolEditId)throw new Error('Thoát MovieClip edit mode trước khi xuất.');await exportStillFrame();return {ok:true,message:'Đã chạy xuất khung hình hiện tại.',status:bridgeStatus()}}
-async function bridgeExportGif(){if(symbolEditId)throw new Error('Thoát MovieClip edit mode trước khi xuất.');await exportAnimatedGif();return {ok:true,message:'Đã chạy xuất GIF.',status:bridgeStatus()}}
-async function bridgeExportPngSequence(){if(symbolEditId)throw new Error('Thoát MovieClip edit mode trước khi xuất.');await exportPngSequence();return {ok:true,message:'Đã chạy xuất chuỗi PNG.',status:bridgeStatus()}}
+async function bridgeExportStill(){if(symbolEditId)throw new Error('Thoát MovieClip edit mode trước khi xuất.');const ok=await exportStillFrame();if(!ok)throw new Error('Không thể xuất khung hình hiện tại.');return {ok:true,message:'Đã xuất khung hình hiện tại.',status:bridgeStatus()}}
+async function bridgeExportGif(){if(symbolEditId)throw new Error('Thoát MovieClip edit mode trước khi xuất.');const ok=await exportAnimatedGif();if(!ok)throw new Error('Không thể xuất GIF với cấu hình hiện tại.');return {ok:true,message:'Đã xuất GIF.',status:bridgeStatus()}}
+async function bridgeExportPngSequence(){if(symbolEditId)throw new Error('Thoát MovieClip edit mode trước khi xuất.');const ok=await exportPngSequence();if(!ok)throw new Error('Không thể xuất chuỗi PNG với cấu hình hiện tại.');return {ok:true,message:'Đã xuất chuỗi PNG.',status:bridgeStatus()}}
 
 window["GeedHardwinBridge"] = Object.freeze({
  getStatus:bridgeStatus,listLayers:()=>bridgeStatus().layers,
