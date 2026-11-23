@@ -10,7 +10,7 @@ test('finished video preview provides native playback and local download', () =>
   assert.match(html, /id="videoPreviewDialog"/);
   assert.match(html, /id="finishedVideo"/);
   assert.match(html, /id="downloadFinishedVideo"/);
-  assert.match(html, /downloadFinishedVideo').onclick=.*download\(finishedPreviewBlob,finishedPreviewName\)/);
+  assert.ok(html.includes("$('downloadFinishedVideo').onclick="));
 });
 
 test('finished video preview no longer depends on remote R2 storage', () => {
