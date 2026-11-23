@@ -49,6 +49,7 @@ jobs:
       - name: Syntax-check server and browser modules
         run: |
           node --check api/ai/chat.js
+          node --check api/media/upload-url.js
           node --check lib/ai-router.js
           node --check lib/ai-agent.js
           node --check lib/gif-export.mjs
