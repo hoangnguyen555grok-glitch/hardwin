@@ -25,7 +25,9 @@ The materials page is `/materials.html`. It includes a direct **Mở kho Notion*
    - `GEED_NOTION_DATA_SOURCE_ID` — `421d38d6-eafa-8116-8ec2-000bff1b1ed1`.
 7. Add the variables to **Preview** first. Configure **Production** only after the pull request has been reviewed, approved and merged.
 
-The private `/materials.html` view returns rows whose **Người tạo** is the signed-in user's Supabase UUID, rows with an empty creator, and imported rows whose **Người tạo** is a source label such as **Dola AI** or **Runway**. Rows carrying another account's UUID remain private and are not returned.\n\nThe public `/library.html` community view reads the same Notion database through a separate read-only API. It publishes only rows with **Trạng thái = Đã duyệt**, an allowed **Giấy phép** value (**Tự tạo**, **Được cấp phép**, or **Miễn phí**), and an attached file in **Tệp Notion**. Notion's signed file links are refreshed from the server each time the page loads. Notion and Supabase secrets remain on the server.
+The private `/materials.html` view returns rows whose **Người tạo** is the signed-in user's Supabase UUID, rows with an empty creator, and imported rows whose **Người tạo** is a source label such as **Dola AI** or **Runway**. Rows carrying another account's UUID remain private and are not returned.
+
+The public `/library.html` community view reads the same Notion database through a separate read-only API. It publishes only rows with **Trạng thái = Đã duyệt**, an allowed **Giấy phép** value (**Tự tạo**, **Được cấp phép**, or **Miễn phí**), and an attached file in **Tệp Notion**. Notion's signed file links are refreshed from the server each time the page loads. Notion and Supabase secrets remain on the server.
 
 ## 2. Add an asset
 
@@ -35,7 +37,8 @@ Bạn có thể thêm vật liệu theo một trong hai cách:
 1. Mở database **Geed Hardwin — Thư viện vật liệu**.
 2. Tạo một dòng mới; nhập tên ở **Vật liệu**, chọn **Loại** (ví dụ **Hình ảnh**), và đính kèm tệp ở **Tệp Notion**.
 3. Có thể để trống **Người tạo**. Geed coi dòng này là tài nguyên dùng chung và hiển thị cho người đã đăng nhập.
-4. Quay lại Geed. Trang **Thư viện vật liệu** tự kiểm tra cập nhật khoảng mỗi 30 giây khi đang mở; khi chuyển tab quay lại cũng sẽ tải mới. Nút **Làm mới** vẫn có thể dùng thủ công.\n5. Để đưa vật liệu lên **Kho vật liệu cộng đồng** công khai, đặt **Trạng thái** thành **Đã duyệt** và chọn giấy phép hợp lệ. Chỉ mục có tệp đính kèm mới được công khai.
+4. Quay lại Geed. Trang **Thư viện vật liệu** tự kiểm tra cập nhật khoảng mỗi 30 giây khi đang mở; khi chuyển tab quay lại cũng sẽ tải mới. Nút **Làm mới** vẫn có thể dùng thủ công.
+5. Để đưa vật liệu lên **Kho vật liệu cộng đồng** công khai, đặt **Trạng thái** thành **Đã duyệt** và chọn giấy phép hợp lệ. Chỉ mục có tệp đính kèm mới được công khai.
 
 **Hoặc tạo từ Geed:**
 1. Sign in to Geed and open **Thư viện vật liệu**.
