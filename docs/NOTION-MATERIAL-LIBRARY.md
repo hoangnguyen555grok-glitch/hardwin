@@ -65,3 +65,11 @@ Notion returns signed file URLs that expire. Geed requests the data source on in
 - Store only application code, database IDs and stable Notion page/data-source references in GitHub.
 - Do not commit downloaded media files, exported videos, generated images or audio assets to the repository.
 - Every row returned to a user is scoped to that user's Supabase ID.
+
+## Dùng vật liệu cá nhân trong Edit
+
+Trang /materials.html có nút **Dùng trong Edit** cho hình ảnh, texture và âm thanh đã có tệp. Nút chỉ chuyển mã trang vật liệu qua session của cùng trình duyệt; editor đọc lại vật liệu từ /api/materials bằng access token của người đang đăng nhập, vì vậy không đưa URL tệp ký tạm thời vào query string.
+
+Khi chọn ảnh, Geed chèn ảnh vào timeline và lưu tham chiếu trong Resource Library của dự án để có thể thêm lại ở cảnh khác. Âm thanh được chèn vào timeline. Video và font vẫn chỉ xem trước cho đến khi editor có bộ nhập tương ứng.
+
+Tệp Notion dùng URL có thời hạn. Mỗi lần mở editor hoặc mở lại một dự án có tham chiếu vật liệu cá nhân, Geed yêu cầu URL mới từ API và cập nhật lại các tham chiếu đã lưu trước khi tiếp tục. Việc này không sao chép tệp sang GitHub hay R2; tệp gốc vẫn nằm trong Notion.
