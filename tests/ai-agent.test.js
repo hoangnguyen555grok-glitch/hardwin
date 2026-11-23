@@ -200,3 +200,22 @@ test('AI rigging tools validate existing bone IDs, stage bounds and rotations', 
   assert.throws(() => sanitizeAgentAction({ tool: 'solveBoneIK', args: { boneId: 'bone-hand', targetX: -1, targetY: 540 } }));
   assert.throws(() => sanitizeAgentAction({ tool: 'solveBoneIK', args: { boneId: 'bone-hand', targetX: 900, targetY: 721 } }));
 });
+
+
+test('AI playback and onion-skin controls accept bounded settings only', () => {
+  assert.deepEqual(sanitizeAgentAction({tool:'setPlaybackOptions',args:{
+    loopPlayback:false,frameByFrame:true,onionSkin:true,onionSelectedOnly:true,
+    onionPrevCount:3,onionNextCount:2,onionPrevOpacity:25,onionNextOpacity:15,ignored:'drop'
+  }}),{tool:'setPlaybackOptions',args:{
+    loopPlayback:false,frameByFrame:true,onionSkin:true,onionSelectedOnly:true,
+    onionPrevCount:3,onionNextCount:2,onionPrevOpacity:25,onionNextOpacity:15
+  }});
+  assert.deepEqual(sanitizeAgentAction({tool:'setPlaybackOptions',args:{loopPlayback:true}}),{tool:'setPlaybackOptions',args:{loopPlayback:true}});
+  assert.throws(()=>sanitizeAgentAction({tool:'setPlaybackOptions',args:{loopPlayback:'false'}}));
+  assert.throws(()=>sanitizeAgentAction({tool:'setPlaybackOptions',args:{onionPrevCount:6}}));
+  assert.throws(()=>sanitizeAgentAction({tool:'setPlaybackOptions',args:{onionNextCount:-1}}));
+  assert.throws(()=>sanitizeAgentAction({tool:'setPlaybackOptions',args:{onionPrevOpacity:4}}));
+  assert.throws(()=>sanitizeAgentAction({tool:'setPlaybackOptions',args:{onionNextOpacity:51}}));
+  assert.throws(()=>sanitizeAgentAction({tool:'setPlaybackOptions',args:{onionSkin:true,onionPrevCount:1.5}}));
+  assert.throws(()=>sanitizeAgentAction({tool:'setPlaybackOptions',args:{}}));
+});
