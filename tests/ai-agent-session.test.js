@@ -90,5 +90,5 @@ test('cloud export uploads only authenticated MP4 or WebM blobs through the temp
   assert.ok(html.includes("fetch('/api/media/upload-url'"));
   assert.match(html, /method:'PUT',headers:\{'content-type':contentType\},body:finishedPreviewBlob/);
   assert.match(html, /id="uploadFinishedVideo"[^>]*disabled/);
-  assert.match(html, /R2 chưa được bật/);
+  assert.match(html, /Lưu R2 chưa sẵn sàng/);
 });
