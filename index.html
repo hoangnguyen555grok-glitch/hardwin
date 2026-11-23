@@ -2338,7 +2338,7 @@ function bridgeAnimateCommunityImage(args={}){
  return {ok:true,message:'Created start/end keyframes for the selected community image.',assetId,created:{id:o.id,name:o.name,type:o.type,communityAssetId:o.communityAssetId},durationSeconds:DURATION,fps:FPS,totalFrames:MAX+1,status:bridgeStatus()};
 }
 
-function bridgeAddPrivateMaterial(args={}){
+async function bridgeAddPrivateMaterial(args={}){
  const id=String(args.materialId||'');
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))throw new Error('Mã vật liệu cá nhân không hợp lệ.');
  const items=await fetchPrivateMaterials(),item=items.find(entry=>entry&&entry.id===id);
