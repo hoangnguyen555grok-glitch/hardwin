@@ -1903,7 +1903,7 @@ function bridgeStatus(){
   selectedImageDimensions:sel&&sel.type==='image'?{width:sel.img?.naturalWidth||sel.img?.width||0,height:sel.img?.naturalHeight||sel.img?.height||0}:null,
   selectedLayerKeyframes:sel?(sel.keys||[]).map(key=>key.frame).slice(0,120):[],
   history:{canUndo:historyIndex>0,canRedo:historyIndex>=0&&historyIndex<history.length-1,index:historyIndex,length:history.length},
-  layers:all.map((o,index)=>({id:o.id,name:o.name,type:o.type,visible:o.visible!==false,locked:!!o.locked,groupId:o.groupId||null,zIndex:index})),
+  layers:all.map((o,index)=>({id:o.id,name:o.name,type:o.type,visible:o.visible!==false,locked:!!o.locked,groupId:o.groupId||null,maskStack:rawMaskEntries(o),zIndex:index})),
   bones:all.filter(o=>o.type==='bone').map(o=>({id:o.id,name:o.name,parentId:o.parentId||null,length:Number(currentState(o).width??o.width)||1,rotation:Number(currentState(o).rotation)||0,locked:!!o.locked,keyframes:(o.keys||[]).map(key=>key.frame).slice(0,120)})),
   aiModelConnected:false,mcpConnected:false
  };
@@ -2406,7 +2406,7 @@ function agentSnapshot(){
   history:status.history||null,
   resourceImages:(Array.isArray(resourceLibrary.images)?resourceLibrary.images:[]).slice(0,60).map(asset=>({id:String(asset.id||'').slice(0,100),name:String(asset.name||'Image').slice(0,80),width:Number(asset.width)||0,height:Number(asset.height)||0})),
   availableCommunityAssets:(window.GeedHardwinCommunityCatalog||[]).filter(asset=>asset.supportsEditor===true&&['image','audio'].includes(asset.mediaType)).slice(0,32).map(asset=>({id:asset.id,title:String(asset.title||'').slice(0,90),category:asset.category,mediaType:asset.mediaType,supportsEditor:true,description:String(asset.description||'').slice(0,120)})),
-  layers:(Array.isArray(status.layers)?status.layers:[]).slice(0,80).map(layer=>({id:String(layer.id||'').slice(0,100),name:String(layer.name||'').slice(0,80),type:String(layer.type||'').slice(0,40),visible:layer.visible!==false,locked:Boolean(layer.locked),groupId:layer.groupId||null,zIndex:Number(layer.zIndex)||0}))
+  layers:(Array.isArray(status.layers)?status.layers:[]).slice(0,80).map(layer=>({id:String(layer.id||'').slice(0,100),name:String(layer.name||'').slice(0,80),type:String(layer.type||'').slice(0,40),visible:layer.visible!==false,locked:Boolean(layer.locked),groupId:layer.groupId||null,maskStack:Array.isArray(layer.maskStack)?layer.maskStack.slice(0,8).map(entry=>({id:String(entry.id||'').slice(0,100),mode:entry.mode})):[],zIndex:Number(layer.zIndex)||0}))
  };
 }
 
@@ -2575,8 +2575,8 @@ async function runAgentEditorAction(rawAction){
  else if(action.tool==='selectLayer')verified=after.selected?.id===action.args.layerId;
  else if(action.tool==='selectLayers')verified=after.selectedCount===action.args.layerIds.length&&action.args.layerIds.every(id=>after.selectedLayers.some(layer=>layer.id===id));
  else if(action.tool==='addImageResource')verified=after.layerCount===before.layerCount+1&&after.selected?.type==='image'&&result?.created?.resourceId===action.args.assetId;
- else if(action.tool==='setLayerMask')verified=Boolean(result?.ok&&result.maskCount>0);
- else if(action.tool==='removeLayerMask')verified=Boolean(result?.ok&&result.maskCount<8);
+ else if(action.tool==='setLayerMask')verified=after.layers.some(layer=>layer.id===action.args.targetLayerId&&layer.maskStack.some(entry=>entry.id===action.args.maskLayerId&&entry.mode===action.args.mode));
+ else if(action.tool==='removeLayerMask')verified=after.layers.some(layer=>layer.id===action.args.targetLayerId&&!layer.maskStack.some(entry=>entry.id===action.args.maskLayerId));
  else if(action.tool==='renameLayer')verified=after.selected?.name===action.args.name;
  else if(action.tool==='setLayerVisibility')verified=after.layers.some(layer=>layer.id===before.selected?.id&&layer.visible===action.args.visible);
  else if(action.tool==='duplicateSelected')verified=after.layerCount===before.layerCount+before.selectedCount&&after.selectedCount===before.selectedCount;
