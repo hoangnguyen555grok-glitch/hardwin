@@ -74,3 +74,21 @@ test('AI community image animation is scoped to an allow-listed selected asset I
   assert.match(html, /selectedObjectSafeForAgent/);
   assert.match(html, /communityAssetId!==assetId/);
 });
+
+
+test('finished video preview records the complete project with its audio tracks', () => {
+  assert.match(html, /id="openVideoPreview"/);
+  assert.match(html, /id="videoPreviewDialog"/);
+  assert.match(html, /<video id="finishedVideo" controls playsinline/);
+  assert.match(html, /async function exportVideo\(previewMode=false\)/);
+  assert.match(html, /audioTracks\.length/);
+  assert.match(html, /previewMode\)showFinishedVideoPreview\(blob,filename,audioTracks\.length\)/);
+  assert.match(html, /\$\('openVideoPreview'\)\.onclick=\(\)=>exportVideo\(true\)/);
+});
+
+test('cloud export uploads only authenticated MP4 or WebM blobs through the temporary R2 API', () => {
+  assert.ok(html.includes("fetch('/api/media/upload-url'"));
+  assert.match(html, /method:'PUT',headers:\{'content-type':contentType\},body:finishedPreviewBlob/);
+  assert.match(html, /id="uploadFinishedVideo"[^>]*disabled/);
+  assert.match(html, /Lưu R2 chưa sẵn sàng/);
+});

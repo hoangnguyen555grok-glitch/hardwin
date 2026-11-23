@@ -161,6 +161,23 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
 .ai-bridge-dual-form button{grid-column:1/-1;justify-self:end;min-width:104px;padding:8px 14px}
 @media(max-width:700px){.ai-bridge-dual-form{grid-template-columns:1fr;gap:7px}.ai-input-field textarea{min-height:40px;max-height:84px}.ai-bridge-dual-form button{grid-column:1;justify-self:stretch}.library-nav-link{padding:6px 8px;font-size:10px}}
 
+
+/* Finished-video preview and cloud export. */
+.video-preview-dialog{width:min(1040px,96vw);max-width:96vw;max-height:94vh;padding:0;border:1px solid #4b5d78;border-radius:16px;background:#151b25;color:#edf2f8;box-shadow:0 28px 90px #000c}
+.video-preview-dialog::backdrop{background:#070b12e8;backdrop-filter:blur(7px)}
+.video-preview-shell{display:flex;flex-direction:column;max-height:94vh}
+.video-preview-head{display:flex;align-items:center;gap:14px;padding:13px 16px;border-bottom:1px solid #354155;background:#202938}
+.video-preview-head-copy{flex:1;min-width:0}.video-preview-head-copy strong{display:block;font-size:14px}.video-preview-head-copy small{display:block;color:#9eacc0;font-size:11px;margin-top:3px}
+.video-preview-content{padding:14px;display:grid;gap:9px;min-height:0}
+#finishedVideo{display:block;width:100%;max-height:min(64vh,680px);aspect-ratio:16/9;background:#080b10;border:1px solid #3d4b60;border-radius:9px;object-fit:contain}
+.video-preview-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#b8c5d7;font-size:11px}
+.video-preview-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid #354155;background:#111720}
+.video-preview-actions .spacer{flex:1}
+.video-preview-cloud-note{margin:0;padding:0 14px 12px;background:#111720;color:#9eacc0;font-size:11px;line-height:1.5}
+.video-preview-cloud-note a{color:#9bc4ff;overflow-wrap:anywhere}
+.video-preview-actions button{min-width:120px}
+@media(max-width:700px){.video-preview-dialog{width:calc(100vw - 12px);max-width:calc(100vw - 12px)}.video-preview-content{padding:8px}.video-preview-actions{padding:9px}.video-preview-actions button{flex:1}.video-preview-actions .spacer{display:none}.video-preview-cloud-note{padding:0 10px 10px}}
+
 </style>
 </head>
 <body>
@@ -169,6 +186,7 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
   <span class="topmeta">2D Animation Editor · v1.30</span>
   <a class="library-nav-link" href="/library.html" title="Mở kho vật liệu cộng đồng">▧ Kho vật liệu</a>
   <div class="topspacer"></div>
+  <button id="openVideoPreview" type="button" class="primary" title="Xem trước video hoàn chỉnh">▶ Xem trước</button>
   <span class="status">Animation workspace · v1.30</span>
   <button class="ghost" id="undoBtn" title="Undo (Ctrl+Z)">↶</button>
   <button class="ghost" id="redoBtn" title="Redo (Ctrl+Shift+Z)">↷</button>
@@ -361,6 +379,26 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
   </div>
  </div>
 </section>
+
+
+<dialog class="video-preview-dialog" id="videoPreviewDialog" aria-labelledby="videoPreviewTitle">
+  <div class="video-preview-shell">
+    <header class="video-preview-head">
+      <div class="video-preview-head-copy"><strong id="videoPreviewTitle">Xem trước video hoàn chỉnh</strong><small>Hình ảnh chuyển động và các track âm thanh đã ghép đồng bộ</small></div>
+      <button id="closeVideoPreview" type="button" aria-label="Đóng xem trước">✕</button>
+    </header>
+    <div class="video-preview-content">
+      <video id="finishedVideo" controls playsinline preload="metadata"></video>
+      <div class="video-preview-meta"><span id="videoPreviewInfo">Bản xem trước đang sẵn sàng</span><span id="videoPreviewAudioInfo">Đang kiểm tra âm thanh…</span></div>
+    </div>
+    <div class="video-preview-actions">
+      <button id="downloadFinishedVideo" type="button">↓ Tải video xuống</button>
+      <span class="spacer"></span>
+      <button id="uploadFinishedVideo" type="button" class="primary" disabled>Lưu tạm lên R2</button>
+    </div>
+    <p class="video-preview-cloud-note" id="videoPreviewCloudStatus" aria-live="polite">Đang kiểm tra kết nối kho lưu trữ đám mây…</p>
+  </div>
+</dialog>
 
 <div class="toast" id="toast"></div>
 <script>
@@ -1623,7 +1661,7 @@ async function exportStillFrame(){
  catch(err){console.error(err);toast(err?.message||'Frame export failed')}finally{button.disabled=!!symbolEditId;draw();renderInspector()}
 }
 $('exportStill').onclick=exportStillFrame;
-$('exportVideo').onclick=async()=>{
+async function exportVideo(previewMode=false){
  if(symbolEditId){toast('Finish editing the MovieClip before exporting');return}
  pause();if(!window.MediaRecorder){toast('Video export is not supported in this browser');return}
  const scale=exportScale(),quality=exportQuality(),fps=Math.max(1,Math.min(60,Number($('exportVideoFps').value)||FPS)),preference=$('exportVideoFormat').value;
@@ -1640,14 +1678,79 @@ $('exportVideo').onclick=async()=>{
  catch(err){stream.getTracks().forEach(track=>track.stop());toast('This browser cannot start video export');return}
  const outputType=recorder.mimeType||mime||'video/webm',isMp4=outputType.toLowerCase().includes('mp4');
  toast('Rendering '+sceneCount+' scene(s) · '+fps+' FPS · '+exportCanvas.width+'×'+exportCanvas.height+'…');
- const finish=()=>{if(finished)return;finished=true;if(renderTimer)clearTimeout(renderTimer);pause();sceneIndex=originalScene;frame=originalFrame;renderAll();stream.getTracks().forEach(track=>track.stop());download(new Blob(chunks,{type:outputType}),isMp4?'geed-hardwin-animation.mp4':'geed-hardwin-animation.webm');toast('Exported '+(isMp4?'MP4':'WebM')+' · '+quality+' quality'+(audioTracks.length?' with audio':' · video only'))};
+ const finish=()=>{if(finished)return;finished=true;if(renderTimer)clearTimeout(renderTimer);pause();sceneIndex=originalScene;frame=originalFrame;renderAll();stream.getTracks().forEach(track=>track.stop());const blob=new Blob(chunks,{type:outputType}),filename=isMp4?'geed-hardwin-animation.mp4':'geed-hardwin-animation.webm';if(previewMode)showFinishedVideoPreview(blob,filename,audioTracks.length);else download(blob,filename);toast((previewMode?'Preview ready':'Exported')+' '+(isMp4?'MP4':'WebM')+' · '+quality+' quality'+(audioTracks.length?' with audio':' · video only'))};
  recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
  recorder.onerror=()=>{toast('Video export encountered an error');if(recorder.state!=='inactive'){try{recorder.stop()}catch(err){finish()}}else finish()};
  recorder.onstop=finish;recorder.start();
  let sceneCursor=0,frameCursor=0;
  const renderNext=()=>{if(finished)return;if(sceneCursor>=sceneCount){if(recorder.state!=='inactive')recorder.stop();return}const sourceFrame=Math.min(MAX,Math.round(frameCursor*FPS/fps));if(frameCursor===0)audioPlayers.forEach(player=>{player.pause();try{player.currentTime=0}catch(err){}});frame=sourceFrame;sceneIndex=sceneCursor;if(frameCursor===0)syncAudioPlayback(true);const previous=ctx;ctx=exportContext;try{draw(true,false,scale)}finally{ctx=previous}frameCursor++;if(frameCursor>=framesPerScene){sceneCursor++;frameCursor=0}renderTimer=setTimeout(renderNext,1000/fps)};
  renderNext();
+}
+$('exportVideo').onclick=()=>exportVideo(false);
+$('openVideoPreview').onclick=()=>exportVideo(true);
+
+let finishedPreviewBlob=null,finishedPreviewName='geed-hardwin-animation.webm',finishedPreviewObjectUrl=null,r2ExportReady=false,finishedPreviewDownloadUrl='';
+function clearFinishedPreview(){
+ const player=$('finishedVideo');
+ if(player){player.pause();player.removeAttribute('src');player.load()}
+ if(finishedPreviewObjectUrl){URL.revokeObjectURL(finishedPreviewObjectUrl);finishedPreviewObjectUrl=null}
+ finishedPreviewBlob=null;finishedPreviewDownloadUrl='';
+ $('downloadFinishedVideo').disabled=true;$('uploadFinishedVideo').disabled=true;
+}
+function showFinishedVideoPreview(blob,filename,audioTrackCount){
+ clearFinishedPreview();finishedPreviewBlob=blob;finishedPreviewName=filename;
+ finishedPreviewObjectUrl=URL.createObjectURL(blob);
+ const player=$('finishedVideo');player.src=finishedPreviewObjectUrl;player.muted=false;player.volume=1;player.load();
+ $('videoPreviewInfo').textContent=(blob.type.includes('mp4')?'MP4':'WebM')+' · '+(blob.size/1024/1024).toFixed(1)+' MB · '+filename;
+ $('videoPreviewAudioInfo').textContent=audioTrackCount>0?'✓ Có '+audioTrackCount+' track âm thanh/giọng nói':'Không phát hiện track âm thanh · video vẫn xem được';
+ $('downloadFinishedVideo').disabled=false;
+ $('uploadFinishedVideo').disabled=!r2ExportReady;
+ $('videoPreviewDialog').showModal();
+}
+async function checkR2ExportAvailability(){
+ const status=$('videoPreviewCloudStatus'),button=$('uploadFinishedVideo');
+ try{
+  const response=await fetch('/api/media/upload-url',{headers:{accept:'application/json'}});
+  const data=await response.json().catch(()=>({}));
+  r2ExportReady=response.ok&&data.available===true;
+  if(!r2ExportReady){
+   status.textContent='Lưu R2 chưa sẵn sàng: chủ dự án cần bật R2, tạo bucket riêng và cấu hình khóa lưu trữ trên máy chủ. Video vẫn có thể xem hoặc tải xuống.';
+   button.disabled=true;button.title='R2 chưa được cấu hình';
+   return;
+  }
+  status.textContent='R2 đã sẵn sàng. File được lưu dưới thư mục tạm và có thời hạn mục tiêu 48 giờ.';
+  button.disabled=!finishedPreviewBlob;
+ }catch(error){
+  r2ExportReady=false;button.disabled=true;
+  status.textContent='Không kiểm tra được kho R2. Bạn vẫn có thể xem trước và tải video xuống.';
+ }
+}
+$('downloadFinishedVideo').onclick=()=>{if(finishedPreviewBlob)download(finishedPreviewBlob,finishedPreviewName)};
+$('uploadFinishedVideo').onclick=async()=>{
+ if(!finishedPreviewBlob||!r2ExportReady)return;
+ const button=$('uploadFinishedVideo'),status=$('videoPreviewCloudStatus');
+ button.disabled=true;button.textContent='Đang tải lên…';
+ try{
+  if(!window.GeedHardwinAuth||typeof window.GeedHardwinAuth.getAccessToken!=='function')throw new Error('Thành phần đăng nhập chưa sẵn sàng. Hãy tải lại trang.');
+  const token=await window.GeedHardwinAuth.getAccessToken();
+  if(!token)throw new Error('Hãy đăng nhập Google trước khi lưu video lên kho riêng.');
+  const contentType=finishedPreviewBlob.type.toLowerCase().includes('mp4')?'video/mp4':'video/webm';
+  const signedResponse=await fetch('/api/media/upload-url',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+token},body:JSON.stringify({contentType,size:finishedPreviewBlob.size})});
+  const signed=await signedResponse.json().catch(()=>({}));
+  if(!signedResponse.ok||!signed.uploadUrl)throw new Error(signed.error||'Không thể tạo quyền tải lên R2.');
+  const uploaded=await fetch(signed.uploadUrl,{method:'PUT',headers:{'content-type':contentType},body:finishedPreviewBlob});
+  if(!uploaded.ok)throw new Error('R2 từ chối tệp tải lên ('+uploaded.status+'). Kiểm tra CORS và quyền bucket.');
+  finishedPreviewDownloadUrl=signed.downloadUrl||'';
+  status.replaceChildren();
+  const label=document.createElement('span');label.textContent='Đã lưu video tạm trên R2. Link tải có thời hạn khoảng 24 giờ; quy tắc bucket sẽ dọn tệp sau 48 giờ.';status.appendChild(label);
+  if(finishedPreviewDownloadUrl){status.appendChild(document.createTextNode(' '));const link=document.createElement('a');link.href=finishedPreviewDownloadUrl;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Mở video trên R2';status.appendChild(link)}
+  button.textContent='Đã lưu lên R2';button.disabled=true;
+ }catch(error){status.textContent=error?.message||'Tải video lên R2 thất bại.';button.disabled=false;button.textContent='Thử tải lên lại'}
 };
+$('closeVideoPreview').onclick=()=>{$('videoPreviewDialog').close()};
+$('videoPreviewDialog').addEventListener('click',event=>{if(event.target===$('videoPreviewDialog'))$('videoPreviewDialog').close()});
+$('videoPreviewDialog').addEventListener('close',()=>{clearFinishedPreview();$('uploadFinishedVideo').textContent='Lưu tạm lên R2';checkR2ExportAvailability()});
+checkR2ExportAvailability();
 
 function gifLzw(indices,minCodeSize=8){
  const clear=1<<minCodeSize,end=clear+1;let next=end+1,codeSize=minCodeSize+1;const dictionary=new Map(),bytes=[];let bitBuffer=0,bitCount=0;
