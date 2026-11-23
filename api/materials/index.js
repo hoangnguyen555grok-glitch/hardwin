@@ -1,7 +1,7 @@
 'use strict';
 
 const { getBearerToken, verifySupabaseUser, readConfig } = require('../../lib/supabase-ai-gateway');
-const { buildMaterialPage, normalizeMaterial } = require('../../lib/notion-materials');
+const { buildMaterialPage, normalizeMaterial, plainText } = require('../../lib/notion-materials');
 
 const DEFAULT_DATA_SOURCE_ID = '421d38d6-eafa-8116-8ec2-000bff1b1ed1';
 const NOTION_VERSION = '2026-03-11';
@@ -47,13 +47,15 @@ async function currentUser(req) {
   try { return await verifySupabaseUser({ token, config }); }
   catch { return null; }
 }
-function materialQueryFilter(userId) {
+const UUID_OWNER_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function materialVisibleToUser(page, userId) {
   const id = String(userId || '').trim();
-  if (!id) throw new Error('A signed-in user ID is required.');
-  return { or: [
-    { property: 'Người tạo', rich_text: { equals: id } },
-    { property: 'Người tạo', rich_text: { is_empty: true } }
-  ] };
+  if (!id) return false;
+  const owner = plainText(page?.properties?.['Người tạo']).trim();
+  // UUID values are private Supabase owner IDs. Text labels such as "Dola AI"
+  // are creator/source attribution, not account IDs, so keep them visible.
+  return !owner || owner === id || !UUID_OWNER_RE.test(owner);
 }
 
 function notionError(res, error) {
@@ -86,13 +88,14 @@ module.exports = async function handler(req, res) {
     try {
       const body = {
         page_size: 100,
-        filter: materialQueryFilter(user.id),
         sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }]
       };
       if (cursor) body.start_cursor = cursor;
       const result = await notionRequest(notion, 'POST',
         '/data_sources/' + notion.dataSourceId + '/query', body);
-      const items = (result.results || []).map(normalizeMaterial);
+      const items = (result.results || [])
+        .filter(page => materialVisibleToUser(page, user.id))
+        .map(normalizeMaterial);
       return send(res, 200, {
         notionAvailable: true,
         items,
@@ -139,4 +142,4 @@ module.exports = async function handler(req, res) {
   }
 };
 
-module.exports._test = { notionConfig, materialQueryFilter, NOTION_VERSION, DEFAULT_DATA_SOURCE_ID };
+module.exports._test = { notionConfig, materialVisibleToUser, NOTION_VERSION, DEFAULT_DATA_SOURCE_ID };
