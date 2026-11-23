@@ -1903,7 +1903,7 @@ function bridgeStatus(){
   selectedImageDimensions:sel&&sel.type==='image'?{width:sel.img?.naturalWidth||sel.img?.width||0,height:sel.img?.naturalHeight||sel.img?.height||0}:null,
   selectedLayerKeyframes:sel?(sel.keys||[]).map(key=>key.frame).slice(0,120):[],
   history:{canUndo:historyIndex>0,canRedo:historyIndex>=0&&historyIndex<history.length-1,index:historyIndex,length:history.length},
-  layers:all.map((o,index)=>({id:o.id,name:o.name,type:o.type,visible:o.visible!==false,locked:!!o.locked,groupId:o.groupId||null,zIndex:index})),
+  layers:all.map((o,index)=>({id:o.id,name:o.name,type:o.type,visible:o.visible!==false,locked:!!o.locked,groupId:o.groupId||null,maskStack:rawMaskEntries(o),zIndex:index})),
   bones:all.filter(o=>o.type==='bone').map(o=>({id:o.id,name:o.name,parentId:o.parentId||null,length:Number(currentState(o).width??o.width)||1,rotation:Number(currentState(o).rotation)||0,locked:!!o.locked,keyframes:(o.keys||[]).map(key=>key.frame).slice(0,120)})),
   aiModelConnected:false,mcpConnected:false
  };
@@ -2023,6 +2023,46 @@ function bridgeSelectLayer(args={}){
  const id=String(args.layerId||''),o=objects().find(item=>item.id===id);
  if(!o)throw new Error('Layer ID is not present in the current scene.');
  selectOne(o.id);renderAll();return {ok:true,selected:{id:o.id,name:o.name,type:o.type},status:bridgeStatus()};
+}
+function bridgeSelectLayers(args={}){
+ const ids=Array.isArray(args.layerIds)?args.layerIds:[];
+ if(ids.length<2||ids.length>24||new Set(ids).size!==ids.length)throw new Error('Choose 2 to 24 unique layer IDs.');
+ const all=objects(),items=ids.map(id=>all.find(item=>item.id===id));
+ if(items.some(item=>!item))throw new Error('One or more layer IDs are not present in the current scene.');
+ selectedIds=items.map(item=>item.id);selectedId=selectedIds[selectedIds.length-1];renderAll();
+ return {ok:true,selected:items.map(item=>({id:item.id,name:item.name,type:item.type})),status:bridgeStatus()};
+}
+async function bridgeAddImageResource(args={}){
+ if(symbolEditId)throw new Error('Exit MovieClip edit mode before adding a stage image.');
+ const assetId=String(args.assetId||''),asset=(resourceLibrary.images||[]).find(item=>item.id===assetId);
+ if(!asset||typeof asset.dataUrl!=='string'||!asset.dataUrl)throw new Error('Image resource ID was not found in this project Resource Library.');
+ const img=new Image();if(/^https:\/\//i.test(asset.dataUrl))img.crossOrigin='anonymous';
+ await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('Could not load the selected Resource Library image.'));img.src=asset.dataUrl});
+ const scale=Math.min(520/(img.naturalWidth||img.width),420/(img.naturalHeight||img.height),1);
+ const o=makeObject('image',{name:String(asset.name||'Resource image').slice(0,80),width:(img.naturalWidth||img.width)*scale,height:(img.naturalHeight||img.height)*scale,src:asset.name||'Resource image',img,dataUrl:asset.dataUrl,assetId:asset.id});
+ return {ok:true,created:{id:o.id,name:o.name,type:o.type,resourceId:asset.id},status:bridgeStatus()};
+}
+function bridgeSetLayerMask(args={}){
+ const all=objects(),target=all.find(item=>item.id===args.targetLayerId),mask=all.find(item=>item.id===args.maskLayerId);
+ if(!target||!mask)throw new Error('Target and mask must both exist in the current scene.');
+ if(target===mask||wouldMaskCreateCycle(target,mask,all))throw new Error('This mask would create a circular mask dependency.');
+ if(target.locked)throw new Error('Unlock the target layer before changing its mask.');
+ if(['audio','bone'].includes(target.type)||['audio','bone'].includes(mask.type))throw new Error('Audio and bone layers cannot be used as mask targets or sources.');
+ const mode=args.mode===undefined?'alpha':args.mode;if(!['alpha','luma','clip'].includes(mode))throw new Error('Mask mode must be alpha, luma or clip.');
+ const entries=rawMaskEntries(target);
+ if(entries.some(entry=>entry.id===mask.id))throw new Error('This mask is already attached to the target layer.');
+ if(entries.length>=8)throw new Error('A layer can have at most 8 stacked masks.');
+ setObjectMaskStack(target,[...entries,{id:mask.id,mode}]);reconcileMaskFlags(all);renderAll();recordHistory();
+ return {ok:true,targetLayerId:target.id,maskLayerId:mask.id,mode,maskCount:rawMaskEntries(target).length,status:bridgeStatus()};
+}
+function bridgeRemoveLayerMask(args={}){
+ const all=objects(),target=all.find(item=>item.id===args.targetLayerId);
+ if(!target)throw new Error('Target layer is not present in the current scene.');
+ if(target.locked)throw new Error('Unlock the target layer before changing its mask.');
+ const before=rawMaskEntries(target),after=before.filter(entry=>entry.id!==args.maskLayerId);
+ if(after.length===before.length)throw new Error('That mask is not attached to the target layer.');
+ setObjectMaskStack(target,after);reconcileMaskFlags(all);renderAll();recordHistory();
+ return {ok:true,targetLayerId:target.id,removedMaskLayerId:args.maskLayerId,maskCount:after.length,status:bridgeStatus()};
 }
 function bridgeRenameLayer(args={}){
  const o=selected();if(!o)throw new Error('Select a layer before renaming it.');
@@ -2300,7 +2340,7 @@ window["GeedHardwinBridge"] = Object.freeze({
  createCircle:bridgeCreateCircle,animateCircle:bridgeAnimateCircle,buildScene:bridgeBuildScene,
  createBone:bridgeCreateBone,rotateBone:bridgeRotateBone,solveBoneIK:bridgeSolveBoneIK,
  addCommunityAsset:bridgeAddCommunityAsset,animateCommunityImage:bridgeAnimateCommunityImage,
- selectLayer:bridgeSelectLayer,renameLayer:bridgeRenameLayer,setLayerVisibility:bridgeSetLayerVisibility,
+ selectLayer:bridgeSelectLayer,selectLayers:bridgeSelectLayers,addImageResource:bridgeAddImageResource,setLayerMask:bridgeSetLayerMask,removeLayerMask:bridgeRemoveLayerMask,renameLayer:bridgeRenameLayer,setLayerVisibility:bridgeSetLayerVisibility,
  duplicateSelected:bridgeDuplicateSelected,moveLayer:bridgeMoveLayer,transformSelected:bridgeTransformSelected,
  groupSelected:bridgeGroupSelected,ungroupSelected:bridgeUngroupSelected,addKeyframe:bridgeAddKeyframe,
  setTimeline:bridgeSetTimeline,cropSelectedImage:bridgeCropSelectedImage,undo:bridgeUndo,redo:bridgeRedo,
@@ -2365,8 +2405,9 @@ function agentSnapshot(){
   selectedImageDimensions:status.selectedImageDimensions||null,
   selectedTransform:status.selectedTransform||null,
   history:status.history||null,
+  resourceImages:(Array.isArray(resourceLibrary.images)?resourceLibrary.images:[]).slice(0,60).map(asset=>({id:String(asset.id||'').slice(0,100),name:String(asset.name||'Image').slice(0,80),width:Number(asset.width)||0,height:Number(asset.height)||0})),
   availableCommunityAssets:(window.GeedHardwinCommunityCatalog||[]).filter(asset=>asset.supportsEditor===true&&['image','audio'].includes(asset.mediaType)).slice(0,32).map(asset=>({id:asset.id,title:String(asset.title||'').slice(0,90),category:asset.category,mediaType:asset.mediaType,supportsEditor:true,description:String(asset.description||'').slice(0,120)})),
-  layers:(Array.isArray(status.layers)?status.layers:[]).slice(0,80).map(layer=>({id:String(layer.id||'').slice(0,100),name:String(layer.name||'').slice(0,80),type:String(layer.type||'').slice(0,40),visible:layer.visible!==false,locked:Boolean(layer.locked),groupId:layer.groupId||null,zIndex:Number(layer.zIndex)||0}))
+  layers:(Array.isArray(status.layers)?status.layers:[]).slice(0,80).map(layer=>({id:String(layer.id||'').slice(0,100),name:String(layer.name||'').slice(0,80),type:String(layer.type||'').slice(0,40),visible:layer.visible!==false,locked:Boolean(layer.locked),groupId:layer.groupId||null,maskStack:Array.isArray(layer.maskStack)?layer.maskStack.slice(0,8).map(entry=>({id:String(entry.id||'').slice(0,100),mode:entry.mode})):[],zIndex:Number(layer.zIndex)||0}))
  };
 }
 
@@ -2392,6 +2433,27 @@ function validateBrowserAgentAction(action){
   case 'rotateBone':return {tool:action.tool,args:{boneId:layerId(args.boneId),rotation:number('rotation',-720,720,true)}};
   case 'solveBoneIK':return {tool:action.tool,args:{boneId:layerId(args.boneId),targetX:number('targetX',0,1280,true),targetY:number('targetY',0,720,true)}};
   case 'selectLayer':return {tool:action.tool,args:{layerId:layerId(args.layerId)}};
+  case 'selectLayers':{
+   if(!Array.isArray(args.layerIds)||args.layerIds.length<2||args.layerIds.length>24)throw new Error('Chọn từ 2 đến 24 layer.');
+   const layerIds=args.layerIds.map(layerId);if(new Set(layerIds).size!==layerIds.length)throw new Error('Mã layer không được trùng nhau.');
+   return {tool:action.tool,args:{layerIds}};
+  }
+  case 'addImageResource':{
+   const assetId=text('assetId',100,true);if(!/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/.test(assetId))throw new Error('Mã ảnh Resource Library không hợp lệ.');
+   if(!agentSnapshot().resourceImages.some(asset=>asset.id===assetId))throw new Error('Không tìm thấy ảnh trong Resource Library của dự án hiện tại.');
+   return {tool:action.tool,args:{assetId}};
+  }
+  case 'setLayerMask':{
+   const mode=args.mode===undefined?'alpha':args.mode;if(!['alpha','luma','clip'].includes(mode))throw new Error('Mask mode không hợp lệ.');
+   const targetLayerId=layerId(args.targetLayerId),maskLayerId=layerId(args.maskLayerId);
+   if(targetLayerId===maskLayerId)throw new Error('Một layer không thể tự che chính nó.');
+   if(!agentSnapshot().layers.some(layer=>layer.id===targetLayerId)||!agentSnapshot().layers.some(layer=>layer.id===maskLayerId))throw new Error('Layer mask không có trong cảnh hiện tại.');
+   return {tool:action.tool,args:{targetLayerId,maskLayerId,mode}};
+  }
+  case 'removeLayerMask':{
+   const targetLayerId=layerId(args.targetLayerId),maskLayerId=layerId(args.maskLayerId);
+   return {tool:action.tool,args:{targetLayerId,maskLayerId}};
+  }
   case 'renameLayer':return {tool:action.tool,args:{name:text('name',80,true)}};
   case 'setLayerVisibility':if(typeof args.visible!=='boolean')throw new Error('Visibility must be true or false.');return {tool:action.tool,args:{visible:args.visible}};
   case 'duplicateSelected':{
@@ -2473,6 +2535,10 @@ async function runAgentEditorAction(rawAction){
   case 'addCommunityAsset':result=await window.GeedHardwinBridge.addCommunityAsset(action.args);break;
   case 'animateCommunityImage':result=window.GeedHardwinBridge.animateCommunityImage(action.args);break;
   case 'selectLayer':result=window.GeedHardwinBridge.selectLayer(action.args);break;
+  case 'selectLayers':result=window.GeedHardwinBridge.selectLayers(action.args);break;
+  case 'addImageResource':result=await window.GeedHardwinBridge.addImageResource(action.args);break;
+  case 'setLayerMask':result=window.GeedHardwinBridge.setLayerMask(action.args);break;
+  case 'removeLayerMask':result=window.GeedHardwinBridge.removeLayerMask(action.args);break;
   case 'renameLayer':result=window.GeedHardwinBridge.renameLayer(action.args);break;
   case 'setLayerVisibility':result=window.GeedHardwinBridge.setLayerVisibility(action.args);break;
   case 'duplicateSelected':result=window.GeedHardwinBridge.duplicateSelected(action.args);break;
@@ -2508,6 +2574,10 @@ async function runAgentEditorAction(rawAction){
  else if(action.tool==='addCommunityAsset')verified=after.layerCount>before.layerCount;
  else if(action.tool==='animateCommunityImage')verified=after.selectedCommunityAssetId===action.args.assetId&&after.selectedLayerKeyCount>=2&&after.selected?.type==='image';
  else if(action.tool==='selectLayer')verified=after.selected?.id===action.args.layerId;
+ else if(action.tool==='selectLayers')verified=after.selectedCount===action.args.layerIds.length&&action.args.layerIds.every(id=>after.selectedLayers.some(layer=>layer.id===id));
+ else if(action.tool==='addImageResource')verified=after.layerCount===before.layerCount+1&&after.selected?.type==='image'&&result?.created?.resourceId===action.args.assetId;
+ else if(action.tool==='setLayerMask')verified=after.layers.some(layer=>layer.id===action.args.targetLayerId&&layer.maskStack.some(entry=>entry.id===action.args.maskLayerId&&entry.mode===action.args.mode));
+ else if(action.tool==='removeLayerMask')verified=after.layers.some(layer=>layer.id===action.args.targetLayerId&&!layer.maskStack.some(entry=>entry.id===action.args.maskLayerId));
  else if(action.tool==='renameLayer')verified=after.selected?.name===action.args.name;
  else if(action.tool==='setLayerVisibility')verified=after.layers.some(layer=>layer.id===before.selected?.id&&layer.visible===action.args.visible);
  else if(action.tool==='duplicateSelected')verified=after.layerCount===before.layerCount+before.selectedCount&&after.selectedCount===before.selectedCount;
