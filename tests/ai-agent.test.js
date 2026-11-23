@@ -16,6 +16,10 @@ test('agent prompt defines tab-only context and a safe batch scene builder', () 
   assert.match(AGENT_SYSTEM_PROMPT, /Never use deleteSelected when the user asks to crop, trim, clip or cut an image/i);
   assert.match(AGENT_SYSTEM_PROMPT, /cropSelectedImage is a non-destructive image edit/i);
   assert.match(AGENT_SYSTEM_PROMPT, /Video export is a manual user action/i);
+  assert.match(AGENT_SYSTEM_PROMPT, /setSelectedProperties/);
+  assert.match(AGENT_SYSTEM_PROMPT, /manageScene/);
+  assert.match(AGENT_SYSTEM_PROMPT, /privateMaterials/);
+  assert.match(AGENT_SYSTEM_PROMPT, /Video and font materials remain preview-only/);
   assert.match(AGENT_SYSTEM_PROMPT, /Never output code/i);
 });
 
@@ -25,6 +29,19 @@ test('agent action sanitizer accepts only allow-listed safe tools', () => {
   assert.deepEqual(sanitizeAgentAction({ tool: 'setFrame', args: { frame: 24 } }), { tool: 'setFrame', args: { frame: 24 } });
   assert.throws(() => sanitizeAgentAction({ tool: 'runShell', args: { command: 'rm -rf /' } }));
   assert.throws(() => sanitizeAgentAction({ tool: 'eval', args: { code: 'alert(1)' } }));
+  assert.deepEqual(sanitizeAgentAction({tool:'setSelectedProperties',args:{x:640,rotation:15,color:'#abcdef',text:'Hello',blendMode:'multiply',unknown:'drop'}}),{tool:'setSelectedProperties',args:{x:640,rotation:15,color:'#abcdef',text:'Hello',blendMode:'multiply'}});
+  assert.throws(()=>sanitizeAgentAction({tool:'setSelectedProperties',args:{opacity:2}}));
+  assert.throws(()=>sanitizeAgentAction({tool:'setSelectedProperties',args:{blendMode:'javascript'}}));
+  assert.deepEqual(sanitizeAgentAction({tool:'setCamera',args:{x:20,zoom:1.5,addKey:true}}),{tool:'setCamera',args:{x:20,zoom:1.5,addKey:true}});
+  assert.throws(()=>sanitizeAgentAction({tool:'setCamera',args:{zoom:0}}));
+  assert.deepEqual(sanitizeAgentAction({tool:'manageScene',args:{operation:'rename',sceneIndex:0,name:'Opening'}}),{tool:'manageScene',args:{operation:'rename',sceneIndex:0,name:'Opening'}});
+  assert.throws(()=>sanitizeAgentAction({tool:'manageScene',args:{operation:'delete'}}));
+  assert.deepEqual(sanitizeAgentAction({tool:'setWorkArea',args:{start:12,end:80}}),{tool:'setWorkArea',args:{start:12,end:80}});
+  assert.deepEqual(sanitizeAgentAction({tool:'setWorkArea',args:{clear:true}}),{tool:'setWorkArea',args:{clear:true}});
+  assert.deepEqual(sanitizeAgentAction({tool:'setExposure',args:{operation:'split'}}),{tool:'setExposure',args:{operation:'split'}});
+  assert.deepEqual(sanitizeAgentAction({tool:'addPrivateMaterial',args:{materialId:'123e4567-e89b-12d3-a456-426614174000',url:'https://evil.example'}}),{tool:'addPrivateMaterial',args:{materialId:'123e4567-e89b-12d3-a456-426614174000'}});
+  assert.throws(()=>sanitizeAgentAction({tool:'addPrivateMaterial',args:{materialId:'../../secret'}}));
+  assert.deepEqual(sanitizeAgentAction({tool:'exportVideoPreview',args:{ignored:true}}),{tool:'exportVideoPreview',args:{}});
   assert.throws(() => sanitizeAgentAction({ tool: 'exportVideo' }));
   assert.deepEqual(sanitizeAgentAction({ tool: 'undo' }), { tool: 'undo', args: {} });
   assert.deepEqual(sanitizeAgentAction({ tool: 'redo' }), { tool: 'redo', args: {} });
