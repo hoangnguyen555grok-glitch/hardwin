@@ -7,7 +7,7 @@
 This link is a stable reference to the source-material catalogue, not a public file-hosting URL. Geed reads the database through the Notion API using a private integration token stored only in Vercel.
 
 - Notion is the home for the material files: images, video, audio, voices, music, fonts, textures and other reusable assets.
-- The database stores metadata (name, type, role, source, licence, dimensions, keywords, notes), the creator's Geed account ID, and a native **Tệp Notion** Files property.
+- The database stores metadata (name, type, role, source, licence, dimensions, keywords and notes) and a native **Tệp Notion** Files property. Rows created from Geed store the signed-in account ID in **Người tạo**; rows added manually in Notion can leave **Người tạo** empty and are treated as shared source materials.
 - GitHub stores only application source code, the Notion database/data-source IDs and references. Do not commit media binaries to GitHub.
 - Geed reads file metadata and short-lived download URLs from Notion. Notion's file URLs expire, so the API re-queries the database when the user refreshes Geed.
 
@@ -25,15 +25,24 @@ The materials page is `/materials.html`. It includes a direct **Mở kho Notion*
    - `GEED_NOTION_DATA_SOURCE_ID` — `421d38d6-eafa-8116-8ec2-000bff1b1ed1`.
 7. Add the variables to **Preview** first. Configure **Production** only after the pull request has been reviewed, approved and merged.
 
-The API filters each database query by the signed-in Geed user's ID. Notion and Supabase secrets remain on the server.
+The API returns rows created by the signed-in Geed user plus rows whose **Người tạo** field is empty (shared Notion library entries). Rows created by other Geed accounts are not returned. Notion and Supabase secrets remain on the server.
 
 ## 2. Add an asset
 
+Bạn có thể thêm vật liệu theo một trong hai cách:
+
+**Thêm trực tiếp trong Notion (không cần tạo trước trong Geed):**
+1. Mở database **Geed Hardwin — Thư viện vật liệu**.
+2. Tạo một dòng mới; nhập tên ở **Vật liệu**, chọn **Loại** (ví dụ **Hình ảnh**), và đính kèm tệp ở **Tệp Notion**.
+3. Có thể để trống **Người tạo**. Geed coi dòng này là tài nguyên dùng chung và hiển thị cho người đã đăng nhập.
+4. Quay lại Geed. Trang tự kiểm tra cập nhật khoảng mỗi 30 giây khi đang mở; khi chuyển tab quay lại cũng sẽ tải mới. Nút **Làm mới** vẫn có thể dùng thủ công.
+
+**Hoặc tạo từ Geed:**
 1. Sign in to Geed and open **Thư viện vật liệu**.
 2. Choose **Thêm vật liệu**, enter its metadata and save it.
 3. In the new material card, choose **Mở trong Notion**.
 4. On that Notion database row, find the **Tệp Notion** property and attach the original file. Do not paste a temporary Notion download URL into GitHub or another metadata field.
-5. Return to Geed and choose **Làm mới**. Geed reads the current Files property and receives a fresh preview/download URL from Notion.
+5. Return to Geed. Geed automatically refreshes the library, and you can also choose **Làm mới**.
 
 This first version intentionally uses Notion's native attachment UI for the binary upload. It does not expose the Notion integration secret to the browser and it does not send large files through a Vercel Function request body. The Notion workspace's own file-size limits still apply.
 
@@ -45,7 +54,7 @@ This first version intentionally uses Notion's native attachment UI for the bina
 
 ## 4. Expiring Notion file URLs
 
-Notion returns signed file URLs that expire. Geed requests the data source again when the user refreshes the materials list, so the newest file URLs are used. Treat these URLs as temporary access links, not permanent asset identifiers.
+Notion returns signed file URLs that expire. Geed requests the data source on initial load, about every 30 seconds while the page is visible, when the tab regains focus, and when the user presses refresh, so the newest file URLs are used. Treat these URLs as temporary access links, not permanent asset identifiers.
 
 ## Security and repository hygiene
 
