@@ -2,9 +2,14 @@ name: Geed Hardwin cloud AI and account checks
 
 on:
   push:
-    branches: [main, goal8-cloud-ai-cleanup, goal9-account-menu]
+    branches: [main, goal8-cloud-ai-cleanup, goal9-account-menu, goal11-notion-r2-material-library]
     paths:
       - "api/ai/**"
+      - "api/materials/**"
+      - "lib/notion-materials.js"
+      - "lib/material-library.js"
+      - "materials.html"
+      - "docs/NOTION-MATERIAL-LIBRARY.md"
       - "lib/ai-router.js"
       - "lib/ai-agent.js"
       - "lib/supabase-*.js"
@@ -20,6 +25,11 @@ on:
   pull_request:
     paths:
       - "api/ai/**"
+      - "api/materials/**"
+      - "lib/notion-materials.js"
+      - "lib/material-library.js"
+      - "materials.html"
+      - "docs/NOTION-MATERIAL-LIBRARY.md"
       - "lib/ai-router.js"
       - "lib/supabase-*.js"
       - "index.html"
@@ -49,6 +59,9 @@ jobs:
       - name: Syntax-check server and browser modules
         run: |
           node --check api/ai/chat.js
+          node --check api/materials/index.js
+          node --check lib/notion-materials.js
+          node --input-type=module --check < lib/material-library.js
           node --check lib/ai-router.js
           node --check lib/ai-agent.js
           node --check lib/gif-export.mjs
