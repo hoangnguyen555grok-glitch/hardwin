@@ -86,7 +86,9 @@ test('finished video preview records the complete project with its audio tracks'
   assert.match(html, /\$\('openVideoPreview'\)\.onclick=\(\)=>exportVideo\(true\)/);
 });
 
-test('finished video export stays local and keeps the preview download action', () => {
-  assert.ok(html.includes("$('downloadFinishedVideo').onclick="));
-  assert.doesNotMatch(html, /api\/media\/upload-url|R2|uploadFinishedVideo/);
+test('cloud export uploads only authenticated MP4 or WebM blobs through the temporary R2 API', () => {
+  assert.ok(html.includes("fetch('/api/media/upload-url'"));
+  assert.match(html, /method:'PUT',headers:\{'content-type':contentType\},body:finishedPreviewBlob/);
+  assert.match(html, /id="uploadFinishedVideo"[^>]*disabled/);
+  assert.match(html, /Lưu R2 chưa sẵn sàng/);
 });
