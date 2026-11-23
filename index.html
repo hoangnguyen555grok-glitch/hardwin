@@ -420,17 +420,27 @@ function safeCommunityAssetUrl(raw){
 async function loadCommunityAssetCatalog(){
  if(communityCatalogPromise)return communityCatalogPromise;
  communityCatalogPromise=(async()=>{
-  const response=await fetch('/assets/community-library.json',{cache:'no-cache',credentials:'same-origin'});
+  const [response,notionResponse]=await Promise.all([
+   fetch('/assets/community-library.json',{cache:'no-cache',credentials:'same-origin'}),
+   fetch('/api/community-assets',{cache:'no-store',credentials:'same-origin'}).catch(()=>null)
+  ]);
   if(!response.ok)throw new Error('Không tải được danh mục vật liệu cộng đồng.');
   const data=await response.json();
   if(!data||!Array.isArray(data.assets))throw new Error('Danh mục vật liệu không đúng định dạng.');
+  const notionData=notionResponse&&notionResponse.ok?await notionResponse.json().catch(()=>({assets:[]})):{assets:[]};
+  const notionAssets=Array.isArray(notionData.assets)?notionData.assets:[];
+  const merged=[...notionAssets,...data.assets];
   const allowedCategories=new Set(['backgrounds','characters','props','audio','effects','fonts']);
   const allowedMedia=new Set(['image','audio','video','font']);
-  window.GeedHardwinCommunityCatalog=data.assets.filter(asset=>{
+  const seen=new Set();
+  window.GeedHardwinCommunityCatalog=merged.filter(asset=>{
    try{
-    return asset&&asset.status==='published'&&typeof asset.id==='string'&&/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(asset.id)&&
+    const valid=asset&&asset.status==='published'&&typeof asset.id==='string'&&/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(asset.id)&&
      typeof asset.title==='string'&&asset.title.trim().length>0&&asset.title.length<=120&&
      allowedCategories.has(asset.category)&&allowedMedia.has(asset.mediaType)&&safeCommunityAssetUrl(asset.url);
+    if(!valid||seen.has(asset.id))return false;
+    seen.add(asset.id);
+    return true;
    }catch{return false}
   }).slice(0,500);
   return window.GeedHardwinCommunityCatalog;
