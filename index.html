@@ -2304,7 +2304,7 @@ async function consumePrivateMaterialHandoff(knownMaterials=null){
   const materials=Array.isArray(knownMaterials)?knownMaterials:await fetchPrivateMaterials();
   const item=materials.find(entry=>entry&&entry.id===materialId);
   if(!item)throw new Error('Không tìm thấy vật liệu này trong thư viện của tài khoản đang đăng nhập.');
-  const result=await bridgeAddPrivateMaterial(item);
+  const result=await bridgeInsertPrivateMaterial(item);
   toast('Đã đưa '+(result.created?.name||'vật liệu cá nhân')+' vào Edit.');
   recordHistory();
  }catch(error){toast(error?.message||'Không thể đưa vật liệu cá nhân vào Edit.')}
@@ -2432,6 +2432,46 @@ function validateBrowserAgentAction(action){
   }
   case 'rotateBone':return {tool:action.tool,args:{boneId:layerId(args.boneId),rotation:number('rotation',-720,720,true)}};
   case 'solveBoneIK':return {tool:action.tool,args:{boneId:layerId(args.boneId),targetX:number('targetX',0,1280,true),targetY:number('targetY',0,720,true)}};
+  case 'addPrivateMaterial':{
+   const materialId=text('materialId',36,true);if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(materialId))throw new Error('Mã vật liệu Notion không hợp lệ.');
+   const item=agentSnapshot().privateMaterials.find(entry=>entry.id===materialId&&entry.supportsEditor);if(!item)throw new Error('Vật liệu này không được hỗ trợ chèn vào Edit hoặc không có trong thư viện hiện tại.');
+   return {tool:action.tool,args:{materialId}};
+  }
+  case 'setSelectedProperties':{
+   const clean={};for(const [key,min,max] of [['x',0,1280],['y',0,720],['width',1,2560],['height',1,1440],['rotation',-720,720],['scale',.1,5],['opacity',0,1],['brightness',0,250],['contrast',0,250],['saturation',0,250],['blur',0,30],['glow',0,40],['fontSize',8,200],['strokeWidth',1,80],['volume',0,1],['parallax',0,2],['motionBend',-600,600],['inFrame',0,7199],['outFrame',0,7199],['audioStartFrame',0,7199],['pivotX',-2000,2000],['pivotY',-2000,2000]]){const value=number(key,min,max);if(value!==undefined)clean[key]=value}
+   for(const [key,max] of [['name',80],['text',1000],['fontFamily',120]]){const value=text(key,max);if(value!==undefined)clean[key]=value}
+   for(const key of ['color','fillColor']){const value=color(args,key);if(value!==undefined)clean[key]=value}
+   const modes=['source-over','multiply','screen','overlay','darken','lighten','color-dodge','color-burn','hard-light','soft-light','difference','exclusion','hue','saturation','color','luminosity'];if(args.blendMode!==undefined){if(!modes.includes(args.blendMode))throw new Error('Blend mode không hợp lệ.');clean.blendMode=args.blendMode}
+   const easings=['linear','easeIn','easeOut','easeInOut','easeInCubic','easeOutCubic','easeInOutCubic','sine','smooth','back','bounce','elastic'];if(args.easing!==undefined){if(!easings.includes(args.easing))throw new Error('Easing không hợp lệ.');clean.easing=args.easing}
+   if(args.pathClosed!==undefined){if(typeof args.pathClosed!=='boolean')throw new Error('pathClosed phải là boolean.');clean.pathClosed=args.pathClosed}
+   if(args.parentId!==undefined)clean.parentId=args.parentId===null?null:layerId(args.parentId);
+   if(!Object.keys(clean).length)throw new Error('Cần ít nhất một thuộc tính hợp lệ.');
+   if(clean.inFrame!==undefined&&clean.outFrame!==undefined&&clean.inFrame>clean.outFrame)throw new Error('inFrame không được lớn hơn outFrame.');
+   return {tool:action.tool,args:clean};
+  }
+  case 'setCamera':{
+   const clean={};for(const [key,min,max] of [['x',-5000,5000],['y',-5000,5000],['zoom',.1,4],['rotation',-720,720]]){const value=number(key,min,max);if(value!==undefined)clean[key]=value}
+   if(args.addKey!==undefined){if(typeof args.addKey!=='boolean')throw new Error('addKey phải là boolean.');clean.addKey=args.addKey}
+   if(args.easing!==undefined){if(!['linear','easeIn','easeOut','easeInOut','easeInOutCubic','sine','smooth'].includes(args.easing))throw new Error('Camera easing không hợp lệ.');clean.easing=args.easing}
+   if(!Object.keys(clean).length)throw new Error('Cần tham số camera.');
+   return {tool:action.tool,args:clean};
+  }
+  case 'manageScene':{
+   if(!['create','rename','duplicate','delete','select'].includes(args.operation))throw new Error('Scene operation không hợp lệ.');
+   const clean={operation:args.operation};if(args.name!==undefined)clean.name=text('name',80);
+   if(args.sceneIndex!==undefined){clean.sceneIndex=number('sceneIndex',0,99,true);if(!Number.isInteger(clean.sceneIndex))throw new Error('Scene index phải là số nguyên.')}
+   if(['rename','select','duplicate','delete'].includes(args.operation)&&clean.sceneIndex===undefined)throw new Error('Thiếu sceneIndex.');
+   if(args.operation==='rename'&&!clean.name)throw new Error('Thiếu tên scene.');
+   return {tool:action.tool,args:clean};
+  }
+  case 'setWorkArea':{
+   if(args.clear===true)return {tool:action.tool,args:{clear:true}};
+   const clean={};for(const key of ['start','end']){const value=number(key,0,7199);if(value!==undefined){if(!Number.isInteger(value))throw new Error(key+' phải là số nguyên.');clean[key]=value}}
+   if(!Object.keys(clean).length||clean.start!==undefined&&clean.end!==undefined&&clean.start>clean.end)throw new Error('Vùng làm việc không hợp lệ.');
+   if(clean.end!==undefined&&clean.end>agentSnapshot().maxFrame)throw new Error('Vùng làm việc vượt quá timeline.');
+   return {tool:action.tool,args:clean};
+  }
+  case 'setExposure':if(!['split','blank','hold','duplicateCel','copyRange','pasteRange'].includes(args.operation))throw new Error('Exposure operation không hợp lệ.');return {tool:action.tool,args:{operation:args.operation}};
   case 'selectLayer':return {tool:action.tool,args:{layerId:layerId(args.layerId)}};
   case 'selectLayers':{
    if(!Array.isArray(args.layerIds)||args.layerIds.length<2||args.layerIds.length>24)throw new Error('Chọn từ 2 đến 24 layer.');
@@ -2534,6 +2574,16 @@ async function runAgentEditorAction(rawAction){
   case 'solveBoneIK':result=window.GeedHardwinBridge.solveBoneIK(action.args);break;
   case 'addCommunityAsset':result=await window.GeedHardwinBridge.addCommunityAsset(action.args);break;
   case 'animateCommunityImage':result=window.GeedHardwinBridge.animateCommunityImage(action.args);break;
+  case 'addPrivateMaterial':result=await window.GeedHardwinBridge.addPrivateMaterial(action.args);break;
+  case 'setSelectedProperties':result=window.GeedHardwinBridge.setSelectedProperties(action.args);break;
+  case 'setCamera':result=window.GeedHardwinBridge.setCamera(action.args);break;
+  case 'manageScene':result=window.GeedHardwinBridge.manageScene(action.args);break;
+  case 'setWorkArea':result=window.GeedHardwinBridge.setWorkArea(action.args);break;
+  case 'setExposure':result=window.GeedHardwinBridge.setExposure(action.args);break;
+  case 'exportVideoPreview':result=await window.GeedHardwinBridge.exportVideoPreview(action.args);break;
+  case 'exportStill':result=await window.GeedHardwinBridge.exportStill(action.args);break;
+  case 'exportGif':result=await window.GeedHardwinBridge.exportGif(action.args);break;
+  case 'exportPngSequence':result=await window.GeedHardwinBridge.exportPngSequence(action.args);break;
   case 'selectLayer':result=window.GeedHardwinBridge.selectLayer(action.args);break;
   case 'selectLayers':result=window.GeedHardwinBridge.selectLayers(action.args);break;
   case 'addImageResource':result=await window.GeedHardwinBridge.addImageResource(action.args);break;
@@ -2578,6 +2628,14 @@ async function runAgentEditorAction(rawAction){
  else if(action.tool==='addImageResource')verified=after.layerCount===before.layerCount+1&&after.selected?.type==='image'&&result?.created?.resourceId===action.args.assetId;
  else if(action.tool==='setLayerMask')verified=after.layers.some(layer=>layer.id===action.args.targetLayerId&&layer.maskStack.some(entry=>entry.id===action.args.maskLayerId&&entry.mode===action.args.mode));
  else if(action.tool==='removeLayerMask')verified=after.layers.some(layer=>layer.id===action.args.targetLayerId&&!layer.maskStack.some(entry=>entry.id===action.args.maskLayerId));
+ else if(action.tool==='addPrivateMaterial')verified=after.layerCount===before.layerCount+1&&after.selected?.type=== (['Âm thanh','Nhạc','Giọng đọc','Hiệu ứng âm thanh'].includes(agentPrivateMaterialCatalog.find(item=>item.id===action.args.materialId)?.type)?'audio':'image');
+ else if(action.tool==='setSelectedProperties')verified=Boolean(after.selected?.id===before.selected?.id&&Object.entries(action.args).every(([key,value])=>key==='parentId'?after.selectedProperties.parentId===value:key==='pathClosed'?after.selectedProperties.pathClosed===value:after.selectedProperties[key]===value||Math.abs(Number(after.selectedProperties[key])-Number(value))<0.01));
+ else if(action.tool==='setCamera')verified=Object.entries(action.args).filter(([key])=>['x','y','zoom','rotation'].includes(key)).every(([key,value])=>Math.abs(Number(after.camera[key])-value)<0.01)&&(!action.args.addKey||after.cameraKeyframes.includes(before.currentFrame));
+ else if(action.tool==='manageScene')verified=action.args.operation==='create'?after.sceneCount===before.sceneCount+1:action.args.operation==='duplicate'?after.sceneCount===before.sceneCount+1:action.args.operation==='delete'?after.sceneCount===before.sceneCount-1:action.args.operation==='rename'?after.scene===action.args.name:after.sceneIndex===action.args.sceneIndex;
+ else if(action.tool==='setWorkArea')verified=action.args.clear?after.workArea.start===0&&after.workArea.end===after.maxFrame:(action.args.start===undefined||after.workArea.start===action.args.start)&&(action.args.end===undefined||after.workArea.end===action.args.end);
+ else if(action.tool==='setExposure')verified=action.args.operation==='split'||action.args.operation==='duplicateCel'?after.layerCount>before.layerCount:action.args.operation==='pasteRange'?after.layerCount>before.layerCount:action.args.operation==='blank'?after.layerCount<=before.layerCount:action.args.operation==='hold'||action.args.operation==='copyRange'; 
+ else if(action.tool==='exportVideoPreview')verified=result?.ok===true&&after.videoExportState==='rendering';
+ else if(['exportStill','exportGif','exportPngSequence'].includes(action.tool))verified=result?.ok===true;
  else if(action.tool==='renameLayer')verified=after.selected?.name===action.args.name;
  else if(action.tool==='setLayerVisibility')verified=after.layers.some(layer=>layer.id===before.selected?.id&&layer.visible===action.args.visible);
  else if(action.tool==='duplicateSelected')verified=after.layerCount===before.layerCount+before.selectedCount&&after.selectedCount===before.selectedCount;
