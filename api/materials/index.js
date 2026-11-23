@@ -47,6 +47,15 @@ async function currentUser(req) {
   try { return await verifySupabaseUser({ token, config }); }
   catch { return null; }
 }
+function materialQueryFilter(userId) {
+  const id = String(userId || '').trim();
+  if (!id) throw new Error('A signed-in user ID is required.');
+  return { or: [
+    { property: 'Người tạo', rich_text: { equals: id } },
+    { property: 'Người tạo', rich_text: { is_empty: true } }
+  ] };
+}
+
 function notionError(res, error) {
   if (error?.status === 401 || error?.status === 403 || error?.notionCode === 'object_not_found') {
     return send(res, 502, {
@@ -77,8 +86,8 @@ module.exports = async function handler(req, res) {
     try {
       const body = {
         page_size: 100,
-        filter: { property: 'Người tạo', rich_text: { equals: user.id } },
-        sorts: [{ timestamp: 'created_time', direction: 'descending' }]
+        filter: materialQueryFilter(user.id),
+        sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }]
       };
       if (cursor) body.start_cursor = cursor;
       const result = await notionRequest(notion, 'POST',
@@ -130,4 +139,4 @@ module.exports = async function handler(req, res) {
   }
 };
 
-module.exports._test = { notionConfig, NOTION_VERSION, DEFAULT_DATA_SOURCE_ID };
+module.exports._test = { notionConfig, materialQueryFilter, NOTION_VERSION, DEFAULT_DATA_SOURCE_ID };
