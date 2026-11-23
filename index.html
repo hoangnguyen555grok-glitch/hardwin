@@ -451,7 +451,7 @@ async function loadCommunityAssetCatalog(){
 let imageEditorState=null;
 let resourceLibrary={images:[],fonts:[]},fontLoadPromises=new Map();
 let scenes=[{name:'Scene 01',objects:[],camera:defaultCamera()}],sceneIndex=0,selectedId=null,selectedIds=[],nextGroupId=1,frame=0,playing=false,raf=0,lastTick=0,loopPlayback=true,nextId=1,drag=null,transformDrag=null;
-let toolMode='select',drawing=null,keyDrag=null,pointDrag=null,selectedPathPoint=null,ikDrag=null,penHandleDrag=null,cameraMode=false,cameraDrag=null,cameraHistoryTimer=null,frameByFrame=false,symbolLibrary=[],nextSymbolId=1,symbolEditId=null,symbolEditStack=[],exposureOpen=false,exposurePageStart=0,exposureAnchor=null,exposureRange=null,exposureRangeClipboard=null,history=[],historyIndex=-1,restoringHistory=false,appReady=false,autosaveTimer=null,onionSkin=false,onionPrevCount=1,onionNextCount=1,onionPrevOpacity=.18,onionNextOpacity=.10,onionSelectedOnly=false,celEdgeDrag=null,audioPlayers=new Map();
+let toolMode='select',drawing=null,keyDrag=null,pointDrag=null,selectedPathPoint=null,ikDrag=null,penHandleDrag=null,cameraMode=false,cameraDrag=null,cameraHistoryTimer=null,frameByFrame=false,symbolLibrary=[],nextSymbolId=1,symbolEditId=null,symbolEditStack=[],exposureOpen=false,exposurePageStart=0,exposureAnchor=null,exposureRange=null,exposureRangeClipboard=null,history=[],historyIndex=-1,restoringHistory=false,appReady=false,autosaveTimer=null,autosaveRestorePromise=Promise.resolve(),onionSkin=false,onionPrevCount=1,onionNextCount=1,onionPrevOpacity=.18,onionNextOpacity=.10,onionSelectedOnly=false,celEdgeDrag=null,audioPlayers=new Map();
 const scene=()=>scenes[sceneIndex],objects=()=>symbolEditId?(symbolLibrary.find(d=>d.id===symbolEditId)?.objects||[]):scene().objects;
 function normalizeWorkArea(value,max=MAX){
  const limit=Math.max(0,Math.round(Number(max)||0));
@@ -1410,7 +1410,7 @@ function renderResourceLibrary(){
  });
 }
 function addImageResourceToStage(asset){
- const img=new Image();img.onload=()=>{const scale=Math.min(520/img.width,420/img.height,1);makeObject('image',{name:asset.name,width:img.width*scale,height:img.height*scale,src:asset.name,img,dataUrl:asset.dataUrl,assetId:asset.id,externalUrl:asset.externalUrl||undefined,communityAssetId:asset.communityAssetId||undefined})};
+ const img=new Image();img.onload=()=>{const scale=Math.min(520/img.width,420/img.height,1);makeObject('image',{name:asset.name,width:img.width*scale,height:img.height*scale,src:asset.name,img,dataUrl:asset.dataUrl,assetId:asset.id,externalUrl:asset.externalUrl||undefined,communityAssetId:asset.communityAssetId||undefined,privateMaterialId:asset.privateMaterialId||undefined})};
  img.onerror=()=>toast('Image resource could not be loaded');if(/^https:\/\//i.test(asset.dataUrl||''))img.crossOrigin='anonymous';img.src=asset.dataUrl;
 }
 function applyFontToSelectedText(family){
@@ -1657,7 +1657,7 @@ $('deleteScene').onclick=()=>{if(scenes.length<=1){toast('A project must keep at
 $('clearSelection').onclick=()=>{cameraMode=false;selectOne(null);renderAll()};$('cameraModeBtn').onclick=()=>{cameraMode=!cameraMode;if(cameraMode){selectOne(null);setTool('select')}cameraDrag=null;$('cameraModeBtn').textContent=cameraMode?'Camera ✓':'Camera';$('stageHint').textContent=cameraMode?'Camera mode · Drag to pan · Wheel to zoom · Shift+wheel to rotate':'Select and drag objects · Add keyframes to animate';renderAll();toast(cameraMode?'Camera mode · drag to pan, wheel to zoom, Shift+wheel to rotate':'Object selection mode')};$('fitStage').onclick=()=>toast('Stage is fitted to the workspace');
 $('saveProject').onclick=()=>{const data=projectSnapshot();const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});download(blob,'geed-hardwin-project.json');toast('Project saved with images and timeline')};
 $('openProject').onclick=()=>$('projectInput').click();
-$('projectInput').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());pause();applyProject(data);renderAll();toast('Project opened')}catch(err){console.error(err);toast('Could not open this project file')}e.target.value=''};
+$('projectInput').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());pause();applyProject(data);renderAll();try{await refreshSavedPrivateMaterialUrls();renderAll()}catch(error){console.warn('Private material refresh failed:',error);toast('Project opened. Hãy đăng nhập để tải lại các vật liệu Notion đã lưu trong dự án.')}toast('Project opened')}catch(err){console.error(err);toast('Could not open this project file')}e.target.value=''};
 function download(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
 function exportScale(){return Math.max(.5,Math.min(2,Number($('exportScale')?.value)||1))}
 function exportQuality(){return $('exportQuality')?.value||'high'}
@@ -1887,7 +1887,7 @@ $('exportPngSequence').onclick=exportPngSequence;
 const title=makeObject('text',{name:'Title',text:'My first animation',fontSize:74,color:'#26384f',x:W/2,y:H/2,width:850,height:110});
 title.keys=[{frame:0,state:{x:W/2-170,y:H/2,scale:.8,rotation:-4,opacity:.2}},{frame:MAX,state:{x:W/2,y:H/2,scale:1,rotation:0,opacity:1}}];
 // The starter Accent circle has been removed; user-created circles remain available from the Circle tool.
-selectedId=title.id;renderAll();appReady=true;restoreAutosave();
+selectedId=title.id;renderAll();appReady=true;autosaveRestorePromise=restoreAutosave();
 
 /* Controlled API for trusted local agents and the in-app bridge demo.
    Keep this surface narrow: validate all input and never expose eval/code execution. */
@@ -2149,6 +2149,86 @@ async function bridgeAddCommunityAsset(args={}){
  throw new Error('Hiện editor chỉ nhận ảnh và âm thanh từ kho. Video và font đang ở chế độ xem trước.');
 }
 
+
+async function fetchPrivateMaterials(){
+ const token=await window.GeedHardwinAuth?.getAccessToken?.();
+ if(!token)throw new Error('Hãy đăng nhập Google trong Geed để dùng vật liệu cá nhân.');
+ const response=await fetch('/api/materials',{headers:{authorization:'Bearer '+token},cache:'no-store'});
+ const payload=await response.json().catch(()=>({}));
+ if(!response.ok)throw new Error(payload.error||'Không thể đọc thư viện vật liệu cá nhân.');
+ if(!Array.isArray(payload.items))throw new Error('Dữ liệu thư viện vật liệu cá nhân không hợp lệ.');
+ return payload.items;
+}
+
+async function bridgeAddPrivateMaterial(item){
+ if(symbolEditId)throw new Error('Hãy thoát chế độ chỉnh sửa MovieClip trước khi thêm vật liệu.');
+ const materialId=String(item?.id||'');
+ if(!/^[0-9a-f-]{32,36}$/i.test(materialId))throw new Error('Mã vật liệu cá nhân không hợp lệ.');
+ const url=safeCommunityAssetUrl(item.previewUrl||item.fileUrl);
+ const name=String(item.name||'Vật liệu cá nhân').slice(0,100);
+ if(['Hình ảnh','Texture'].includes(item.type)){
+  const img=new Image();img.crossOrigin='anonymous';
+  await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('Không tải được ảnh. Nguồn Notion cần cho phép CORS từ website Geed Hardwin.'));img.src=url});
+  if(!img.naturalWidth||!img.naturalHeight)throw new Error('Ảnh không có kích thước hợp lệ.');
+  const localAssetId='private-'+materialId;
+  let resource=(resourceLibrary.images||[]).find(entry=>entry.id===localAssetId);
+  if(!resource){
+   resource={id:localAssetId,name,dataUrl:url,externalUrl:url,privateMaterialId:materialId,width:img.naturalWidth,height:img.naturalHeight,size:0};
+   resourceLibrary.images.push(resource);
+  }else Object.assign(resource,{name,dataUrl:url,externalUrl:url,width:img.naturalWidth,height:img.naturalHeight});
+  const scale=Math.min(520/img.naturalWidth,420/img.naturalHeight,1);
+  const created=makeObject('image',{name,width:img.naturalWidth*scale,height:img.naturalHeight*scale,src:name,img,dataUrl:url,externalUrl:url,assetId:localAssetId,privateMaterialId:materialId});
+  renderResourceLibrary();renderAll();
+  return {ok:true,created:{id:created.id,name:created.name,type:'image',privateMaterialId:materialId},message:'Đã thêm ảnh cá nhân vào timeline và Resource Library của dự án.'};
+ }
+ if(['Âm thanh','Nhạc','Giọng đọc','Hiệu ứng âm thanh'].includes(item.type)){
+  const created=makeObject('audio',{name,dataUrl:url,externalUrl:url,privateMaterialId:materialId,audioStartFrame:frame,inFrame:frame,outFrame:MAX,volume:.8});
+  createAudioPlayer(created);renderAll();
+  return {ok:true,created:{id:created.id,name:created.name,type:'audio',privateMaterialId:materialId},message:'Đã thêm âm thanh cá nhân vào timeline.'};
+ }
+ throw new Error('Edit hiện hỗ trợ chèn Hình ảnh, Texture và Âm thanh. Video và font chưa được nối vào timeline.');
+}
+
+async function refreshSavedPrivateMaterialUrls(knownMaterials=null){
+ const ids=new Set();
+ for(const asset of resourceLibrary.images||[])if(asset.privateMaterialId)ids.add(String(asset.privateMaterialId));
+ for(const sc of scenes)for(const object of sc.objects||[])if(object.privateMaterialId)ids.add(String(object.privateMaterialId));
+ for(const definition of symbolLibrary)for(const object of definition.objects||[])if(object.privateMaterialId)ids.add(String(object.privateMaterialId));
+ if(!ids.size)return knownMaterials;
+ const materials=Array.isArray(knownMaterials)?knownMaterials:await fetchPrivateMaterials();
+ const byId=new Map(materials.filter(item=>item&&typeof item.id==='string').map(item=>[item.id,item]));
+ let updated=0;
+ const refresh=target=>{
+  if(!target?.privateMaterialId)return;
+  const item=byId.get(String(target.privateMaterialId));
+  if(!item)return;
+  try{
+   const url=safeCommunityAssetUrl(item.previewUrl||item.fileUrl);
+   target.dataUrl=url;target.externalUrl=url;
+   if(Object.hasOwn(target,'img'))target.img=null;
+   updated++;
+  }catch(error){console.warn('Private material URL could not be refreshed:',error)}
+ };
+ for(const asset of resourceLibrary.images||[])refresh(asset);
+ for(const sc of scenes)for(const object of sc.objects||[])refresh(object);
+ for(const definition of symbolLibrary)for(const object of definition.objects||[])refresh(object);
+ if(updated){hydrateImages();renderResourceLibrary();draw();recordHistory()}
+ return materials;
+}
+
+async function consumePrivateMaterialHandoff(knownMaterials=null){
+ let materialId=null;
+ try{materialId=sessionStorage.getItem('geedPrivateMaterialHandoff');sessionStorage.removeItem('geedPrivateMaterialHandoff')}catch{return}
+ if(!materialId)return;
+ try{
+  const materials=Array.isArray(knownMaterials)?knownMaterials:await fetchPrivateMaterials();
+  const item=materials.find(entry=>entry&&entry.id===materialId);
+  if(!item)throw new Error('Không tìm thấy vật liệu này trong thư viện của tài khoản đang đăng nhập.');
+  const result=await bridgeAddPrivateMaterial(item);
+  toast('Đã đưa '+(result.created?.name||'vật liệu cá nhân')+' vào Edit.');
+  recordHistory();
+ }catch(error){toast(error?.message||'Không thể đưa vật liệu cá nhân vào Edit.')}
+}
 
 function bridgeAnimateCommunityImage(args={}){
  if(symbolEditId)throw new Error('Hãy thoát chế độ chỉnh sửa MovieClip trước khi tạo chuyển động.');
@@ -2507,7 +2587,13 @@ async function consumeCommunityAssetHandoff(){
   recordHistory();
  }catch(error){toast(error?.message||'Không thể đưa vật liệu vào editor.')}
 }
-window.addEventListener('load',()=>{consumeCommunityAssetHandoff()},{once:true});
+window.addEventListener('load',async()=>{
+  await autosaveRestorePromise;
+  let materials=null;
+  try{materials=await refreshSavedPrivateMaterialUrls()}catch(error){console.warn('Saved private materials could not be refreshed:',error)}
+  await consumePrivateMaterialHandoff(materials);
+  await consumeCommunityAssetHandoff();
+ },{once:true});
 
 })();
 </script>
