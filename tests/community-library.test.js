@@ -13,8 +13,9 @@ const script = fs.readFileSync(path.join(root, 'lib/community-library.js'), 'utf
 const catalog = JSON.parse(fs.readFileSync(path.join(root, 'assets/community-library.json'), 'utf8'));
 const docs = fs.readFileSync(path.join(root, 'docs/COMMUNITY-ASSET-LIBRARY.md'), 'utf8');
 
-test('editor and public library share one static asset catalog', () => {
+test('editor and public library merge approved Notion assets with the static catalog', () => {
   assert.match(editor, /fetch\('\/assets\/community-library\.json'/);
+  assert.match(editor, /fetch\('\/api\/community-assets'/);
   assert.match(editor, /href="\/library\.html"/);
   assert.match(page, /Kho vật liệu/);
   assert.deepEqual(catalog.assets, []);
@@ -28,11 +29,12 @@ test('catalog structure contains six community categories and media support', ()
   for (const mediaType of ['image','audio','video','font']) assert.ok(script.includes(mediaType));
 });
 
-test('resource page loads catalog metadata and renders safely without mock assets', () => {
-  assert.match(script, /fetch\('\/assets\/community-library\.json'/);
+test('community page loads both the Notion API and static catalog and renders safely', () => {
+  assert.match(script, /readJson\('\/assets\/community-library\.json'/);
+  assert.match(script, /readJson\('\/api\/community-assets'/);
   assert.match(script, /createElement\('article'\)/);
   assert.match(script, /textContent/);
-  assert.match(script, /communityAssets = data\.assets\.map\(normalizeAsset\)/);
+  assert.match(script, /normalizeAsset/);
   assert.match(script, /sessionStorage\.setItem\('geedCommunityAssetHandoff'/);
   assert.doesNotThrow(() => new vm.Script(script, { filename: 'lib/community-library.js' }));
 });
