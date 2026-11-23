@@ -8,6 +8,9 @@ test('agent prompt defines tab-only context and a safe batch scene builder', () 
   assert.match(AGENT_SYSTEM_PROMPT, /current browser tab session/i);
   assert.match(AGENT_SYSTEM_PROMPT, /never emit a memory field/i);
   assert.match(AGENT_SYSTEM_PROMPT, /buildScene/i);
+  assert.match(AGENT_SYSTEM_PROMPT, /FABRIK inverse-kinematics solver/i);
+  assert.match(AGENT_SYSTEM_PROMPT, /createBone/i);
+  assert.match(AGENT_SYSTEM_PROMPT, /solveBoneIK/i);
   assert.match(AGENT_SYSTEM_PROMPT, /wait for the next observation/i);
   assert.match(AGENT_SYSTEM_PROMPT, /deleteSelected is destructive/i);
   assert.match(AGENT_SYSTEM_PROMPT, /Never use deleteSelected when the user asks to crop, trim, clip or cut an image/i);
@@ -143,4 +146,27 @@ test('community image animation is bounded and requires a catalog asset id', () 
   assert.throws(() => sanitizeAgentAction({ tool: 'animateCommunityImage', args: { assetId: '../x', durationSeconds: 6, toX: 20, toY: 20 } }));
   assert.throws(() => sanitizeAgentAction({ tool: 'animateCommunityImage', args: { assetId: 'forest-dawn-bg', durationSeconds: 61, toX: 20, toY: 20 } }));
   assert.throws(() => sanitizeAgentAction({ tool: 'animateCommunityImage', args: { assetId: 'forest-dawn-bg', durationSeconds: 6, toX: 1400, toY: 20 } }));
+});
+
+test('AI rigging tools validate existing bone IDs, stage bounds and rotations', () => {
+  assert.deepEqual(sanitizeAgentAction({
+    tool: 'createBone',
+    args: { name: 'Right arm', x: 420, y: 280, length: 120, rotation: -35, parentId: 'bone-root', ignored: true }
+  }), {
+    tool: 'createBone',
+    args: { name: 'Right arm', x: 420, y: 280, length: 120, rotation: -35, parentId: 'bone-root' }
+  });
+  assert.deepEqual(sanitizeAgentAction({
+    tool: 'rotateBone', args: { boneId: 'bone-arm', rotation: 75, extra: 'ignored' }
+  }), { tool: 'rotateBone', args: { boneId: 'bone-arm', rotation: 75 } });
+  assert.deepEqual(sanitizeAgentAction({
+    tool: 'solveBoneIK', args: { boneId: 'bone-hand', targetX: 900, targetY: 540 }
+  }), { tool: 'solveBoneIK', args: { boneId: 'bone-hand', targetX: 900, targetY: 540 } });
+  assert.throws(() => sanitizeAgentAction({ tool: 'createBone', args: { x: 640, y: 360, length: 4 } }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'createBone', args: { x: 640, y: 360, length: 900 } }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'createBone', args: { x: 1281, y: 360, length: 80 } }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'createBone', args: { x: 640, y: 360, length: 80, parentId: '../private' } }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'rotateBone', args: { boneId: 'bone-arm', rotation: 721 } }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'solveBoneIK', args: { boneId: 'bone-hand', targetX: -1, targetY: 540 } }));
+  assert.throws(() => sanitizeAgentAction({ tool: 'solveBoneIK', args: { boneId: 'bone-hand', targetX: 900, targetY: 721 } }));
 });
