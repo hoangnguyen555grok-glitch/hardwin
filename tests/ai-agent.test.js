@@ -148,6 +148,19 @@ test('community image animation is bounded and requires a catalog asset id', () 
   assert.throws(() => sanitizeAgentAction({ tool: 'animateCommunityImage', args: { assetId: 'forest-dawn-bg', durationSeconds: 6, toX: 1400, toY: 20 } }));
 });
 
+test('AI composition tools validate multi-selection, resource IDs and mask stacks', () => {
+  assert.deepEqual(sanitizeAgentAction({tool:'selectLayers',args:{layerIds:['layer-a','layer-b'],ignored:true}}),{tool:'selectLayers',args:{layerIds:['layer-a','layer-b']}});
+  assert.throws(()=>sanitizeAgentAction({tool:'selectLayers',args:{layerIds:['same','same']}}));
+  assert.throws(()=>sanitizeAgentAction({tool:'selectLayers',args:{layerIds:['only-one']}}));
+  assert.deepEqual(sanitizeAgentAction({tool:'addImageResource',args:{assetId:'img-local_01',url:'https://evil.example'}}),{tool:'addImageResource',args:{assetId:'img-local_01'}});
+  assert.throws(()=>sanitizeAgentAction({tool:'addImageResource',args:{assetId:'../private'}}));
+  assert.deepEqual(sanitizeAgentAction({tool:'setLayerMask',args:{targetLayerId:'layer-photo',maskLayerId:'layer-shape',mode:'luma',extra:true}}),{tool:'setLayerMask',args:{targetLayerId:'layer-photo',maskLayerId:'layer-shape',mode:'luma'}});
+  assert.deepEqual(sanitizeAgentAction({tool:'setLayerMask',args:{targetLayerId:'layer-photo',maskLayerId:'layer-shape'}}),{tool:'setLayerMask',args:{targetLayerId:'layer-photo',maskLayerId:'layer-shape',mode:'alpha'}});
+  assert.throws(()=>sanitizeAgentAction({tool:'setLayerMask',args:{targetLayerId:'layer-photo',maskLayerId:'layer-shape',mode:'script'}}));
+  assert.throws(()=>sanitizeAgentAction({tool:'setLayerMask',args:{targetLayerId:'layer-photo',maskLayerId:'layer-photo'}}));
+  assert.deepEqual(sanitizeAgentAction({tool:'removeLayerMask',args:{targetLayerId:'layer-photo',maskLayerId:'layer-shape'}}),{tool:'removeLayerMask',args:{targetLayerId:'layer-photo',maskLayerId:'layer-shape'}});
+});
+
 test('AI rigging tools validate existing bone IDs, stage bounds and rotations', () => {
   assert.deepEqual(sanitizeAgentAction({
     tool: 'createBone',
