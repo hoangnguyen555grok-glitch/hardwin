@@ -2048,7 +2048,8 @@ function bridgeSetLayerMask(args={}){
  if(target===mask||wouldMaskCreateCycle(target,mask,all))throw new Error('This mask would create a circular mask dependency.');
  if(target.locked)throw new Error('Unlock the target layer before changing its mask.');
  if(['audio','bone'].includes(target.type)||['audio','bone'].includes(mask.type))throw new Error('Audio and bone layers cannot be used as mask targets or sources.');
- const mode=['alpha','luma','clip'].includes(args.mode)?args.mode:'alpha',entries=rawMaskEntries(target);
+ const mode=args.mode===undefined?'alpha':args.mode;if(!['alpha','luma','clip'].includes(mode))throw new Error('Mask mode must be alpha, luma or clip.');
+ const entries=rawMaskEntries(target);
  if(entries.some(entry=>entry.id===mask.id))throw new Error('This mask is already attached to the target layer.');
  if(entries.length>=8)throw new Error('A layer can have at most 8 stacked masks.');
  setObjectMaskStack(target,[...entries,{id:mask.id,mode}]);reconcileMaskFlags(all);renderAll();recordHistory();
