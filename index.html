@@ -1904,6 +1904,7 @@ function bridgeStatus(){
   selectedLayerKeyframes:sel?(sel.keys||[]).map(key=>key.frame).slice(0,120):[],
   history:{canUndo:historyIndex>0,canRedo:historyIndex>=0&&historyIndex<history.length-1,index:historyIndex,length:history.length},
   layers:all.map((o,index)=>({id:o.id,name:o.name,type:o.type,visible:o.visible!==false,locked:!!o.locked,groupId:o.groupId||null,zIndex:index})),
+  bones:all.filter(o=>o.type==='bone').map(o=>({id:o.id,name:o.name,parentId:o.parentId||null,length:Number(currentState(o).width??o.width)||1,rotation:Number(currentState(o).rotation)||0,locked:!!o.locked,keyframes:(o.keys||[]).map(key=>key.frame).slice(0,120)})),
   aiModelConnected:false,mcpConnected:false
  };
 }
@@ -1978,6 +1979,45 @@ function bridgeBuildScene(args={}){
  }
  if(created.length)selectOne(created[created.length-1].id);setFrame(0);renderAll();
  return {ok:true,message:'Created '+created.length+' scene layers with start/end keyframes.',created,durationSeconds:DURATION,fps:FPS,status:bridgeStatus()};
+}
+function bridgeCreateBone(args={}){
+ if(symbolEditId)throw new Error('Exit MovieClip edit mode before creating a stage bone.');
+ const length=Number(args.length),x=Number(args.x),y=Number(args.y),rotation=Number(args.rotation??0);
+ if(!Number.isFinite(length)||length<8||length>800||!Number.isFinite(x)||x<0||x>W||!Number.isFinite(y)||y<0||y>H||!Number.isFinite(rotation)||rotation< -720||rotation>720)throw new Error('Bone geometry is outside supported bounds.');
+ const parentId=args.parentId==null?null:String(args.parentId),parent=parentId?objects().find(item=>item.id===parentId&&item.type==='bone'):null;
+ if(parentId&&!parent)throw new Error('Parent bone ID is not present in the current scene.');
+ if(parent?.locked)throw new Error('Unlock the parent bone before adding a child.');
+ const name=String(args.name||'AI Bone').trim().slice(0,80)||'AI Bone';
+ const bone=makeObject('bone',{name,x:parent?Number(stateAt(parent,frame).width??parent.width)||1:x,y:parent?0:y,width:length,height:18,rotation,parentId,pivotX:0,pivotY:0,color:'#e4b45e',inFrame:0,outFrame:MAX});
+ if(parent)reconnectBoneToParent(bone,false);
+ selectOne(bone.id);renderAll();recordHistory();
+ return {ok:true,created:{id:bone.id,name:bone.name,type:'bone',parentId:bone.parentId||null,length:bone.width,rotation:stateAt(bone,frame).rotation},status:bridgeStatus()};
+}
+function bridgeRotateBone(args={}){
+ const bone=objects().find(item=>item.id===String(args.boneId||'')&&item.type==='bone');
+ if(!bone)throw new Error('Bone ID is not present in the current scene.');
+ if(bone.locked)throw new Error('Unlock this bone before editing it.');
+ const rotation=Number(args.rotation);
+ if(!Number.isFinite(rotation)||rotation< -720||rotation>720)throw new Error('Bone rotation is outside supported bounds.');
+ writeBoneState(bone,{rotation});selectOne(bone.id);renderAll();recordHistory();
+ return {ok:true,bone:{id:bone.id,rotation:stateAt(bone,frame).rotation,frame},status:bridgeStatus()};
+}
+function bridgeSolveBoneIK(args={}){
+ if(symbolEditId)throw new Error('Exit MovieClip edit mode before solving the stage rig.');
+ const leaf=objects().find(item=>item.id===String(args.boneId||'')&&item.type==='bone');
+ if(!leaf)throw new Error('Terminal bone ID is not present in the current scene.');
+ const target={x:Number(args.targetX),y:Number(args.targetY)};
+ if(!Number.isFinite(target.x)||target.x<0||target.x>W||!Number.isFinite(target.y)||target.y<0||target.y>H)throw new Error('IK target is outside the stage.');
+ const bones=getBoneChain(leaf);
+ if(!bones.length)throw new Error('No connected bone chain was found.');
+ if(bones.some(bone=>bone.locked))throw new Error('Unlock every bone in the chain before posing it.');
+ const pose=boneChainPose(bones);
+ if(!pose.lengths.length)throw new Error('This bone chain has no movable segments.');
+ const solved=solveBoneChainIK({boneIds:bones.map(bone=>bone.id),pose:pose.points,lengths:pose.lengths},target);
+ if(!solved)throw new Error('The IK solver could not pose this bone chain.');
+ selectOne(leaf.id);renderAll();recordHistory();
+ const afterPose=boneChainPose(bones);
+ return {ok:true,solvedBoneIds:bones.map(bone=>bone.id),target,actualTip:afterPose.points[afterPose.points.length-1],frame,status:bridgeStatus()};
 }
 function bridgeSelectLayer(args={}){
  const id=String(args.layerId||''),o=objects().find(item=>item.id===id);
@@ -2258,6 +2298,7 @@ function bridgeAnimateCommunityImage(args={}){
 window["GeedHardwinBridge"] = Object.freeze({
  getStatus:bridgeStatus,listLayers:()=>bridgeStatus().layers,
  createCircle:bridgeCreateCircle,animateCircle:bridgeAnimateCircle,buildScene:bridgeBuildScene,
+ createBone:bridgeCreateBone,rotateBone:bridgeRotateBone,solveBoneIK:bridgeSolveBoneIK,
  addCommunityAsset:bridgeAddCommunityAsset,animateCommunityImage:bridgeAnimateCommunityImage,
  selectLayer:bridgeSelectLayer,renameLayer:bridgeRenameLayer,setLayerVisibility:bridgeSetLayerVisibility,
  duplicateSelected:bridgeDuplicateSelected,moveLayer:bridgeMoveLayer,transformSelected:bridgeTransformSelected,
@@ -2320,6 +2361,7 @@ function agentSnapshot(){
   selectedCommunityAssetId:selectedObject?.communityAssetId?String(selectedObject.communityAssetId).slice(0,80):null,
   selectedLayerKeyCount:Array.isArray(selectedObject?.keys)?selectedObject.keys.length:0,
   selectedLayerKeyframes:Array.isArray(status.selectedLayerKeyframes)?status.selectedLayerKeyframes.slice(0,120):[],
+  bones:(Array.isArray(status.bones)?status.bones:[]).slice(0,80).map(bone=>({id:String(bone.id||'').slice(0,100),name:String(bone.name||'').slice(0,80),parentId:bone.parentId||null,length:Number(bone.length)||0,rotation:Number(bone.rotation)||0,locked:Boolean(bone.locked),keyframes:Array.isArray(bone.keyframes)?bone.keyframes.slice(0,120):[]})),
   selectedImageDimensions:status.selectedImageDimensions||null,
   selectedTransform:status.selectedTransform||null,
   history:status.history||null,
@@ -2341,6 +2383,14 @@ function validateBrowserAgentAction(action){
  const layerId=value=>{if(typeof value!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/.test(value))throw new Error('Mã layer không hợp lệ.');return value};
  switch(action.tool){
   case 'inspect':case 'play':case 'stop':case 'deleteSelected':case 'groupSelected':case 'ungroupSelected':case 'addKeyframe':case 'undo':case 'redo':return {tool:action.tool,args:{}};
+  case 'createBone':{
+   const clean={x:number('x',0,1280,true),y:number('y',0,720,true),length:number('length',8,800,true)};
+   const rotation=number('rotation',-720,720),name=text('name',80),parentId=args.parentId==null?undefined:layerId(args.parentId);
+   if(rotation!==undefined)clean.rotation=rotation;if(name!==undefined)clean.name=name;if(parentId!==undefined)clean.parentId=parentId;
+   return {tool:action.tool,args:clean};
+  }
+  case 'rotateBone':return {tool:action.tool,args:{boneId:layerId(args.boneId),rotation:number('rotation',-720,720,true)}};
+  case 'solveBoneIK':return {tool:action.tool,args:{boneId:layerId(args.boneId),targetX:number('targetX',0,1280,true),targetY:number('targetY',0,720,true)}};
   case 'selectLayer':return {tool:action.tool,args:{layerId:layerId(args.layerId)}};
   case 'renameLayer':return {tool:action.tool,args:{name:text('name',80,true)}};
   case 'setLayerVisibility':if(typeof args.visible!=='boolean')throw new Error('Visibility must be true or false.');return {tool:action.tool,args:{visible:args.visible}};
@@ -2417,6 +2467,9 @@ async function runAgentEditorAction(rawAction){
   case 'createCircle':result=window.GeedHardwinBridge.createCircle(action.args);break;
   case 'animateCircle':result=window.GeedHardwinBridge.animateCircle(action.args);break;
   case 'buildScene':result=window.GeedHardwinBridge.buildScene(action.args);break;
+  case 'createBone':result=window.GeedHardwinBridge.createBone(action.args);break;
+  case 'rotateBone':result=window.GeedHardwinBridge.rotateBone(action.args);break;
+  case 'solveBoneIK':result=window.GeedHardwinBridge.solveBoneIK(action.args);break;
   case 'addCommunityAsset':result=await window.GeedHardwinBridge.addCommunityAsset(action.args);break;
   case 'animateCommunityImage':result=window.GeedHardwinBridge.animateCommunityImage(action.args);break;
   case 'selectLayer':result=window.GeedHardwinBridge.selectLayer(action.args);break;
@@ -2449,6 +2502,9 @@ async function runAgentEditorAction(rawAction){
  const after=agentSnapshot();let verified=false;
  if(action.tool==='createCircle'||action.tool==='animateCircle')verified=after.layerCount>before.layerCount;
  else if(action.tool==='buildScene')verified=after.layerCount===before.layerCount+action.args.elements.length;
+ else if(action.tool==='createBone')verified=after.bones.some(bone=>bone.id===result?.created?.id&&bone.parentId===(action.args.parentId||null));
+ else if(action.tool==='rotateBone')verified=after.bones.some(bone=>bone.id===action.args.boneId&&Math.abs(bone.rotation-action.args.rotation)<0.01&&bone.keyframes.includes(before.currentFrame));
+ else if(action.tool==='solveBoneIK')verified=Array.isArray(result?.solvedBoneIds)&&result.solvedBoneIds.length>0&&after.bones.filter(bone=>result.solvedBoneIds.includes(bone.id)).every(bone=>bone.keyframes.includes(before.currentFrame));
  else if(action.tool==='addCommunityAsset')verified=after.layerCount>before.layerCount;
  else if(action.tool==='animateCommunityImage')verified=after.selectedCommunityAssetId===action.args.assetId&&after.selectedLayerKeyCount>=2&&after.selected?.type==='image';
  else if(action.tool==='selectLayer')verified=after.selected?.id===action.args.layerId;
@@ -2469,7 +2525,7 @@ async function runAgentEditorAction(rawAction){
  else if(action.tool==='setFrame')verified=after.currentFrame===action.args.frame;
  else if(action.tool==='deleteSelected')verified=before.selectedCount>0&&after.layerCount===before.layerCount-before.selectedCount;
  if(!verified)throw new Error('Editor chưa xác nhận được kết quả của thao tác '+action.tool+'. Mình đã dừng để tránh báo sai.');
- return {tool:action.tool,verified:true,result:result?{ok:result.ok===true,created:result.created||null,cropped:result.cropped||null,message:result.message||null}:null,before,after};
+ return {tool:action.tool,verified:true,result:result?{ok:result.ok===true,created:result.created||null,cropped:result.cropped||null,solvedBoneIds:result.solvedBoneIds||null,actualTip:result.actualTip||null,message:result.message||null}:null,before,after};
 }
 function setAgentBusy(busy){
  aiAgentBusy=busy;
