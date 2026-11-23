@@ -2508,7 +2508,7 @@ function validateBrowserAgentAction(action){
  const color=(source,key)=>{const value=source[key];if(value===undefined)return undefined;if(typeof value!=='string'||!/^#[0-9a-f]{6}$/i.test(value))throw new Error('Mã màu không hợp lệ: '+key);return value};
  const layerId=value=>{if(typeof value!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/.test(value))throw new Error('Mã layer không hợp lệ.');return value};
  switch(action.tool){
-  case 'inspect':case 'play':case 'stop':case 'deleteSelected':case 'groupSelected':case 'ungroupSelected':case 'addKeyframe':case 'undo':case 'redo':return {tool:action.tool,args:{}};
+  case 'inspect':case 'exportVideoPreview':case 'exportStill':case 'exportGif':case 'exportPngSequence':case 'play':case 'stop':case 'deleteSelected':case 'groupSelected':case 'ungroupSelected':case 'addKeyframe':case 'undo':case 'redo':return {tool:action.tool,args:{}};
   case 'createBone':{
    const clean={x:number('x',0,1280,true),y:number('y',0,720,true),length:number('length',8,800,true)};
    const rotation=number('rotation',-720,720),name=text('name',80),parentId=args.parentId==null?undefined:layerId(args.parentId);
