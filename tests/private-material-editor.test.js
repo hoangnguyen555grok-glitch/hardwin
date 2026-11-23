@@ -56,5 +56,5 @@ test('editor inline JavaScript remains syntactically valid', () => {
 
 test('private library handoff does not upload or copy source files into GitHub or R2', () => {
   assert.doesNotMatch(library, /FileReader|localStorage|indexedDB|R2/);
-  assert.match(editor, /Không tải lên Geed Hardwin/);
+  assert.match(editor, /tệp không được tải lên Geed Hardwin/);
 });
