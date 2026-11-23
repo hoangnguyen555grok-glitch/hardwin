@@ -6,6 +6,7 @@ on:
     paths:
       - "api/ai/**"
       - "api/materials/**"
+      - "api/community-assets/**"
       - "lib/notion-materials.js"
       - "lib/material-library.js"
       - "materials.html"
@@ -26,6 +27,7 @@ on:
     paths:
       - "api/ai/**"
       - "api/materials/**"
+      - "api/community-assets/**"
       - "lib/notion-materials.js"
       - "lib/material-library.js"
       - "materials.html"
@@ -60,6 +62,7 @@ jobs:
         run: |
           node --check api/ai/chat.js
           node --check api/materials/index.js
+          node --check api/community-assets/index.js
           node --check lib/notion-materials.js
           node --input-type=module --check < lib/material-library.js
           node --check api/media/upload-url.js
