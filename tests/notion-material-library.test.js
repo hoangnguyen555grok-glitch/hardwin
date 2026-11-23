@@ -3,7 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { buildMaterialPage, normalizeMaterial, MATERIAL_TYPES } = require('../lib/notion-materials');
-const { notionConfig, materialQueryFilter, DEFAULT_DATA_SOURCE_ID, NOTION_VERSION } = require('../api/materials')._test;
+const { notionConfig, materialVisibleToUser, DEFAULT_DATA_SOURCE_ID, NOTION_VERSION } = require('../api/materials')._test;
 
 test('Notion materials use the created data source and current API version', () => {
   assert.equal(notionConfig({ GEED_NOTION_API_TOKEN: 'secret' }).dataSourceId, DEFAULT_DATA_SOURCE_ID);
@@ -11,14 +11,17 @@ test('Notion materials use the created data source and current API version', () 
   assert.equal(NOTION_VERSION, '2026-03-11');
 });
 
-test('Notion query includes the signed-in user materials and manually-added shared rows', () => {
+test('private library shows shared/imported creator labels but hides another account UUID', () => {
   const userId = '12345678-1234-1234-1234-123456789abc';
-  const filter = materialQueryFilter(userId);
-  assert.equal(filter.or.length, 2);
-  assert.equal(filter.or[0].property, 'Người tạo');
-  assert.equal(filter.or[0].rich_text.equals, userId);
-  assert.equal(filter.or[1].property, 'Người tạo');
-  assert.equal(filter.or[1].rich_text.is_empty, true);
+  const pageWithCreator = creator => ({
+    properties: { 'Người tạo': { rich_text: creator ? [{ plain_text: creator }] : [] } }
+  });
+  assert.equal(materialVisibleToUser(pageWithCreator(userId), userId), true);
+  assert.equal(materialVisibleToUser(pageWithCreator('Dola AI'), userId), true);
+  assert.equal(materialVisibleToUser(pageWithCreator('Runway'), userId), true);
+  assert.equal(materialVisibleToUser(pageWithCreator(''), userId), true);
+  assert.equal(materialVisibleToUser(pageWithCreator('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'), userId), false);
+  assert.equal(materialVisibleToUser(pageWithCreator(userId), ''), false);
 });
 
 test('material pages keep metadata and owner identity in Notion without storing binary files in GitHub or R2', () => {
