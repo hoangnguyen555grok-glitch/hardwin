@@ -1897,9 +1897,10 @@ function bridgeStatus(){
   app:'Geed Hardwin',version:'v1.30',scene:scene()?.name||'Scene',sceneIndex,
   fps:FPS,durationSeconds:DURATION,maxFrame:MAX,currentFrame:frame,playing,width:W,height:H,
   playbackOptions:{loopPlayback,frameByFrame,onionSkin,onionPrevCount,onionNextCount,onionPrevOpacity:Math.round(onionPrevOpacity*100),onionNextOpacity:Math.round(onionNextOpacity*100),onionSelectedOnly},
+  activeSymbolId:symbolEditId||null,symbols:symbolLibrary.slice(0,100).map(def=>({id:def.id,name:String(def.name||'MovieClip').slice(0,100),duration:Math.max(1,Number(def.duration)||FPS),objectCount:Array.isArray(def.objects)?def.objects.length:0})),
   layerCount:all.length,selectedCount:(selectedIds.length?selectedIds:(selectedId?[selectedId]:[])).length,
   selectedLayers:(selectedIds.length?selectedIds:(selectedId?[selectedId]:[])).map(id=>all.find(o=>o.id===id)).filter(Boolean).map(o=>({id:o.id,name:o.name,type:o.type,groupId:o.groupId||null})),
-  selected:sel?{id:sel.id,name:sel.name,type:sel.type}:null,
+  selected:sel?{id:sel.id,name:sel.name,type:sel.type,symbolId:sel.symbolId||null}:null,
   selectedTransform:state?{x:state.x,y:state.y,width:state.width??sel.width,height:state.height??sel.height,rotation:state.rotation,scale:state.scale,opacity:state.opacity}:null,
   selectedImageDimensions:sel&&sel.type==='image'?{width:sel.img?.naturalWidth||sel.img?.width||0,height:sel.img?.naturalHeight||sel.img?.height||0}:null,
   selectedProperties:sel?{...currentState(sel),name:sel.name,text:sel.text||null,color:sel.color||null,fillColor:sel.fillColor||null,blendMode:sel.blendMode||'source-over',fontFamily:sel.fontFamily||null,motionBend:Number(sel.motionBend)||0,inFrame:sel.inFrame??0,outFrame:sel.outFrame??MAX,audioStartFrame:sel.audioStartFrame??null,parentId:sel.parentId||null,pivotX:Number(sel.pivotX)||0,pivotY:Number(sel.pivotY)||0,pathClosed:!!sel.closed}:null,
@@ -2161,6 +2162,37 @@ function bridgeSetPlaybackOptions(args={}){
  if(args.onionNextOpacity!==undefined){onionNextOpacity=args.onionNextOpacity/100;$('onionNextOpacity').value=String(args.onionNextOpacity)}
  if(args.frameByFrame!==undefined)recordHistory();
  draw();return {ok:true,playbackOptions:bridgeStatus().playbackOptions,status:bridgeStatus()};
+}
+function bridgeManageSymbol(args={}){
+ const op=args.operation;
+ if(op==='createFromSelection'){
+  const items=selectedObjects().filter(item=>item.type!=='audio');
+  if(!items.length||!items.some(item=>!item.isMask))throw new Error('Chọn ít nhất một layer hình ảnh/hình vẽ trước khi tạo MovieClip.');
+  if(items.some(item=>item.locked))throw new Error('Mở khóa các layer đã chọn trước khi đóng gói thành MovieClip.');
+  const beforeCount=symbolLibrary.length;createSymbolFromSelection();
+  if(symbolLibrary.length!==beforeCount+1)throw new Error('Không thể tạo MovieClip từ vùng chọn hiện tại.');
+  renderAll();return {ok:true,operation:op,symbol:{id:symbolLibrary[symbolLibrary.length-1].id,name:symbolLibrary[symbolLibrary.length-1].name,duration:symbolLibrary[symbolLibrary.length-1].duration},status:bridgeStatus()};
+ }
+ if(op==='insert'){
+  const def=symbolLibrary.find(item=>item.id===args.symbolId);if(!def)throw new Error('Không tìm thấy Symbol ID trong thư viện.');
+  const created=makeObject('symbol',{name:def.name,symbolId:def.id,x:W/2,y:H/2,width:def.width,height:def.height});
+  renderAll();return {ok:true,operation:op,created:{id:created.id,symbolId:def.id},status:bridgeStatus()};
+ }
+ if(op==='edit'){
+  const instance=selected();if(!instance||selectedIds.length>1||instance.type!=='symbol'||instance.symbolId!==args.symbolId)throw new Error('Chọn đúng một instance Symbol có ID được yêu cầu trước khi mở MovieClip.');
+  enterSymbolEdit(args.symbolId,instance);return {ok:true,operation:op,activeSymbolId:symbolEditId,status:bridgeStatus()};
+ }
+ if(op==='exit'){
+  if(!symbolEditId)throw new Error('Hiện không ở chế độ chỉnh sửa MovieClip.');
+  exitSymbolEdit();return {ok:true,operation:op,activeSymbolId:symbolEditId||null,status:bridgeStatus()};
+ }
+ if(op==='setDuration'){
+  const def=activeSymbol();if(!def)throw new Error('Mở MovieClip cần chỉnh thời lượng trước.');
+  const duration=Number(args.duration);if(!Number.isInteger(duration)||duration<2||duration>2880)throw new Error('Thời lượng MovieClip phải từ 2 đến 2880 frame.');
+  def.duration=duration;MAX=duration-1;frame=Math.min(frame,MAX);$('frameRange').max=MAX;$('frameRange').value=String(frame);renderAll();
+  return {ok:true,operation:op,duration:def.duration,activeSymbolId:symbolEditId,status:bridgeStatus()};
+ }
+ throw new Error('MovieClip operation không được hỗ trợ.');
 }
 function bridgeUndo(){
  if(historyIndex<=0)return {ok:false,message:'Nothing to undo.',status:bridgeStatus()};
@@ -2447,7 +2479,7 @@ window["GeedHardwinBridge"] = Object.freeze({
  selectLayer:bridgeSelectLayer,selectLayers:bridgeSelectLayers,addImageResource:bridgeAddImageResource,setLayerMask:bridgeSetLayerMask,removeLayerMask:bridgeRemoveLayerMask,renameLayer:bridgeRenameLayer,setLayerVisibility:bridgeSetLayerVisibility,
  duplicateSelected:bridgeDuplicateSelected,moveLayer:bridgeMoveLayer,transformSelected:bridgeTransformSelected,
  groupSelected:bridgeGroupSelected,ungroupSelected:bridgeUngroupSelected,addKeyframe:bridgeAddKeyframe,
- setTimeline:bridgeSetTimeline,setPlaybackOptions:bridgeSetPlaybackOptions,cropSelectedImage:bridgeCropSelectedImage,addPrivateMaterial:bridgeAddPrivateMaterial,setSelectedProperties:bridgeSetSelectedProperties,setCamera:bridgeSetCamera,manageScene:bridgeManageScene,setWorkArea:bridgeSetWorkArea,setExposure:bridgeSetExposure,exportVideoPreview:bridgeExportVideoPreview,exportStill:bridgeExportStill,exportGif:bridgeExportGif,exportPngSequence:bridgeExportPngSequence,undo:bridgeUndo,redo:bridgeRedo,
+ setTimeline:bridgeSetTimeline,setPlaybackOptions:bridgeSetPlaybackOptions,manageSymbol:bridgeManageSymbol,cropSelectedImage:bridgeCropSelectedImage,addPrivateMaterial:bridgeAddPrivateMaterial,setSelectedProperties:bridgeSetSelectedProperties,setCamera:bridgeSetCamera,manageScene:bridgeManageScene,setWorkArea:bridgeSetWorkArea,setExposure:bridgeSetExposure,exportVideoPreview:bridgeExportVideoPreview,exportStill:bridgeExportStill,exportGif:bridgeExportGif,exportPngSequence:bridgeExportPngSequence,undo:bridgeUndo,redo:bridgeRedo,
  play:bridgePlay,stop:bridgeStop,setFrame:bridgeSetFrame,deleteSelected:bridgeDeleteSelected,exportVideo:bridgeExport
 });
 function aiBridgeAppend(text,who='agent'){
@@ -2502,7 +2534,8 @@ function agentSnapshot(){
   currentFrame:Number(status.currentFrame)||0,playing:Boolean(status.playing),
   layerCount:Number(status.layerCount)||0,selectedCount:Number(status.selectedCount)||0,
   selectedLayers:(Array.isArray(status.selectedLayers)?status.selectedLayers:[]).slice(0,24).map(layer=>({id:String(layer.id||'').slice(0,100),name:String(layer.name||'').slice(0,80),type:String(layer.type||'').slice(0,40),groupId:layer.groupId||null})),
-  selected:status.selected?{id:String(status.selected.id||'').slice(0,100),name:String(status.selected.name||'').slice(0,80),type:String(status.selected.type||'').slice(0,40)}:null,
+  selected:status.selected?{id:String(status.selected.id||'').slice(0,100),name:String(status.selected.name||'').slice(0,80),type:String(status.selected.type||'').slice(0,40),symbolId:status.selected.symbolId||null}:null,
+  activeSymbolId:status.activeSymbolId||null,symbols:(Array.isArray(status.symbols)?status.symbols:[]).slice(0,100),
   selectedCommunityAssetId:selectedObject?.communityAssetId?String(selectedObject.communityAssetId).slice(0,80):null,
   selectedLayerKeyCount:Array.isArray(selectedObject?.keys)?selectedObject.keys.length:0,
   selectedLayerKeyframes:Array.isArray(status.selectedLayerKeyframes)?status.selectedLayerKeyframes.slice(0,120):[],
@@ -2611,6 +2644,20 @@ function validateBrowserAgentAction(action){
    if(!Object.keys(clean).length)throw new Error('Cần ít nhất một thuộc tính biến đổi.');
    return {tool:action.tool,args:clean};
   }
+  case 'manageSymbol':{
+   const operation=args.operation;
+   if(!['createFromSelection','insert','edit','exit','setDuration'].includes(operation))throw new Error('MovieClip operation không hợp lệ.');
+   if(operation==='createFromSelection'||operation==='exit')return {tool:action.tool,args:{operation}};
+   if(operation==='setDuration'){
+    const duration=number('duration',2,2880,true);if(!Number.isInteger(duration))throw new Error('Thời lượng MovieClip phải là số nguyên.');
+    if(!agentSnapshot().activeSymbolId)throw new Error('Cần mở MovieClip trước khi đổi thời lượng.');
+    return {tool:action.tool,args:{operation,duration}};
+   }
+   const symbolId=text('symbolId',100,true);
+   if(!/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/.test(symbolId)||!agentSnapshot().symbols.some(item=>item.id===symbolId))throw new Error('Symbol ID không có trong thư viện hiện tại.');
+   if(operation==='edit'&&(agentSnapshot().selected?.type!=='symbol'||agentSnapshot().selected.symbolId!==symbolId||agentSnapshot().selectedCount!==1))throw new Error('Hãy chọn đúng một instance Symbol trước khi mở MovieClip.');
+   return {tool:action.tool,args:{operation,symbolId}};
+  }
   case 'setPlaybackOptions':{
    const clean={};
    for(const key of ['loopPlayback','frameByFrame','onionSkin','onionSelectedOnly'])if(args[key]!==undefined){if(typeof args[key]!=='boolean')throw new Error(key+' phải là boolean.');clean[key]=args[key]}
@@ -2711,6 +2758,7 @@ async function runAgentEditorAction(rawAction){
   case 'addKeyframe':result=window.GeedHardwinBridge.addKeyframe();break;
   case 'setTimeline':result=window.GeedHardwinBridge.setTimeline(action.args);break;
   case 'setPlaybackOptions':result=window.GeedHardwinBridge.setPlaybackOptions(action.args);break;
+  case 'manageSymbol':result=window.GeedHardwinBridge.manageSymbol(action.args);break;
   case 'cropSelectedImage':result=await window.GeedHardwinBridge.cropSelectedImage(action.args);break;
   case 'undo':result=window.GeedHardwinBridge.undo();break;
   case 'redo':result=window.GeedHardwinBridge.redo();break;
@@ -2759,6 +2807,7 @@ async function runAgentEditorAction(rawAction){
  else if(action.tool==='addKeyframe')verified=after.selectedLayerKeyframes.includes(before.currentFrame);
  else if(action.tool==='setTimeline')verified=after.durationSeconds===result.durationSeconds&&after.fps===result.fps;
  else if(action.tool==='setPlaybackOptions')verified=Object.entries(action.args).every(([key,value])=>after.playbackOptions?.[key]===value);
+ else if(action.tool==='manageSymbol')verified=action.args.operation==='createFromSelection'?after.symbols.length===before.symbols.length+1&&after.selected?.type==='symbol':action.args.operation==='insert'?after.layerCount===before.layerCount+1&&after.selected?.type==='symbol'&&after.selected.symbolId===action.args.symbolId:action.args.operation==='edit'?after.activeSymbolId===action.args.symbolId:action.args.operation==='exit'?after.activeSymbolId!==before.activeSymbolId:after.activeSymbolId===before.activeSymbolId&&after.symbols.some(item=>item.id===after.activeSymbolId&&item.duration===action.args.duration);
  else if(action.tool==='cropSelectedImage')verified=after.selected?.id===before.selected?.id&&after.selected?.type==='image'&&after.selectedImageDimensions?.width===result.cropped?.width&&after.selectedImageDimensions?.height===result.cropped?.height;
  else if(action.tool==='undo')verified=result?.ok===true&&after.history?.index<before.history?.index;
  else if(action.tool==='redo')verified=result?.ok===true&&after.history?.index>before.history?.index;

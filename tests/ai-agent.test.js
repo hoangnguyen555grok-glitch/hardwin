@@ -219,3 +219,17 @@ test('AI playback and onion-skin controls accept bounded settings only', () => {
   assert.throws(()=>sanitizeAgentAction({tool:'setPlaybackOptions',args:{onionSkin:true,onionPrevCount:1.5}}));
   assert.throws(()=>sanitizeAgentAction({tool:'setPlaybackOptions',args:{}}));
 });
+
+
+test('AI MovieClip controls validate operations, IDs and duration bounds', () => {
+  assert.deepEqual(sanitizeAgentAction({tool:'manageSymbol',args:{operation:'createFromSelection',ignored:true}}),{tool:'manageSymbol',args:{operation:'createFromSelection'}});
+  assert.deepEqual(sanitizeAgentAction({tool:'manageSymbol',args:{operation:'insert',symbolId:'sym-12'}}),{tool:'manageSymbol',args:{operation:'insert',symbolId:'sym-12'}});
+  assert.deepEqual(sanitizeAgentAction({tool:'manageSymbol',args:{operation:'edit',symbolId:'sym-12'}}),{tool:'manageSymbol',args:{operation:'edit',symbolId:'sym-12'}});
+  assert.deepEqual(sanitizeAgentAction({tool:'manageSymbol',args:{operation:'exit'}}),{tool:'manageSymbol',args:{operation:'exit'}});
+  assert.deepEqual(sanitizeAgentAction({tool:'manageSymbol',args:{operation:'setDuration',duration:240}}),{tool:'manageSymbol',args:{operation:'setDuration',duration:240}});
+  assert.throws(()=>sanitizeAgentAction({tool:'manageSymbol',args:{operation:'setDuration',duration:1}}));
+  assert.throws(()=>sanitizeAgentAction({tool:'manageSymbol',args:{operation:'setDuration',duration:2881}}));
+  assert.throws(()=>sanitizeAgentAction({tool:'manageSymbol',args:{operation:'setDuration',duration:2.5}}));
+  assert.throws(()=>sanitizeAgentAction({tool:'manageSymbol',args:{operation:'insert',symbolId:'../private'}}));
+  assert.throws(()=>sanitizeAgentAction({tool:'manageSymbol',args:{operation:'delete',symbolId:'sym-12'}}));
+});
