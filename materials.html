@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Thư viện vật liệu — Geed Hardwin</title>
+<style>
+:root{color-scheme:dark;--bg:#111318;--panel:#191d25;--line:#303846;--muted:#98a3b3;--text:#edf2f8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px Inter,system-ui,Segoe UI,Arial,sans-serif}
+button,input,select,textarea{font:inherit}button{border:1px solid var(--line);background:#252c37;color:var(--text);border-radius:8px;padding:9px 12px;cursor:pointer}button:hover{border-color:#64738a}button:disabled{opacity:.45;cursor:not-allowed}.primary{background:#477fe1;border-color:#477fe1;color:#fff}
+.top{height:60px;display:flex;align-items:center;gap:12px;padding:0 22px;background:#151922;border-bottom:1px solid var(--line)}.brand{font-weight:800;letter-spacing:.04em}.top a{color:#bcd4ff;text-decoration:none}.top .spacer{flex:1}
+main{max-width:1320px;margin:0 auto;padding:26px 22px 60px}.heading{display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap}.heading h1{margin:0;font-size:25px}.heading p{margin:7px 0 0;color:var(--muted);font-size:12px}.heading .spacer{flex:1}
+.statuses{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}.status{padding:7px 10px;border:1px solid var(--line);border-radius:7px;color:#b9c6d8;font-size:11px;background:#171c25}.status.ok{border-color:#315a49;color:#a9e7cc}.status.warn{border-color:#6a5435;color:#f2cd9b}
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;margin:18px 0}.toolbar input,.toolbar select{min-width:180px;background:#151b24;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 11px}.toolbar input{flex:1}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}.card{overflow:hidden;border:1px solid var(--line);border-radius:11px;background:var(--panel);min-height:205px;display:flex;flex-direction:column}.preview{height:135px;background:#0c1118;display:grid;place-items:center;overflow:hidden;color:#718099;font-size:34px}.preview img,.preview video{width:100%;height:100%;object-fit:cover}.preview audio{width:90%}.cardbody{padding:12px;display:flex;flex-direction:column;gap:6px;min-height:0}.cardbody strong{font-size:13px;overflow-wrap:anywhere}.meta{font-size:10px;color:var(--muted);display:flex;gap:7px;flex-wrap:wrap}.note{font-size:11px;color:#c3ccda;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}.cardlinks{display:flex;gap:12px;margin-top:auto;padding-top:5px}.cardlinks a{font-size:11px;color:#a9caff;text-decoration:none}.empty{grid-column:1/-1;padding:44px 15px;text-align:center;border:1px dashed #3a4657;border-radius:12px;color:var(--muted);line-height:1.6}
+dialog{width:min(650px,calc(100vw - 24px));max-height:90vh;overflow:auto;background:#1a212c;color:var(--text);border:1px solid #46566d;border-radius:14px;padding:0}dialog::backdrop{background:#070b12d9}.dlghead{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}.dlghead h2{font-size:15px;margin:0}.form{padding:17px;display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:grid;gap:6px;color:#c5cfdd;font-size:11px}.field.full{grid-column:1/-1}.field input,.field select,.field textarea{width:100%;min-width:0;background:#101720;border:1px solid #39475a;border-radius:7px;color:var(--text);padding:9px}.field textarea{min-height:65px;resize:vertical}.hint{color:var(--muted);font-size:10px;line-height:1.45}.dlgactions{display:flex;justify-content:flex-end;gap:8px;padding:12px 17px;border-top:1px solid var(--line)}.message{margin:14px 0;padding:10px 12px;border:1px solid #5e5038;background:#2b251d;border-radius:8px;color:#f0d3a7;font-size:12px;line-height:1.5}.hidden{display:none!important}
+@media(max-width:620px){main{padding:19px 12px 40px}.top{padding:0 12px}.form{grid-template-columns:1fr}.field.full{grid-column:1}.heading h1{font-size:21px}}
+</style>
+</head>
+<body>
+<header class="top"><span class="brand">GEED HARDWIN</span><a href="/">← Trình dựng</a><a href="https://app.notion.com/p/421d38d6eafa81c4ae05e5206c0f29ed" target="_blank" rel="noopener noreferrer">Mở kho Notion ↗</a><span class="spacer"></span><button id="accountButton" type="button"><span id="accountButtonLabel">Đăng nhập Google</span></button></header>
+<main>
+  <section class="heading"><div><h1>Thư viện vật liệu</h1><p>Ảnh, video, âm thanh, font và tệp gốc được lưu trong Notion; Geed chỉ đọc và hiển thị.</p></div><span class="spacer"></span><button class="primary" id="newMaterial">＋ Thêm vật liệu</button></section>
+  <div class="statuses"><span class="status" id="notionStatus">Notion: đang kiểm tra…</span><span class="status" id="itemCount">0 vật liệu</span></div>
+  <div class="message hidden" id="setupMessage"></div>
+  <section class="toolbar"><input id="searchMaterials" type="search" placeholder="Tìm theo tên, ghi chú hoặc từ khóa…"><select id="filterType"><option value="">Tất cả loại</option><option>Video</option><option>Hình ảnh</option><option>Âm thanh</option><option>Giọng đọc</option><option>Nhạc</option><option>Hiệu ứng âm thanh</option><option>Font</option><option>Texture</option><option>Mô hình 3D</option><option>Preset</option><option>Khác</option></select><button id="refreshMaterials">Làm mới</button></section>
+  <section class="grid" id="materialsGrid"><div class="empty">Đang tải thư viện…</div></section>
+</main>
+<dialog id="materialDialog">
+  <div class="dlghead"><h2>Thêm vật liệu vào thư viện</h2><button id="closeMaterial" type="button">×</button></div>
+  <form id="materialForm">
+    <div class="form">
+      <label class="field full">Tên vật liệu *<input name="name" id="materialName" required maxlength="120" placeholder="Ví dụ: Rừng sương mù — cảnh nền"></label>
+      <label class="field">Loại<select name="type"><option>Hình ảnh</option><option>Video</option><option>Âm thanh</option><option>Giọng đọc</option><option>Nhạc</option><option>Hiệu ứng âm thanh</option><option>Font</option><option>Texture</option><option>Mô hình 3D</option><option>Preset</option><option>Khác</option></select></label>
+      <label class="field">Giấy phép<select name="license"><option>Chưa rõ</option><option>Tự tạo</option><option>Được cấp phép</option><option>Miễn phí</option><option>Cần kiểm tra</option></select></label>
+      <div class="field full hint"><strong>Tệp gốc lưu trực tiếp trong Notion.</strong> Sau khi tạo mục, bấm “Mở trong Notion”, tải file vào thuộc tính <strong>Tệp Notion</strong> của mục đó. Quay lại Geed và bấm “Làm mới” để cập nhật xem trước.</div>
+      <label class="field">Vai trò<select name="role"><option value="">Chọn vai trò</option><option>Bối cảnh</option><option>Nhân vật</option><option>Đạo cụ</option><option>Chuyển cảnh</option><option>Âm thanh nền</option><option>Tiêu đề</option><option>Hiệu ứng</option><option>Khác</option></select></label>
+      <label class="field">Nguồn/URL gốc<input name="sourceUrl" type="url" placeholder="https://…"></label>
+      <label class="field full">Link tệp bên ngoài<input name="fileUrl" type="url" placeholder="https://… (nếu tệp nằm ngoài Notion)"></label>
+      <label class="field full">Link xem trước (tùy chọn)<input name="previewUrl" type="url" placeholder="https://…"></label>
+      <label class="field">Định dạng<input name="format" maxlength="40" placeholder="PNG, MP4, WAV…"></label>
+      <label class="field">Độ phân giải<input name="resolution" maxlength="60" placeholder="1920 × 1080"></label>
+      <label class="field">Dung lượng (MB)<input name="sizeMb" type="number" min="0" step="0.01"></label>
+      <label class="field">Thời lượng (giây)<input name="durationSeconds" type="number" min="0" step="0.01"></label>
+      <label class="field full">Từ khóa<input name="tags" placeholder="Geed, Runway, Adobe, Video, Audio, AI"></label>
+      <label class="field full">Ghi chú<textarea name="note" maxlength="1800" placeholder="Mô tả cách dùng, màu sắc, phiên bản hoặc giấy phép…"></textarea></label>
+    </div>
+    <div class="dlgactions"><button type="button" id="cancelMaterial">Hủy</button><button class="primary" id="saveMaterial" type="submit">Lưu vật liệu</button></div>
+  </form>
+</dialog>
+<script type="module" src="/lib/material-library.js"></script>
+</body>
+</html>
