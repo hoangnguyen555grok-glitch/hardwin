@@ -5,6 +5,12 @@ on:
     branches: [main, goal8-cloud-ai-cleanup, goal9-account-menu]
     paths:
       - "api/ai/**"
+      - "api/materials/**"
+      - "api/community-assets/**"
+      - "lib/notion-materials.js"
+      - "lib/material-library.js"
+      - "materials.html"
+      - "docs/NOTION-MATERIAL-LIBRARY.md"
       - "lib/ai-router.js"
       - "lib/ai-agent.js"
       - "lib/supabase-*.js"
@@ -20,6 +26,12 @@ on:
   pull_request:
     paths:
       - "api/ai/**"
+      - "api/materials/**"
+      - "api/community-assets/**"
+      - "lib/notion-materials.js"
+      - "lib/material-library.js"
+      - "materials.html"
+      - "docs/NOTION-MATERIAL-LIBRARY.md"
       - "lib/ai-router.js"
       - "lib/supabase-*.js"
       - "index.html"
@@ -49,6 +61,10 @@ jobs:
       - name: Syntax-check server and browser modules
         run: |
           node --check api/ai/chat.js
+          node --check api/materials/index.js
+          node --check api/community-assets/index.js
+          node --check lib/notion-materials.js
+          node --input-type=module --check < lib/material-library.js
           node --check api/media/upload-url.js
           node --check lib/ai-router.js
           node --check lib/ai-agent.js

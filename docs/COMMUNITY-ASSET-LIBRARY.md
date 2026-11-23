@@ -2,7 +2,7 @@
 
 ## Storage model
 
-Geed Hardwin does **not** receive or store community media files in this workflow. The public library is a small static catalog at `assets/community-library.json`. Each entry points to a public HTTPS file hosted by the creator or by a hosting service they control.
+Geed Hardwin does **not** receive or store community media files in this workflow. The public library merges the static catalog at `assets/community-library.json` with approved assets from the Notion source-material database. Notion rows appear only when **Trạng thái = Đã duyệt**, the licence is **Tự tạo**, **Được cấp phép**, or **Miễn phí**, and the **Tệp Notion** property contains a file. The server refreshes Notion's expiring file URLs on each page load. Static entries continue to point to public HTTPS files hosted by the creator or by a hosting service they control.
 
 The browser reads the catalog from Geed, then loads the selected image or audio file directly from its external host. Geed does not proxy the media bytes, copy them into Supabase, save them to R2, or embed them as base64 in the project. A project stores the external URL and a small amount of resource metadata.
 
