@@ -87,7 +87,7 @@ test('finished video preview records the complete project with its audio tracks'
 });
 
 test('cloud export uploads only authenticated MP4 or WebM blobs through the temporary R2 API', () => {
-  assert.match(html, /fetch\('\\/api\\/media\\/upload-url'/);
+  assert.ok(html.includes("fetch('/api/media/upload-url'"));
   assert.match(html, /method:'PUT',headers:\{'content-type':contentType\},body:finishedPreviewBlob/);
   assert.match(html, /id="uploadFinishedVideo"[^>]*disabled/);
   assert.match(html, /R2 chưa được bật/);
