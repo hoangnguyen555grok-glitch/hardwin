@@ -173,9 +173,16 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
 .video-preview-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;color:#b8c5d7;font-size:11px}
 .video-preview-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid #354155;background:#111720}
 .video-preview-actions button{min-width:120px}
+.video-preview-runway-note{display:grid;gap:7px;padding:0 14px 13px;background:#111720;color:#9eacc0;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+.video-preview-runway-uri{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#d9e7fa;font:11px ui-monospace,monospace}
+.video-preview-runway-uri button{font:inherit;padding:5px 8px;min-width:auto}
+.video-preview-runway-uri[hidden]{display:none}
+.video-preview-runway-note .accepted{color:#96e2bd}
+@media(max-width:700px){.video-preview-runway-note{padding:0 10px 10px}}
 @media(max-width:700px){.video-preview-dialog{width:calc(100vw - 12px);max-width:calc(100vw - 12px)}.video-preview-content{padding:8px}.video-preview-actions{padding:9px}.video-preview-actions button{flex:1}}
 
 </style>
+<meta name="geed-runway-transfer-url" content="">
 </head>
 <body>
 <header class="topbar">
@@ -391,6 +398,15 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
     </div>
     <div class="video-preview-actions">
       <button id="downloadFinishedVideo" type="button">↓ Tải video xuống thiết bị</button>
+      <span style="flex:1"></span>
+      <button id="sendFinishedVideoToRunway" type="button" class="primary" disabled>Gửi video tới Runway</button>
+    </div>
+    <div class="video-preview-runway-note" aria-live="polite">
+      <span id="videoPreviewRunwayStatus">Đang kiểm tra kết nối chuyển video tạm thời…</span>
+      <span class="video-preview-runway-uri" id="videoPreviewRunwayUri" hidden>
+        <span id="videoPreviewRunwayUriText"></span>
+        <button id="copyRunwayUri" type="button">Sao chép URI</button>
+      </span>
     </div>
   </div>
 </dialog>
@@ -1694,24 +1710,122 @@ async function exportVideo(previewMode=false){
 $('exportVideo').onclick=()=>exportVideo(false);
 $('openVideoPreview').onclick=()=>exportVideo(true);
 
-let finishedPreviewBlob=null,finishedPreviewName='geed-hardwin-animation.webm',finishedPreviewObjectUrl=null,videoExportState='idle';
+let finishedPreviewBlob=null,finishedPreviewName='geed-hardwin-animation.webm',finishedPreviewObjectUrl=null,videoExportState='idle',runwayTransferAvailable=false,runwayTransferUri='';
+const RUNWAY_EPHEMERAL_MAX_BYTES=200*1024*1024,RUNWAY_EPHEMERAL_MIN_BYTES=512;
+function runwayTransferBaseUrl(){
+ const meta=document.querySelector('meta[name="geed-runway-transfer-url"]');
+ return String(window.GEED_RUNWAY_TRANSFER_URL||meta?.content||'').trim().replace(/\/+$/,'');
+}
 function clearFinishedPreview(){
  const player=$('finishedVideo');
  if(player){player.pause();player.removeAttribute('src');player.load()}
  if(finishedPreviewObjectUrl){URL.revokeObjectURL(finishedPreviewObjectUrl);finishedPreviewObjectUrl=null}
  finishedPreviewBlob=null;
  $('downloadFinishedVideo').disabled=true;
+ $('sendFinishedVideoToRunway').disabled=true;
 }
 function showFinishedVideoPreview(blob,filename,audioTrackCount){
- clearFinishedPreview();finishedPreviewBlob=blob;finishedPreviewName=filename;
+ clearFinishedPreview();runwayTransferUri='';finishedPreviewBlob=blob;finishedPreviewName=filename;
  finishedPreviewObjectUrl=URL.createObjectURL(blob);
  const player=$('finishedVideo');player.src=finishedPreviewObjectUrl;player.muted=false;player.volume=1;player.load();
  $('videoPreviewInfo').textContent=(blob.type.includes('mp4')?'MP4':'WebM')+' · '+(blob.size/1024/1024).toFixed(1)+' MB · '+filename;
  $('videoPreviewAudioInfo').textContent=audioTrackCount>0?'✓ Có '+audioTrackCount+' track âm thanh/giọng nói':'Không phát hiện track âm thanh · video vẫn xem được';
  $('downloadFinishedVideo').disabled=false;
+ $('videoPreviewRunwayUri').hidden=true;
+ $('videoPreviewRunwayStatus').textContent='Đang kiểm tra dịch vụ chuyển video…';
+ $('videoPreviewRunwayStatus').classList.remove('accepted');
+ $('sendFinishedVideoToRunway').textContent='Gửi video tới Runway';
  $('videoPreviewDialog').showModal();
+ checkRunwayTransferAvailability();
 }
+async function checkRunwayTransferAvailability(){
+ const button=$('sendFinishedVideoToRunway'),status=$('videoPreviewRunwayStatus'),base=runwayTransferBaseUrl();
+ runwayTransferAvailable=false;button.disabled=true;
+ if(!base){
+  status.textContent='Chưa cấu hình địa chỉ Worker chuyển video. Tệp vẫn có thể xem trước và tải về thiết bị.';
+  return;
+ }
+ try{
+  const response=await fetch(base+'/health',{headers:{accept:'application/json'}});
+  const data=await response.json().catch(()=>({}));
+  runwayTransferAvailable=response.ok&&data.available===true;
+  if(runwayTransferAvailable){
+   status.textContent='Runway upload đã sẵn sàng. Video sẽ được gửi trực tiếp tới Runway, không qua kho lưu trữ trung gian.';
+   button.disabled=!finishedPreviewBlob;
+  }else{
+   status.textContent=data.message||'Worker chưa được cấu hình đầy đủ. Video vẫn được giữ trong trình duyệt.';
+  }
+ }catch(error){
+  status.textContent='Không kết nối được Worker chuyển video. Video vẫn được giữ trong trình duyệt.';
+ }
+}
+async function getRunwayTransferAccessToken(){
+ if(!window.GeedHardwinAuth||typeof window.GeedHardwinAuth.getAccessToken!=='function')throw new Error('Thành phần đăng nhập chưa sẵn sàng. Hãy tải lại trang.');
+ const token=await window.GeedHardwinAuth.getAccessToken();
+ if(!token)throw new Error('Hãy đăng nhập Google trước khi gửi video tới Runway.');
+ return token;
+}
+function releaseFinishedVideoAfterRunwayAcceptance(uri){
+ const player=$('finishedVideo');
+ if(player){player.pause();player.removeAttribute('src');player.load()}
+ if(finishedPreviewObjectUrl){URL.revokeObjectURL(finishedPreviewObjectUrl);finishedPreviewObjectUrl=null}
+ finishedPreviewBlob=null;runwayTransferUri=uri;videoExportState='transferred';
+ $('downloadFinishedVideo').disabled=true;
+ $('videoPreviewInfo').textContent='Runway đã xác nhận nhận video.';
+ $('videoPreviewAudioInfo').textContent='Đã giải phóng Blob và Object URL trong trình duyệt.';
+ $('videoPreviewRunwayStatus').textContent='Đã nhận thành công. URI tạm có hiệu lực 24 giờ; Runway sẽ tự hết hạn tệp sau thời gian này.';
+ $('videoPreviewRunwayStatus').classList.add('accepted');
+ $('videoPreviewRunwayUriText').textContent=uri;
+ $('videoPreviewRunwayUri').hidden=false;
+ $('sendFinishedVideoToRunway').textContent='Runway đã nhận';
+ $('sendFinishedVideoToRunway').disabled=true;
+}
+$('sendFinishedVideoToRunway').onclick=async()=>{
+ const button=$('sendFinishedVideoToRunway'),status=$('videoPreviewRunwayStatus'),base=runwayTransferBaseUrl();
+ if(!finishedPreviewBlob||!runwayTransferAvailable||!base)return;
+ if(finishedPreviewBlob.size<RUNWAY_EPHEMERAL_MIN_BYTES||finishedPreviewBlob.size>RUNWAY_EPHEMERAL_MAX_BYTES){
+  status.textContent='Runway chỉ nhận tệp từ 512 byte đến 200 MB. Video vẫn được giữ để bạn tải xuống.';
+  return;
+ }
+ const mime=finishedPreviewBlob.type.toLowerCase().includes('mp4')?'video/mp4':finishedPreviewBlob.type.toLowerCase().includes('webm')?'video/webm':'';
+ if(!mime){status.textContent='Định dạng video chưa được hỗ trợ. Hãy xuất MP4 hoặc WebM.';return}
+ const extension=mime==='video/mp4'?'mp4':'webm';
+ const filename=String(finishedPreviewName||('geed-hardwin-animation.'+extension)).replace(/[^a-zA-Z0-9._-]/g,'-').slice(0,180);
+ button.disabled=true;button.textContent='Đang tạo phiên tải tạm…';
+ try{
+  const token=await getRunwayTransferAccessToken();
+  const sessionResponse=await fetch(base+'/upload-session',{
+   method:'POST',
+   headers:{'content-type':'application/json',authorization:'Bearer '+token,accept:'application/json'},
+   body:JSON.stringify({filename,contentType:mime,size:finishedPreviewBlob.size})
+  });
+  const session=await sessionResponse.json().catch(()=>({}));
+  if(!sessionResponse.ok||!session.uploadUrl||!session.runwayUri||!session.fields){
+   throw new Error(session.error||'Không tạo được phiên tải tạm Runway. Video vẫn còn trong trình duyệt.');
+  }
+  const form=new FormData();
+  for(const [key,value] of Object.entries(session.fields))form.append(key,String(value));
+  form.append('file',finishedPreviewBlob,filename);
+  button.textContent='Đang gửi video trực tiếp tới Runway…';
+  status.textContent='Đang tải video lên địa chỉ tạm do Runway cấp. Không có bản sao lưu tại R2 hoặc Worker.';
+  const uploaded=await fetch(session.uploadUrl,{method:'POST',body:form});
+  if(!uploaded.ok){
+   throw new Error('Runway chưa xác nhận nhận đủ video ('+uploaded.status+'). Bản trong trình duyệt vẫn được giữ; lần thử sau sẽ tạo phiên mới.');
+  }
+  releaseFinishedVideoAfterRunwayAcceptance(session.runwayUri);
+ }catch(error){
+  const message=error?.message||'Không thể xác nhận trạng thái tải lên Runway.';
+  status.textContent=message+' Chưa giải phóng video cục bộ; bạn vẫn có thể tải xuống hoặc thử lại.';
+  button.disabled=!runwayTransferAvailable;
+  button.textContent='Thử gửi lại (tạo phiên mới)';
+ }
+};
 $('downloadFinishedVideo').onclick=()=>{if(finishedPreviewBlob)download(finishedPreviewBlob,finishedPreviewName)};
+$('copyRunwayUri').onclick=async()=>{
+ if(!runwayTransferUri)return;
+ try{await navigator.clipboard.writeText(runwayTransferUri);$('videoPreviewRunwayStatus').textContent='Đã sao chép URI Runway.'}
+ catch(error){$('videoPreviewRunwayStatus').textContent='Trình duyệt không cho phép sao chép tự động; hãy chọn URI và sao chép thủ công.'}
+};
 $('closeVideoPreview').onclick=()=>{$('videoPreviewDialog').close()};
 $('videoPreviewDialog').addEventListener('click',event=>{if(event.target===$('videoPreviewDialog'))$('videoPreviewDialog').close()});
 $('videoPreviewDialog').addEventListener('close',clearFinishedPreview);

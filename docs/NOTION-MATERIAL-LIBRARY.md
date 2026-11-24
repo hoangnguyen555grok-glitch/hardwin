@@ -52,10 +52,11 @@ This first version intentionally uses Notion's native attachment UI for the bina
 ## 3. Preview and completed video
 
 - Image, video and audio files attached in **Tệp Notion** can be previewed on their Geed material cards.
-- Finished animation preview is rendered in the browser. The user can download the completed MP4/WebM directly to the local device.
-- To keep a finished render in the project workspace, upload it manually to a Notion page or add it to this database using the **Tệp Notion** Files property. Record the title, format, duration, and relevant project/version notes.
-- This Notion database is the source-material and project-asset library. It can also reference finished deliverables, but the application does not automatically upload completed renders to Notion.
-- File upload limits depend on the Notion workspace plan. Check the limit shown in Notion before attaching a large video.
+- Finished animation preview and MP4/WebM rendering happen in the browser.
+- When the user chooses **Gửi video tới Runway**, a separate Cloudflare Worker creates an authenticated Runway ephemeral upload session. The browser then uploads the Blob directly to the temporary Runway upload URL; the Worker never receives or stores the video bytes.
+- Geed releases the local Blob and preview Object URL only after the Runway upload endpoint confirms success. If the response is an error or its state is ambiguous, Geed keeps the local Blob and does not report completion.
+- The Runway `runway://` URI is temporary and valid for 24 hours. This handoff does not create a permanent library asset or start a video generation task.
+- If a permanent archive copy is required, the user may separately attach the completed file to a Notion page. That archive is optional and separate from the Runway transfer workflow.
 
 ## 4. Expiring Notion file URLs
 
