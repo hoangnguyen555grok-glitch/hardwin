@@ -49,11 +49,13 @@ Bạn có thể thêm vật liệu theo một trong hai cách:
 
 This first version intentionally uses Notion's native attachment UI for the binary upload. It does not expose the Notion integration secret to the browser and it does not send large files through a Vercel Function request body. The Notion workspace's own file-size limits still apply.
 
-## 3. Preview and video export
+## 3. Preview and completed video
 
-- Image, video and audio assets attached in **Tệp Notion** can be previewed on their Geed material cards.
-- Finished animation preview is rendered in the browser and can be downloaded directly to the local device.
-- R2 is a separate output store, not part of this Notion library. After Notion is connected, the separate R2 step will keep finished MP4/WebM renders for the later YouTube/TikTok publishing connector. Do not put finished exports into the Notion source-material database.
+- Image, video and audio files attached in **Tệp Notion** can be previewed on their Geed material cards.
+- Finished animation preview is rendered in the browser. The user can download the completed MP4/WebM directly to the local device.
+- To keep a finished render in the project workspace, upload it manually to a Notion page or add it to this database using the **Tệp Notion** Files property. Record the title, format, duration, and relevant project/version notes.
+- This Notion database is the source-material and project-asset library. It can also reference finished deliverables, but the application does not automatically upload completed renders to Notion.
+- File upload limits depend on the Notion workspace plan. Check the limit shown in Notion before attaching a large video.
 
 ## 4. Expiring Notion file URLs
 
@@ -72,4 +74,4 @@ Trang /materials.html có nút **Dùng trong Edit** cho hình ảnh, texture và
 
 Khi chọn ảnh, Geed chèn ảnh vào timeline và lưu tham chiếu trong Resource Library của dự án để có thể thêm lại ở cảnh khác. Âm thanh được chèn vào timeline. Video và font vẫn chỉ xem trước cho đến khi editor có bộ nhập tương ứng.
 
-Tệp Notion dùng URL có thời hạn. Mỗi lần mở editor hoặc mở lại một dự án có tham chiếu vật liệu cá nhân, Geed yêu cầu URL mới từ API và cập nhật lại các tham chiếu đã lưu trước khi tiếp tục. Việc này không sao chép tệp sang GitHub hay R2; tệp gốc vẫn nằm trong Notion.
+Tệp Notion dùng URL có thời hạn. Mỗi lần mở editor hoặc mở lại một dự án có tham chiếu vật liệu cá nhân, Geed yêu cầu URL mới từ API và cập nhật lại các tham chiếu đã lưu trước khi tiếp tục. Việc này không sao chép tệp sang GitHub; tệp gốc vẫn nằm trong Notion.

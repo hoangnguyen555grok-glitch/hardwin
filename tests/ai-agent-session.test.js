@@ -86,13 +86,6 @@ test('finished video preview records the complete project with its audio tracks'
   assert.match(html, /\$\('openVideoPreview'\)\.onclick=\(\)=>exportVideo\(true\)/);
 });
 
-test('cloud export sends authenticated MP4 or WebM renders through R2 to Runway, then cleans up', () => {
-  assert.ok(html.includes("fetch('/api/media/upload-url'"));
-  assert.match(html, /purpose:'final'/);
-  assert.match(html, /method:'PUT',headers:\{'content-type':contentType\},body:finishedPreviewBlob/);
-  assert.match(html, /id="uploadFinishedVideo"[^>]*disabled/);
-  assert.match(html, /R2 chưa sẵn sàng/);
-  assert.ok(html.includes("fetch('/api/media/send-to-runway'"));
-  assert.match(html, /action:'cleanup'/);
-  assert.match(html, /Runway đã nhận video thành công/);
+test('finished video export stays local and keeps preview download', () => {
+  assert.ok(html.includes("$('downloadFinishedVideo').onclick="));
 });
