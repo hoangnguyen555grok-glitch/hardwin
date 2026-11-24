@@ -395,7 +395,7 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
     <div class="video-preview-actions">
       <button id="downloadFinishedVideo" type="button">↓ Tải video xuống</button>
       <span class="spacer"></span>
-      <button id="uploadFinishedVideo" type="button" class="primary" disabled>Lưu tạm lên R2</button>
+      <button id="uploadFinishedVideo" type="button" class="primary" disabled>Lưu bản hoàn chỉnh lên R2</button>
     </div>
     <p class="video-preview-cloud-note" id="videoPreviewCloudStatus" aria-live="polite">Đang kiểm tra kết nối kho lưu trữ đám mây…</p>
   </div>
@@ -1725,11 +1725,11 @@ async function checkR2ExportAvailability(){
   const data=await response.json().catch(()=>({}));
   r2ExportReady=response.ok&&data.available===true;
   if(!r2ExportReady){
-   status.textContent='Lưu R2 chưa sẵn sàng: chủ dự án cần bật R2, tạo bucket riêng và cấu hình khóa lưu trữ trên máy chủ. Video vẫn có thể xem hoặc tải xuống.';
+   status.textContent='R2 chưa sẵn sàng: cần kích hoạt R2, tạo bucket riêng và cấu hình khóa lưu trữ trên máy chủ. Bạn vẫn có thể xem trước hoặc tải video xuống.';
    button.disabled=true;button.title='R2 chưa được cấu hình';
    return;
   }
-  status.textContent='R2 đã sẵn sàng. File được lưu dưới thư mục tạm và có thời hạn mục tiêu 48 giờ.';
+  status.textContent='R2 đã sẵn sàng. Bản hoàn chỉnh sẽ được lưu riêng dưới geed-final/ và không tự xóa; liên kết tải xuống có hiệu lực 24 giờ.';
   button.disabled=!finishedPreviewBlob;
  }catch(error){
   r2ExportReady=false;button.disabled=true;
@@ -1746,21 +1746,21 @@ $('uploadFinishedVideo').onclick=async()=>{
   const token=await window.GeedHardwinAuth.getAccessToken();
   if(!token)throw new Error('Hãy đăng nhập Google trước khi lưu video lên kho riêng.');
   const contentType=finishedPreviewBlob.type.toLowerCase().includes('mp4')?'video/mp4':'video/webm';
-  const signedResponse=await fetch('/api/media/upload-url',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+token},body:JSON.stringify({contentType,size:finishedPreviewBlob.size})});
+  const signedResponse=await fetch('/api/media/upload-url',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+token},body:JSON.stringify({contentType,size:finishedPreviewBlob.size,purpose:'final'})});
   const signed=await signedResponse.json().catch(()=>({}));
   if(!signedResponse.ok||!signed.uploadUrl)throw new Error(signed.error||'Không thể tạo quyền tải lên R2.');
   const uploaded=await fetch(signed.uploadUrl,{method:'PUT',headers:{'content-type':contentType},body:finishedPreviewBlob});
   if(!uploaded.ok)throw new Error('R2 từ chối tệp tải lên ('+uploaded.status+'). Kiểm tra CORS và quyền bucket.');
   finishedPreviewDownloadUrl=signed.downloadUrl||'';
   status.replaceChildren();
-  const label=document.createElement('span');label.textContent='Đã lưu video tạm trên R2. Link tải có thời hạn khoảng 24 giờ; quy tắc bucket sẽ dọn tệp sau 48 giờ.';status.appendChild(label);
-  if(finishedPreviewDownloadUrl){status.appendChild(document.createTextNode(' '));const link=document.createElement('a');link.href=finishedPreviewDownloadUrl;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Mở video trên R2';status.appendChild(link)}
+  const label=document.createElement('span');label.textContent='Đã lưu bản hoàn chỉnh trong bucket R2 riêng. Tệp ở geed-final/ và không thuộc quy tắc tự xóa; liên kết tải xuống có hiệu lực 24 giờ.';status.appendChild(label);
+  if(signed.objectKey){status.appendChild(document.createTextNode(' Khóa tệp: '+signed.objectKey+'.'))}if(finishedPreviewDownloadUrl){status.appendChild(document.createTextNode(' '));const link=document.createElement('a');link.href=finishedPreviewDownloadUrl;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Mở video trên R2 (link 24 giờ)';status.appendChild(link)}
   button.textContent='Đã lưu lên R2';button.disabled=true;
  }catch(error){status.textContent=error?.message||'Tải video lên R2 thất bại.';button.disabled=false;button.textContent='Thử tải lên lại'}
 };
 $('closeVideoPreview').onclick=()=>{$('videoPreviewDialog').close()};
 $('videoPreviewDialog').addEventListener('click',event=>{if(event.target===$('videoPreviewDialog'))$('videoPreviewDialog').close()});
-$('videoPreviewDialog').addEventListener('close',()=>{clearFinishedPreview();$('uploadFinishedVideo').textContent='Lưu tạm lên R2';checkR2ExportAvailability()});
+$('videoPreviewDialog').addEventListener('close',()=>{clearFinishedPreview();$('uploadFinishedVideo').textContent='Lưu bản hoàn chỉnh lên R2';checkR2ExportAvailability()});
 checkR2ExportAvailability();
 
 function gifLzw(indices,minCodeSize=8){
