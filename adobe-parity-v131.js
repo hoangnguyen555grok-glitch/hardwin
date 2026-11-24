@@ -87,7 +87,30 @@
       }
     },30);
   }
+  function ensureToolbar(){
+    if(document.getElementById('addEraser'))return;
+    const grid=document.querySelector('.toolgrid');
+    if(!grid)return;
+    const html=`<button class="tool" id="addEraser"><span class="ico">⌫</span>Eraser</button>
+        <button class="tool" id="addBucket"><span class="ico">🪣</span>Bucket</button>
+        <button class="tool" id="alignLeftBtn" title="Align left">⫷ L</button>
+        <button class="tool" id="alignCenterBtn" title="Align center X">☰ C</button>
+        <button class="tool" id="alignRightBtn" title="Align right">⫸ R</button>
+        <button class="tool" id="alignTopBtn" title="Align top">⤒ T</button>
+        <button class="tool" id="alignMidBtn" title="Align middle Y">☰ M</button>
+        <button class="tool" id="alignBotBtn" title="Align bottom">⤓ B</button>
+        <button class="tool" id="toolbarGroup" style="grid-column:1/-1">Group selection</button>
+        <button class="tool" id="toolbarUngroup" style="grid-column:1/-1">Ungroup</button>
+        <button class="tool" id="distributeLayersBtn" style="grid-column:1/-1">Distribute to layers</button>
+        <button class="tool" id="classicTweenBtn" style="grid-column:1/-1">Classic Tween</button>`;
+    grid.insertAdjacentHTML('beforeend', html);
+    const meta=document.querySelector('.topmeta');
+    if(meta && !/v1\.31/.test(meta.textContent))meta.textContent=meta.textContent.replace(/v\d+\.\d+/,'v1.31');
+    const st=document.querySelector('.status');
+    if(st && !/v1\.31/.test(st.textContent))st.textContent=st.textContent.replace(/v\d+\.\d+/,'v1.31');
+  }
   function wire(){
+    ensureToolbar();
     const map={
       addEraser:()=>setMode('eraser'),
       addBucket:()=>setMode('bucket'),
