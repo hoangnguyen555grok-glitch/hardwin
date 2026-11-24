@@ -525,7 +525,7 @@ function setCameraEasing(mode){
  key.easing=mode;renderAll();recordHistory();toast('Camera interpolation: '+mode);
 }
 function rawCanvasPoint(e){const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H}}
-function baseState(o){return {x:o.x,y:o.y,scale:o.scale,rotation:o.rotation,opacity:o.opacity,width:o.width,height:o.height,brightness:o.brightness??100,contrast:o.contrast??100,saturation:o.saturation??100,blur:o.blur??0,glow:o.glow??0,fontSize:o.fontSize??64,strokeWidth:o.strokeWidth??8,volume:o.volume??.8,parallax:o.parallax??1,fontFamily:o.fontFamily||'Inter,system-ui,sans-serif',pathClosed:!!o.closed,points:Array.isArray(o.points)?o.points.map(p=>({...p})):undefined}}
+function baseState(o){return {x:o.x,y:o.y,scale:o.scale,flipX:!!o.flipX,flipY:!!o.flipY,rotation:o.rotation,opacity:o.opacity,width:o.width,height:o.height,brightness:o.brightness??100,contrast:o.contrast??100,saturation:o.saturation??100,blur:o.blur??0,glow:o.glow??0,fontSize:o.fontSize??64,strokeWidth:o.strokeWidth??8,volume:o.volume??.8,parallax:o.parallax??1,fontFamily:o.fontFamily||'Inter,system-ui,sans-serif',pathClosed:!!o.closed,points:Array.isArray(o.points)?o.points.map(p=>({...p})):undefined}}
 function sortedKeys(o){return [...o.keys].sort((a,b)=>a.frame-b.frame)}
 function easeProgress(t,mode){
  if(mode==='easeIn')return t*t;
@@ -656,7 +656,7 @@ function stateAt(o,f){
  const sa={...base,...a.state},sb={...base,...b.state},mix=k=>sa[k]+(sb[k]-sa[k])*t;
  let x=mix('x'),y=mix('y');const bend=Number(o.motionBend)||0;
  if(bend){const dx=sb.x-sa.x,dy=sb.y-sa.y,len=Math.hypot(dx,dy)||1,cx=(sa.x+sb.x)/2-dy/len*bend,cy=(sa.y+sb.y)/2+dx/len*bend,u=1-t;x=u*u*sa.x+2*u*t*cx+t*t*sb.x;y=u*u*sa.y+2*u*t*cy+t*t*sb.y}
- const closedA=!!(sa.pathClosed??o.closed),closedB=!!(sb.pathClosed??o.closed),pathClosed=t<.5?closedA:closedB,morphClosed=closedA&&closedB;let points;if(Array.isArray(sa.points)&&Array.isArray(sb.points)){const count=Math.max(closedA||closedB?3:2,Math.min(96,Math.max(sa.points.length,sb.points.length))),pa=sa.points.length===count?sa.points.map(p=>({...p})):resamplePath(sa.points,count,closedA),rawPb=sb.points.length===count?sb.points.map(p=>({...p})):resamplePath(sb.points,count,closedB),pb=alignMorphPath(pa,rawPb,morphClosed);points=pa.map((p,i)=>{const q=pb[i],mix=k=>(p[k]??0)+((q[k]??0)-(p[k]??0))*t;return {x:mix('x'),y:mix('y'),inX:mix('inX'),inY:mix('inY'),outX:mix('outX'),outY:mix('outY'),mode:t<.5?pathPointMode(p):pathPointMode(q)}})}else points=t<1?sa.points:sb.points;return {x,y,scale:mix('scale'),rotation:mix('rotation'),opacity:mix('opacity'),width:mix('width'),height:mix('height'),brightness:mix('brightness'),contrast:mix('contrast'),saturation:mix('saturation'),blur:mix('blur'),glow:mix('glow'),fontSize:mix('fontSize'),strokeWidth:mix('strokeWidth'),volume:mix('volume'),parallax:mix('parallax'),fontFamily:t<.5?(sa.fontFamily??o.fontFamily??'Inter,system-ui,sans-serif'):(sb.fontFamily??o.fontFamily??'Inter,system-ui,sans-serif'),pathClosed,points};
+ const closedA=!!(sa.pathClosed??o.closed),closedB=!!(sb.pathClosed??o.closed),pathClosed=t<.5?closedA:closedB,morphClosed=closedA&&closedB;let points;if(Array.isArray(sa.points)&&Array.isArray(sb.points)){const count=Math.max(closedA||closedB?3:2,Math.min(96,Math.max(sa.points.length,sb.points.length))),pa=sa.points.length===count?sa.points.map(p=>({...p})):resamplePath(sa.points,count,closedA),rawPb=sb.points.length===count?sb.points.map(p=>({...p})):resamplePath(sb.points,count,closedB),pb=alignMorphPath(pa,rawPb,morphClosed);points=pa.map((p,i)=>{const q=pb[i],mix=k=>(p[k]??0)+((q[k]??0)-(p[k]??0))*t;return {x:mix('x'),y:mix('y'),inX:mix('inX'),inY:mix('inY'),outX:mix('outX'),outY:mix('outY'),mode:t<.5?pathPointMode(p):pathPointMode(q)}})}else points=t<1?sa.points:sb.points;return {x,y,scale:mix('scale'),flipX:t<.5?!!sa.flipX:!!sb.flipX,flipY:t<.5?!!sa.flipY:!!sb.flipY,rotation:mix('rotation'),opacity:mix('opacity'),width:mix('width'),height:mix('height'),brightness:mix('brightness'),contrast:mix('contrast'),saturation:mix('saturation'),blur:mix('blur'),glow:mix('glow'),fontSize:mix('fontSize'),strokeWidth:mix('strokeWidth'),volume:mix('volume'),parallax:mix('parallax'),fontFamily:t<.5?(sa.fontFamily??o.fontFamily??'Inter,system-ui,sans-serif'):(sb.fontFamily??o.fontFamily??'Inter,system-ui,sans-serif'),pathClosed,points};
 }
 function makeObject(type,extra={}){const o={id:uid(),name:extra.name||({rect:'Rectangle',circle:'Circle',text:'Text',image:'Image'}[type]||'Object'),type,x:symbolEditId?0:W/2,y:symbolEditId?0:H/2,parentId:null,pivotX:0,pivotY:0,width:type==='text'?300:type==='circle'?170:240,height:type==='text'?80:type==='circle'?170:160,scale:1,rotation:0,opacity:1,easing:'linear',motionBend:0,parallax:1,closed:false,brightness:100,contrast:100,saturation:100,blur:0,glow:0,blendMode:'source-over',audioStartFrame:frame,volume:.8,color:type==='circle'?'#4d8ff0':type==='text'?'#18243a':'#f2a65a',text:'Your text',fontSize:64,src:null,img:null,keys:[],visible:true,locked:false,inFrame:frame,outFrame:frameByFrame&&type!=='audio'?frame:MAX,...extra};o.keys=[{frame,state:baseState(o),easing:o.easing}];objects().push(o);selectedId=o.id;selectedIds=[o.id];renderAll();toast(`${o.name} added`);return o}
 function addKey(o,f=frame){const s=stateAt(o,f);const i=o.keys.findIndex(k=>k.frame===f);if(i>=0)o.keys[i]={frame:f,state:s,easing:o.keys[i].easing||o.easing};else o.keys.push({frame:f,state:s,easing:easingAt(o,f)});o.keys.sort((a,b)=>a.frame-b.frame);renderAll();toast(`Keyframe added at ${f}`)}
@@ -665,7 +665,7 @@ function currentState(o){return stateAt(o,frame)}
 function setProperty(prop,value){const o=selected();if(!o)return;let s=currentState(o);s[prop]=Number(value);const k=o.keys.find(k=>k.frame===frame);if(k)k.state=s;else o.keys.push({frame,state:s,easing:easingAt(o,frame)});const current=Object.assign(o,s);renderAll()}
 function drawMaskOutline(mask,f){
  const ms=stateAt(mask,f),w=ms.width??mask.width,h=ms.height??mask.height,px=Number(mask.pivotX)||0,py=Number(mask.pivotY)||0;
- ctx.save();ctx.translate(ms.x,ms.y);ctx.translate(px,py);ctx.rotate(ms.rotation*Math.PI/180);ctx.scale(ms.scale,ms.scale);ctx.translate(-px,-py);
+ ctx.save();ctx.translate(ms.x,ms.y);ctx.translate(px,py);ctx.rotate(ms.rotation*Math.PI/180);ctx.scale(ms.scale*(ms.flipX?-1:1),ms.scale*(ms.flipY?-1:1));ctx.translate(-px,-py);
  ctx.strokeStyle='#1784ff';ctx.lineWidth=3/Math.max(.1,ms.scale);ctx.setLineDash([9,6]);ctx.beginPath();
  if(mask.type==='rect')ctx.rect(-w/2,-h/2,w,h);else if(mask.type==='circle')ctx.arc(0,0,w/2,0,Math.PI*2);else if(mask.type==='path'&&mask.points?.length){ctx.moveTo(mask.points[0].x,mask.points[0].y);mask.points.slice(1).forEach(p=>ctx.lineTo(p.x,p.y))}
  ctx.stroke();ctx.restore();
@@ -680,7 +680,7 @@ function identityMatrix(){return {a:1,b:0,c:0,d:1,e:0,f:0}}
 function multiplyMatrix(p,l){return {a:p.a*l.a+p.c*l.b,b:p.b*l.a+p.d*l.b,c:p.a*l.c+p.c*l.d,d:p.b*l.c+p.d*l.d,e:p.a*l.e+p.c*l.f+p.e,f:p.b*l.e+p.d*l.f+p.f}}
 function invertMatrix(m){const det=m.a*m.d-m.b*m.c;if(Math.abs(det)<1e-9)return identityMatrix();const a=m.d/det,b=-m.b/det,c=-m.c/det,d=m.a/det;return {a,b,c,d,e:-(a*m.e+c*m.f),f:-(b*m.e+d*m.f)}}
 function matrixPoint(m,x,y){return {x:m.a*x+m.c*y+m.e,y:m.b*x+m.d*y+m.f}}
-function localObjectMatrix(o,state){const scale=Math.max(.0001,Number(state.scale)||1),rad=(Number(state.rotation)||0)*Math.PI/180,cos=Math.cos(rad)*scale,sin=Math.sin(rad)*scale,px=Number(o.pivotX)||0,py=Number(o.pivotY)||0,a=cos,b=sin,c=-sin,d=cos;return {a,b,c,d,e:(Number(state.x)||0)+px-a*px-c*py,f:(Number(state.y)||0)+py-b*px-d*py}}
+function localObjectMatrix(o,state){const scale=Math.max(.0001,Number(state.scale)||1),rad=(Number(state.rotation)||0)*Math.PI/180,cos=Math.cos(rad)*scale,sin=Math.sin(rad)*scale,signX=state.flipX?-1:1,signY=state.flipY?-1:1,px=Number(o.pivotX)||0,py=Number(o.pivotY)||0,a=cos*signX,b=sin*signX,c=-sin*signY,d=cos*signY;return {a,b,c,d,e:(Number(state.x)||0)+px-a*px-c*py,f:(Number(state.y)||0)+py-b*px-d*py}}
 function objectWorldMatrix(o,f=frame,siblings=objects(),seen=new Set()){
  const local=localObjectMatrix(o,stateAt(o,f));if(!o.parentId||seen.has(o.id))return local;
  const parent=siblings.find(x=>x.id===o.parentId);if(!parent)return local;
@@ -688,7 +688,7 @@ function objectWorldMatrix(o,f=frame,siblings=objects(),seen=new Set()){
 }
 function objectWorldCenter(o,f=frame,siblings=objects()){const m=objectWorldMatrix(o,f,siblings);return {x:m.e,y:m.f}}
 function setObjectWorldCenter(o,x,y,f=frame,siblings=objects()){
- const parent=o.parentId&&siblings.find(item=>item.id===o.parentId),parentMatrix=parent?objectWorldMatrix(parent,f,siblings):identityMatrix(),local=matrixPoint(invertMatrix(parentMatrix),x,y),state=currentState(o),scale=Math.max(.0001,Number(state.scale)||1),rad=(Number(state.rotation)||0)*Math.PI/180,a=Math.cos(rad)*scale,b=Math.sin(rad)*scale,c=-b,px=Number(o.pivotX)||0,py=Number(o.pivotY)||0;
+ const parent=o.parentId&&siblings.find(item=>item.id===o.parentId),parentMatrix=parent?objectWorldMatrix(parent,f,siblings):identityMatrix(),local=matrixPoint(invertMatrix(parentMatrix),x,y),state=currentState(o),scale=Math.max(.0001,Number(state.scale)||1),rad=(Number(state.rotation)||0)*Math.PI/180,signX=state.flipX?-1:1,signY=state.flipY?-1:1,a=Math.cos(rad)*scale*signX,b=Math.sin(rad)*scale*signX,c=-Math.sin(rad)*scale*signY,px=Number(o.pivotX)||0,py=Number(o.pivotY)||0;
  state.x=local.x-px+a*px+c*py;state.y=local.y-py+b*px+a*py;
  const key=o.keys.find(k=>k.frame===f);if(key)key.state=state;else o.keys.push({frame:f,state,easing:easingAt(o,f)});
  o.x=state.x;o.y=state.y;
@@ -821,7 +821,7 @@ function drawObject(o,f=frame,editing=true,ghostAlpha=1,stateOverride=null,depth
  const s=stateOverride||stateAt(o,f),w=s.width??o.width,h=s.height??o.height,px=Number(o.pivotX)||0,py=Number(o.pivotY)||0;
  if(o.isMask&&!maskSource){
   if(editing&&selectedIds.includes(o.id))drawMaskOutline(o,f);
-  ctx.save();ctx.translate(s.x,s.y);ctx.translate(px,py);ctx.rotate(s.rotation*Math.PI/180);ctx.scale(s.scale,s.scale);ctx.translate(-px,-py);
+  ctx.save();ctx.translate(s.x,s.y);ctx.translate(px,py);ctx.rotate(s.rotation*Math.PI/180);ctx.scale(s.scale*(s.flipX?-1:1),s.scale*(s.flipY?-1:1));ctx.translate(-px,-py);
   siblings.filter(child=>child.parentId===o.id).forEach(child=>drawObject(child,f,editing,ghostAlpha,null,depth+1,siblings,false,false,maskGuard));
   ctx.restore();return;
  }
@@ -1894,21 +1894,22 @@ selectedId=title.id;renderAll();appReady=true;autosaveRestorePromise=restoreAuto
 function bridgeStatus(){
  const all=objects(),sel=selected(),state=sel?currentState(sel):null;
  return {
-  app:'Geed Hardwin',version:'v1.30',scene:scene()?.name||'Scene',sceneIndex,
+  app:'Geed Hardwin',version:'v1.34 + AI film tools',scene:scene()?.name||'Scene',sceneIndex,
   fps:FPS,durationSeconds:DURATION,maxFrame:MAX,currentFrame:frame,playing,width:W,height:H,
   playbackOptions:{loopPlayback,frameByFrame,onionSkin,onionPrevCount,onionNextCount,onionPrevOpacity:Math.round(onionPrevOpacity*100),onionNextOpacity:Math.round(onionNextOpacity*100),onionSelectedOnly},
   activeSymbolId:symbolEditId||null,symbols:symbolLibrary.slice(0,100).map(def=>({id:def.id,name:String(def.name||'MovieClip').slice(0,100),duration:Math.max(1,Number(def.duration)||FPS),objectCount:Array.isArray(def.objects)?def.objects.length:0})),
   layerCount:all.length,selectedCount:(selectedIds.length?selectedIds:(selectedId?[selectedId]:[])).length,
-  selectedLayers:(selectedIds.length?selectedIds:(selectedId?[selectedId]:[])).map(id=>all.find(o=>o.id===id)).filter(Boolean).map(o=>({id:o.id,name:o.name,type:o.type,groupId:o.groupId||null})),
-  selected:sel?{id:sel.id,name:sel.name,type:sel.type,symbolId:sel.symbolId||null}:null,
+  selectedLayers:(selectedIds.length?selectedIds:(selectedId?[selectedId]:[])).map(id=>all.find(o=>o.id===id)).filter(Boolean).map(o=>({id:o.id,name:o.name,type:o.type,groupId:o.groupId||null,filmRole:o.filmRole||null,charRoot:!!o.charRoot,locked:!!o.locked,flipX:!!currentState(o).flipX,flipY:!!currentState(o).flipY,keyframes:(o.keys||[]).map(key=>({frame:key.frame,easing:key.easing||'linear'})).slice(0,120),x:Number(currentState(o).x)||0,y:Number(currentState(o).y)||0})),
+  selected:sel?{id:sel.id,name:sel.name,type:sel.type,symbolId:sel.symbolId||null,groupId:sel.groupId||null,filmRole:sel.filmRole||null}:null,
   selectedTransform:state?{x:state.x,y:state.y,width:state.width??sel.width,height:state.height??sel.height,rotation:state.rotation,scale:state.scale,opacity:state.opacity}:null,
   selectedImageDimensions:sel&&sel.type==='image'?{width:sel.img?.naturalWidth||sel.img?.width||0,height:sel.img?.naturalHeight||sel.img?.height||0}:null,
-  selectedProperties:sel?{...currentState(sel),name:sel.name,text:sel.text||null,color:sel.color||null,fillColor:sel.fillColor||null,blendMode:sel.blendMode||'source-over',fontFamily:sel.fontFamily||null,motionBend:Number(sel.motionBend)||0,inFrame:sel.inFrame??0,outFrame:sel.outFrame??MAX,audioStartFrame:sel.audioStartFrame??null,parentId:sel.parentId||null,pivotX:Number(sel.pivotX)||0,pivotY:Number(sel.pivotY)||0,pathClosed:!!sel.closed}:null,
+  selectedProperties:sel?{...currentState(sel),flipX:!!currentState(sel).flipX,flipY:!!currentState(sel).flipY,name:sel.name,text:sel.text||null,color:sel.color||null,fillColor:sel.fillColor||null,blendMode:sel.blendMode||'source-over',fontFamily:sel.fontFamily||null,motionBend:Number(sel.motionBend)||0,inFrame:sel.inFrame??0,outFrame:sel.outFrame??MAX,audioStartFrame:sel.audioStartFrame??null,parentId:sel.parentId||null,pivotX:Number(sel.pivotX)||0,pivotY:Number(sel.pivotY)||0,pathClosed:!!sel.closed}:null,
   camera:cameraAt(frame),cameraKeyframes:(scene().camera?.keys||[]).map(key=>key.frame).slice(0,120),workArea:activeWorkArea(),sceneCount:scenes.length,videoExportState:videoExportState||'idle',
   privateMaterials:agentPrivateMaterialCatalog.slice(0,100).map(item=>({id:item.id,name:String(item.name||'').slice(0,100),type:item.type,supportsEditor:['Hình ảnh','Texture','Âm thanh','Nhạc','Giọng đọc','Hiệu ứng âm thanh'].includes(item.type),previewOnly:['Video','Font'].includes(item.type)})),
-  selectedLayerKeyframes:sel?(sel.keys||[]).map(key=>key.frame).slice(0,120):[],
+  selectedLayerKeyframes:sel?(sel.keys||[]).map(key=>key.frame).slice(0,120):[],selectedLayerKeyframeEasings:sel?(sel.keys||[]).map(key=>({frame:key.frame,easing:key.easing||'linear'})).slice(0,120):[],
+  characterGroups:[...new Set(all.filter(item=>typeof item.groupId==='string'&&item.groupId.startsWith('char-')).map(item=>item.groupId))].map(id=>{const members=all.filter(item=>item.groupId===id);const bounds=members.map(item=>bridgeObjectBounds(item,frame));return {id,count:members.length,rootId:members.find(item=>item.charRoot)?.id||null,layerIds:members.map(item=>item.id),x:(Math.min(...bounds.map(b=>b.left))+Math.max(...bounds.map(b=>b.right)))/2,y:(Math.min(...bounds.map(b=>b.top))+Math.max(...bounds.map(b=>b.bottom)))/2}}).slice(0,24),
   history:{canUndo:historyIndex>0,canRedo:historyIndex>=0&&historyIndex<history.length-1,index:historyIndex,length:history.length},
-  layers:all.map((o,index)=>({id:o.id,name:o.name,type:o.type,visible:o.visible!==false,locked:!!o.locked,groupId:o.groupId||null,maskStack:rawMaskEntries(o),zIndex:index})),
+  layers:all.map((o,index)=>({id:o.id,name:o.name,type:o.type,visible:o.visible!==false,locked:!!o.locked,groupId:o.groupId||null,filmRole:o.filmRole||null,charRoot:!!o.charRoot,flipX:!!currentState(o).flipX,flipY:!!currentState(o).flipY,color:o.color||null,fillColor:o.fillColor||null,keyframes:(o.keys||[]).map(key=>({frame:key.frame,easing:key.easing||'linear'})).slice(0,120),x:Number(currentState(o).x)||0,y:Number(currentState(o).y)||0,maskStack:rawMaskEntries(o),zIndex:index})),
   bones:all.filter(o=>o.type==='bone').map(o=>({id:o.id,name:o.name,parentId:o.parentId||null,length:Number(currentState(o).width??o.width)||1,rotation:Number(currentState(o).rotation)||0,locked:!!o.locked,keyframes:(o.keys||[]).map(key=>key.frame).slice(0,120)})),
   aiModelConnected:false,mcpConnected:false
  };
@@ -2194,6 +2195,162 @@ function bridgeManageSymbol(args={}){
  }
  throw new Error('MovieClip operation không được hỗ trợ.');
 }
+
+function bridgeStorePoseKey(o,targetFrame,state,easing){
+ const snapshot={...state,points:Array.isArray(state.points)?state.points.map(point=>({...point})):undefined};
+ const existing=o.keys.find(key=>key.frame===targetFrame);
+ if(existing){existing.state=snapshot;if(easing!==undefined)existing.easing=easing;}
+ else o.keys.push({frame:targetFrame,state:snapshot,easing:easing||easingAt(o,targetFrame)});
+ o.keys.sort((a,b)=>a.frame-b.frame);
+}
+function bridgeSelectedVisuals(min=1,max=24){
+ const items=selectedObjects();
+ if(items.length<min||items.length>max)throw new Error('Select '+min+' to '+max+' layers first.');
+ if(symbolEditId)throw new Error('Exit MovieClip edit mode before using this stage tool.');
+ if(items.some(item=>item.locked))throw new Error('Unlock every selected layer before editing.');
+ if(items.some(item=>item.type==='audio'||item.type==='bone'||item.isMask))throw new Error('This tool requires unlocked visual artwork layers.');
+ return items;
+}
+function bridgeFilmRoleRank(item){return item.filmRole==='background'?0:item.filmRole==='character'?2:1}
+function bridgeSortFilmObjects(){
+ const all=objects();all.sort((a,b)=>bridgeFilmRoleRank(a)-bridgeFilmRoleRank(b));
+}
+function bridgeSetFilmRole(args={}){
+ const role=args.role;if(!['background','character','prop','none'].includes(role))throw new Error('Film role must be background, character, prop or none.');
+ const items=bridgeSelectedVisuals(1,24);
+ items.forEach(item=>{if(role==='none')delete item.filmRole;else item.filmRole=role; if(role!=='character')delete item.charRoot});
+ bridgeSortFilmObjects();renderAll();recordHistory();
+ return {ok:true,role,count:items.length,layerIds:items.map(item=>item.id),status:bridgeStatus()};
+}
+function bridgeSortFilmStack(){
+ if(symbolEditId)throw new Error('Exit MovieClip edit mode before sorting the film stack.');
+ bridgeSortFilmObjects();renderAll();recordHistory();
+ return {ok:true,ordered:objects().map(item=>({id:item.id,role:item.filmRole||'prop'})),status:bridgeStatus()};
+}
+function bridgeAssembleCharacter(){
+ const items=bridgeSelectedVisuals(2,24);
+ const groupId='char-'+(nextGroupId++);
+ const root=[...items].sort((a,b)=>Number(currentState(a).y)-Number(currentState(b).y))[0];
+ items.forEach(item=>{item.groupId=groupId;item.filmRole='character';item.charRoot=item.id===root.id});
+ bridgeSortFilmObjects();renderAll();recordHistory();
+ return {ok:true,groupId,rootId:root.id,count:items.length,layerIds:items.map(item=>item.id),status:bridgeStatus()};
+}
+function bridgeControlCharacter(args={}){
+ const groupId=String(args.groupId||''),operation=args.operation,items=objects().filter(item=>item.groupId===groupId);
+ if(!/^char-[A-Za-z0-9_-]{1,90}$/.test(groupId)||!items.length)throw new Error('Character group is not present in the current scene.');
+ if(items.length>24||items.some(item=>item.locked||item.type==='audio'||item.type==='bone'||item.isMask))throw new Error('Unlock a valid visual character group of at most 24 layers.');
+ if(items.some(item=>item.parentId&&items.some(parent=>parent.id===item.parentId)))throw new Error('This character group contains nested parent-child layers; detach or regroup it before group movement.');
+ if(operation==='pose'){
+  items.forEach(item=>bridgeStorePoseKey(item,frame,currentState(item)));
+ }else if(operation==='move'){
+  const dx=Number(args.dx),dy=Number(args.dy);
+  if(!Number.isFinite(dx)||Math.abs(dx)>1280||!Number.isFinite(dy)||Math.abs(dy)>720)throw new Error('Character movement is outside supported bounds.');
+  const centers=items.map(item=>objectWorldCenter(item,frame,objects()));
+  const target=centers.map(point=>({x:point.x+dx,y:point.y+dy}));
+  if(target.some(point=>point.x<0||point.x>W||point.y<0||point.y>H))throw new Error('The moved character would leave the stage. Use smaller movement steps.');
+  items.forEach((item,index)=>setObjectWorldCenter(item,target[index].x,target[index].y,frame,objects()));
+ }else if(operation==='rotate'){
+  const degrees=Number(args.degrees);if(!Number.isFinite(degrees)||Math.abs(degrees)>360)throw new Error('Character rotation is outside supported bounds.');
+  const bounds=items.map(item=>bridgeObjectBounds(item,frame));
+  const cx=(Math.min(...bounds.map(b=>b.left))+Math.max(...bounds.map(b=>b.right)))/2;
+  const cy=(Math.min(...bounds.map(b=>b.top))+Math.max(...bounds.map(b=>b.bottom)))/2;
+  const rad=degrees*Math.PI/180,cos=Math.cos(rad),sin=Math.sin(rad);
+  items.forEach(item=>{
+   const center=objectWorldCenter(item,frame,objects()),dx=center.x-cx,dy=center.y-cy;
+   setObjectWorldCenter(item,cx+dx*cos-dy*sin,cy+dx*sin+dy*cos,frame,objects());
+   const state=currentState(item);state.rotation=(Number(state.rotation)||0)+degrees;
+   bridgeStorePoseKey(item,frame,state);
+   Object.assign(item,state);
+  });
+ }else throw new Error('Unsupported character operation.');
+ renderAll();recordHistory();
+ return {ok:true,operation,groupId,count:items.length,layerIds:items.map(item=>item.id),status:bridgeStatus()};
+}
+function bridgeObjectBounds(item,targetFrame=frame){
+ const state=stateAt(item,targetFrame),matrix=objectWorldMatrix(item,targetFrame,objects());
+ const width=Number(state.width??item.width)||1,height=Number(state.height??item.height)||1;
+ const corners=[[-width/2,-height/2],[width/2,-height/2],[width/2,height/2],[-width/2,height/2]].map(point=>matrixPoint(matrix,point[0],point[1]));
+ return {left:Math.min(...corners.map(p=>p.x)),right:Math.max(...corners.map(p=>p.x)),top:Math.min(...corners.map(p=>p.y)),bottom:Math.max(...corners.map(p=>p.y))};
+}
+function bridgeFlipSelected(args={}){
+ const items=bridgeSelectedVisuals(1,24),axis=args.axis;
+ if(!['horizontal','vertical'].includes(axis))throw new Error('Flip axis must be horizontal or vertical.');
+ const property=axis==='horizontal'?'flipX':'flipY';
+ items.forEach(item=>{const state=currentState(item);state[property]=!state[property];bridgeStorePoseKey(item,frame,state);Object.assign(item,state)});
+ renderAll();recordHistory();return {ok:true,axis,count:items.length,layerIds:items.map(item=>item.id),status:bridgeStatus()};
+}
+function bridgeAlignSelected(args={}){
+ const items=bridgeSelectedVisuals(args.axis==='stageCenter'?1:2,24),axis=args.axis;
+ if(!['left','right','hCenter','top','bottom','vCenter','stageCenter'].includes(axis))throw new Error('Unsupported alignment axis.');
+ const bounds=items.map(item=>bridgeObjectBounds(item,frame));
+ const minX=Math.min(...bounds.map(b=>b.left)),maxX=Math.max(...bounds.map(b=>b.right));
+ const minY=Math.min(...bounds.map(b=>b.top)),maxY=Math.max(...bounds.map(b=>b.bottom));
+ let dx=0,dy=0;
+ if(axis==='left')items.forEach((item,i)=>setObjectWorldCenter(item,objectWorldCenter(item).x+(minX-bounds[i].left),objectWorldCenter(item).y,frame,objects()));
+ else if(axis==='right')items.forEach((item,i)=>setObjectWorldCenter(item,objectWorldCenter(item).x+(maxX-bounds[i].right),objectWorldCenter(item).y,frame,objects()));
+ else if(axis==='hCenter'){const center=(minX+maxX)/2;items.forEach((item,i)=>setObjectWorldCenter(item,objectWorldCenter(item).x+(center-(bounds[i].left+bounds[i].right)/2),objectWorldCenter(item).y,frame,objects()))}
+ else if(axis==='top')items.forEach((item,i)=>setObjectWorldCenter(item,objectWorldCenter(item).x,objectWorldCenter(item).y+(minY-bounds[i].top),frame,objects()));
+ else if(axis==='bottom')items.forEach((item,i)=>setObjectWorldCenter(item,objectWorldCenter(item).x,objectWorldCenter(item).y+(maxY-bounds[i].bottom),frame,objects()));
+ else if(axis==='vCenter'){const center=(minY+maxY)/2;items.forEach((item,i)=>setObjectWorldCenter(item,objectWorldCenter(item).x,objectWorldCenter(item).y+(center-(bounds[i].top+bounds[i].bottom)/2),frame,objects()))}
+ else {dx=W/2-(minX+maxX)/2;dy=H/2-(minY+maxY)/2;items.forEach(item=>{const center=objectWorldCenter(item,frame,objects());setObjectWorldCenter(item,center.x+dx,center.y+dy,frame,objects())})}
+ renderAll();recordHistory();return {ok:true,axis,count:items.length,changed:true,status:bridgeStatus()};
+}
+function bridgeAddPoseKey(){
+ const items=bridgeSelectedVisuals(1,24);items.forEach(item=>bridgeStorePoseKey(item,frame,currentState(item)));
+ renderAll();recordHistory();return {ok:true,count:items.length,frame,layerIds:items.map(item=>item.id),status:bridgeStatus()};
+}
+function bridgeHoldFrames(args={}){
+ const items=bridgeSelectedVisuals(1,24),frames=Number(args.frames),endFrame=frame+frames;
+ if(!Number.isInteger(frames)||frames<1||frames>120||endFrame>MAX)throw new Error('Hold duration must fit within the current timeline.');
+ items.forEach(item=>{
+  const pose=currentState(item),existing=item.keys.find(key=>key.frame===endFrame);
+  if(existing&&JSON.stringify(existing.state)!==JSON.stringify(pose))throw new Error('Hold would overwrite a different pose key at frame '+endFrame+'.');
+ });
+ items.forEach(item=>{const pose=currentState(item);bridgeStorePoseKey(item,frame,pose);bridgeStorePoseKey(item,endFrame,pose,'step')});
+ renderAll();recordHistory();return {ok:true,frames,fromFrame:frame,toFrame:endFrame,count:items.length,status:bridgeStatus()};
+}
+function bridgeApplyClassicTween(args={}){
+ const items=bridgeSelectedVisuals(1,24),easing=args.easing||'easeInOut';
+ const allowed=['linear','easeIn','easeOut','easeInOut','easeInCubic','easeOutCubic','easeInOutCubic','sine','smooth','back','bounce','elastic'];
+ if(!allowed.includes(easing))throw new Error('Unsupported tween easing.');
+ const plans=items.map(item=>{
+  const keys=sortedKeys(item),start=[...keys].reverse().find(key=>key.frame<=frame)||keys[0],end=start&&keys.find(key=>key.frame>start.frame);
+  if(!start||!end)throw new Error('Add a start pose and a later end pose before applying Classic Tween.');
+  return {item,start};
+ });
+ plans.forEach(plan=>{plan.start.easing=easing});
+ renderAll();recordHistory();return {ok:true,easing,applied:plans.length,sourceFrames:plans.map(plan=>plan.start.frame),status:bridgeStatus()};
+}
+function bridgeSetLayerLock(args={}){
+ const items=selectedObjects();if(!items.length||items.length>24)throw new Error('Select 1 to 24 layers first.');
+ if(typeof args.locked!=='boolean')throw new Error('Layer lock must be true or false.');
+ items.forEach(item=>{item.locked=args.locked});
+ renderAll();recordHistory();return {ok:true,locked:args.locked,count:items.length,layerIds:items.map(item=>item.id),status:bridgeStatus()};
+}
+function bridgeSetLayerOrder(args={}){
+ const picked=selectedObjects(),all=objects(),direction=args.direction;
+ if(!picked.length||picked.length>24)throw new Error('Select 1 to 24 layers first.');
+ if(picked.some(item=>item.locked))throw new Error('Unlock selected layers before changing order.');
+ if(!['front','back','forward','backward'].includes(direction))throw new Error('Unsupported layer order direction.');
+ const set=new Set(picked.map(item=>item.id));
+ if(direction==='front'||direction==='back'){
+  const ordered=all.filter(item=>set.has(item.id)),remaining=all.filter(item=>!set.has(item.id));
+  all.splice(0,all.length,...(direction==='front'?[...remaining,...ordered]:[...ordered,...remaining]));
+ }else if(direction==='forward'){
+  for(let i=all.length-2;i>=0;i--)if(set.has(all[i].id)&&!set.has(all[i+1].id)){[all[i],all[i+1]]=[all[i+1],all[i]]}
+ }else{
+  for(let i=1;i<all.length;i++)if(set.has(all[i].id)&&!set.has(all[i-1].id)){[all[i],all[i-1]]=[all[i-1],all[i]]}
+ }
+ renderAll();recordHistory();return {ok:true,direction,layerIds:picked.map(item=>item.id),status:bridgeStatus()};
+}
+function bridgeFillSelectedColor(args={}){
+ const color=String(args.color||'');if(!/^#[0-9a-f]{6}$/i.test(color))throw new Error('Color must be a six-digit hexadecimal value.');
+ const items=bridgeSelectedVisuals(1,24);
+ if(items.some(item=>item.type==='image'||item.type==='symbol'))throw new Error('Color bucket currently supports vector and text layers, not raster images or MovieClip instances.');
+ items.forEach(item=>{item.color=color;item.fillColor=color});
+ renderAll();recordHistory();return {ok:true,color,count:items.length,layerIds:items.map(item=>item.id),status:bridgeStatus()};
+}
+
 function bridgeUndo(){
  if(historyIndex<=0)return {ok:false,message:'Nothing to undo.',status:bridgeStatus()};
  travelHistory(-1);return {ok:true,status:bridgeStatus()};
@@ -2475,6 +2632,7 @@ window["GeedHardwinBridge"] = Object.freeze({
  getStatus:bridgeStatus,listLayers:()=>bridgeStatus().layers,
  createCircle:bridgeCreateCircle,animateCircle:bridgeAnimateCircle,buildScene:bridgeBuildScene,
  createBone:bridgeCreateBone,rotateBone:bridgeRotateBone,solveBoneIK:bridgeSolveBoneIK,
+ setFilmRole:bridgeSetFilmRole,sortFilmStack:bridgeSortFilmStack,assembleCharacter:bridgeAssembleCharacter,controlCharacter:bridgeControlCharacter,flipSelected:bridgeFlipSelected,alignSelected:bridgeAlignSelected,addPoseKey:bridgeAddPoseKey,holdFrames:bridgeHoldFrames,applyClassicTween:bridgeApplyClassicTween,setLayerLock:bridgeSetLayerLock,setLayerOrder:bridgeSetLayerOrder,fillSelectedColor:bridgeFillSelectedColor,
  addCommunityAsset:bridgeAddCommunityAsset,animateCommunityImage:bridgeAnimateCommunityImage,
  selectLayer:bridgeSelectLayer,selectLayers:bridgeSelectLayers,addImageResource:bridgeAddImageResource,setLayerMask:bridgeSetLayerMask,removeLayerMask:bridgeRemoveLayerMask,renameLayer:bridgeRenameLayer,setLayerVisibility:bridgeSetLayerVisibility,
  duplicateSelected:bridgeDuplicateSelected,moveLayer:bridgeMoveLayer,transformSelected:bridgeTransformSelected,
@@ -2533,7 +2691,8 @@ function agentSnapshot(){
   durationSeconds:Number(status.durationSeconds)||0,maxFrame:Number(status.maxFrame)||0,
   currentFrame:Number(status.currentFrame)||0,playing:Boolean(status.playing),
   layerCount:Number(status.layerCount)||0,selectedCount:Number(status.selectedCount)||0,
-  selectedLayers:(Array.isArray(status.selectedLayers)?status.selectedLayers:[]).slice(0,24).map(layer=>({id:String(layer.id||'').slice(0,100),name:String(layer.name||'').slice(0,80),type:String(layer.type||'').slice(0,40),groupId:layer.groupId||null})),
+  selectedLayers:(Array.isArray(status.selectedLayers)?status.selectedLayers:[]).slice(0,24).map(layer=>({id:String(layer.id||'').slice(0,100),name:String(layer.name||'').slice(0,80),type:String(layer.type||'').slice(0,40),groupId:layer.groupId||null,filmRole:layer.filmRole||null,charRoot:!!layer.charRoot,locked:!!layer.locked,flipX:!!layer.flipX,flipY:!!layer.flipY,keyframes:Array.isArray(layer.keyframes)?layer.keyframes.slice(0,120):[],x:Number(layer.x)||0,y:Number(layer.y)||0})),
+  characterGroups:(Array.isArray(status.characterGroups)?status.characterGroups:[]).slice(0,24),
   selected:status.selected?{id:String(status.selected.id||'').slice(0,100),name:String(status.selected.name||'').slice(0,80),type:String(status.selected.type||'').slice(0,40),symbolId:status.selected.symbolId||null}:null,
   activeSymbolId:status.activeSymbolId||null,symbols:(Array.isArray(status.symbols)?status.symbols:[]).slice(0,100),
   selectedCommunityAssetId:selectedObject?.communityAssetId?String(selectedObject.communityAssetId).slice(0,80):null,
@@ -2545,7 +2704,7 @@ function agentSnapshot(){
   history:status.history||null,playbackOptions:status.playbackOptions||null,
   resourceImages:(Array.isArray(resourceLibrary.images)?resourceLibrary.images:[]).slice(0,60).map(asset=>({id:String(asset.id||'').slice(0,100),name:String(asset.name||'Image').slice(0,80),width:Number(asset.width)||0,height:Number(asset.height)||0})),
   availableCommunityAssets:(window.GeedHardwinCommunityCatalog||[]).filter(asset=>asset.supportsEditor===true&&['image','audio'].includes(asset.mediaType)).slice(0,32).map(asset=>({id:asset.id,title:String(asset.title||'').slice(0,90),category:asset.category,mediaType:asset.mediaType,supportsEditor:true,description:String(asset.description||'').slice(0,120)})),
-  layers:(Array.isArray(status.layers)?status.layers:[]).slice(0,80).map(layer=>({id:String(layer.id||'').slice(0,100),name:String(layer.name||'').slice(0,80),type:String(layer.type||'').slice(0,40),visible:layer.visible!==false,locked:Boolean(layer.locked),groupId:layer.groupId||null,maskStack:Array.isArray(layer.maskStack)?layer.maskStack.slice(0,8).map(entry=>({id:String(entry.id||'').slice(0,100),mode:entry.mode})):[],zIndex:Number(layer.zIndex)||0}))
+  layers:(Array.isArray(status.layers)?status.layers:[]).slice(0,80).map(layer=>({id:String(layer.id||'').slice(0,100),name:String(layer.name||'').slice(0,80),type:String(layer.type||'').slice(0,40),visible:layer.visible!==false,locked:Boolean(layer.locked),groupId:layer.groupId||null,filmRole:layer.filmRole||null,charRoot:!!layer.charRoot,flipX:!!layer.flipX,flipY:!!layer.flipY,color:layer.color||null,fillColor:layer.fillColor||null,keyframes:Array.isArray(layer.keyframes)?layer.keyframes.slice(0,120):[],x:Number(layer.x)||0,y:Number(layer.y)||0,maskStack:Array.isArray(layer.maskStack)?layer.maskStack.slice(0,8).map(entry=>({id:String(entry.id||'').slice(0,100),mode:entry.mode})):[],zIndex:Number(layer.zIndex)||0}))
  };
 }
 
@@ -2561,6 +2720,22 @@ function validateBrowserAgentAction(action){
  const color=(source,key)=>{const value=source[key];if(value===undefined)return undefined;if(typeof value!=='string'||!/^#[0-9a-f]{6}$/i.test(value))throw new Error('Mã màu không hợp lệ: '+key);return value};
  const layerId=value=>{if(typeof value!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/.test(value))throw new Error('Mã layer không hợp lệ.');return value};
  switch(action.tool){
+  case 'setFilmRole':if(!['background','character','prop','none'].includes(args.role))throw new Error('Vai trò phim không hợp lệ.');return {tool:action.tool,args:{role:args.role}};
+  case 'sortFilmStack':case 'assembleCharacter':case 'addPoseKey':return {tool:action.tool,args:{}};
+  case 'controlCharacter':{
+   if(!['move','rotate','pose'].includes(args.operation))throw new Error('Thao tác điều khiển nhân vật không hợp lệ.');
+   const groupId=text('groupId',100,true);if(!/^char-[A-Za-z0-9_-]{1,90}$/.test(groupId)||!agentSnapshot().characterGroups.some(group=>group.id===groupId))throw new Error('Không tìm thấy nhóm nhân vật trong cảnh hiện tại.');
+   if(args.operation==='pose')return {tool:action.tool,args:{operation:'pose',groupId}};
+   if(args.operation==='move')return {tool:action.tool,args:{operation:'move',groupId,dx:number('dx',-1280,1280,true),dy:number('dy',-720,720,true)}};
+   return {tool:action.tool,args:{operation:'rotate',groupId,degrees:number('degrees',-360,360,true)}};
+  }
+  case 'flipSelected':if(!['horizontal','vertical'].includes(args.axis))throw new Error('Trục lật không hợp lệ.');return {tool:action.tool,args:{axis:args.axis}};
+  case 'alignSelected':if(!['left','right','hCenter','top','bottom','vCenter','stageCenter'].includes(args.axis))throw new Error('Kiểu căn chỉnh không hợp lệ.');return {tool:action.tool,args:{axis:args.axis}};
+  case 'holdFrames':{const frames=number('frames',1,120,true);if(!Number.isInteger(frames)||agentSnapshot().currentFrame+frames>agentSnapshot().maxFrame)throw new Error('Số frame giữ không hợp lệ hoặc vượt timeline.');return {tool:action.tool,args:{frames}}}
+  case 'applyClassicTween':{const easing=args.easing===undefined?'easeInOut':args.easing;if(!['linear','easeIn','easeOut','easeInOut','easeInCubic','easeOutCubic','easeInOutCubic','sine','smooth','back','bounce','elastic'].includes(easing))throw new Error('Tween easing không hợp lệ.');return {tool:action.tool,args:{easing}}}
+  case 'setLayerLock':if(typeof args.locked!=='boolean')throw new Error('Lock phải là true hoặc false.');return {tool:action.tool,args:{locked:args.locked}};
+  case 'setLayerOrder':if(!['front','back','forward','backward'].includes(args.direction))throw new Error('Thứ tự layer không hợp lệ.');return {tool:action.tool,args:{direction:args.direction}};
+  case 'fillSelectedColor':{const value=color(args,'color');if(value===undefined)throw new Error('Thiếu mã màu.');return {tool:action.tool,args:{color:value}}}
   case 'inspect':case 'exportVideoPreview':case 'exportStill':case 'exportGif':case 'exportPngSequence':case 'play':case 'stop':case 'deleteSelected':case 'groupSelected':case 'ungroupSelected':case 'addKeyframe':case 'undo':case 'redo':return {tool:action.tool,args:{}};
   case 'createBone':{
    const clean={x:number('x',0,1280,true),y:number('y',0,720,true),length:number('length',8,800,true)};
@@ -2725,6 +2900,18 @@ async function runAgentEditorAction(rawAction){
  if(action.tool==='inspect')return {tool:action.tool,verified:true,before,after:before};
  let result=null;
  switch(action.tool){
+  case 'setFilmRole':result=window.GeedHardwinBridge.setFilmRole(action.args);break;
+  case 'sortFilmStack':result=window.GeedHardwinBridge.sortFilmStack();break;
+  case 'assembleCharacter':result=window.GeedHardwinBridge.assembleCharacter();break;
+  case 'controlCharacter':result=window.GeedHardwinBridge.controlCharacter(action.args);break;
+  case 'flipSelected':result=window.GeedHardwinBridge.flipSelected(action.args);break;
+  case 'alignSelected':result=window.GeedHardwinBridge.alignSelected(action.args);break;
+  case 'addPoseKey':result=window.GeedHardwinBridge.addPoseKey();break;
+  case 'holdFrames':result=window.GeedHardwinBridge.holdFrames(action.args);break;
+  case 'applyClassicTween':result=window.GeedHardwinBridge.applyClassicTween(action.args);break;
+  case 'setLayerLock':result=window.GeedHardwinBridge.setLayerLock(action.args);break;
+  case 'setLayerOrder':result=window.GeedHardwinBridge.setLayerOrder(action.args);break;
+  case 'fillSelectedColor':result=window.GeedHardwinBridge.fillSelectedColor(action.args);break;
   case 'createCircle':result=window.GeedHardwinBridge.createCircle(action.args);break;
   case 'animateCircle':result=window.GeedHardwinBridge.animateCircle(action.args);break;
   case 'buildScene':result=window.GeedHardwinBridge.buildScene(action.args);break;
@@ -2808,6 +2995,18 @@ async function runAgentEditorAction(rawAction){
  else if(action.tool==='setTimeline')verified=after.durationSeconds===result.durationSeconds&&after.fps===result.fps;
  else if(action.tool==='setPlaybackOptions')verified=Object.entries(action.args).every(([key,value])=>after.playbackOptions?.[key]===value);
  else if(action.tool==='manageSymbol')verified=action.args.operation==='createFromSelection'?after.symbols.length===before.symbols.length+1&&after.selected?.type==='symbol':action.args.operation==='insert'?after.layerCount===before.layerCount+1&&after.selected?.type==='symbol'&&after.selected.symbolId===action.args.symbolId:action.args.operation==='edit'?after.activeSymbolId===action.args.symbolId:action.args.operation==='exit'?after.activeSymbolId!==before.activeSymbolId:after.activeSymbolId===before.activeSymbolId&&after.symbols.some(item=>item.id===after.activeSymbolId&&item.duration===action.args.duration);
+ else if(action.tool==='setFilmRole')verified=after.selectedLayers.length===before.selectedLayers.length&&after.selectedLayers.length>0&&after.selectedLayers.every(layer=>layer.filmRole===(action.args.role==='none'?null:action.args.role));
+ else if(action.tool==='sortFilmStack'){const ranks=after.layers.map(layer=>layer.filmRole==='background'?0:layer.filmRole==='character'?2:1);verified=ranks.every((rank,index)=>index===0||ranks[index-1]<=rank)}
+ else if(action.tool==='assembleCharacter')verified=!!result?.groupId&&after.characterGroups.some(group=>group.id===result.groupId&&group.count===before.selectedCount);
+ else if(action.tool==='controlCharacter')verified=after.characterGroups.some(group=>group.id===action.args.groupId&&group.count>0)&&(action.args.operation==='pose'?result?.ok===true:result?.ok===true);
+ else if(action.tool==='flipSelected')verified=after.selectedLayers.length===before.selectedLayers.length&&after.selectedLayers.length>0&&after.selectedLayers.every(layer=>layer[action.args.axis==='horizontal'?'flipX':'flipY']!==before.selectedLayers.find(prev=>prev.id===layer.id)?.[action.args.axis==='horizontal'?'flipX':'flipY']);
+ else if(action.tool==='alignSelected')verified=result?.ok===true&&result?.changed===true;
+ else if(action.tool==='addPoseKey')verified=after.selectedLayers.length===before.selectedLayers.length&&after.selectedLayers.every(layer=>layer.keyframes.some(key=>key.frame===before.currentFrame));
+ else if(action.tool==='holdFrames')verified=after.selectedLayers.every(layer=>layer.keyframes.some(key=>key.frame===before.currentFrame)&&layer.keyframes.some(key=>key.frame===before.currentFrame+action.args.frames));
+ else if(action.tool==='applyClassicTween')verified=result?.ok===true&&result.applied===before.selectedCount&&after.selectedLayers.every(layer=>layer.keyframes.some(key=>key.frame===before.currentFrame||key.frame<before.currentFrame)&&layer.keyframes.some(key=>key.easing===action.args.easing));
+ else if(action.tool==='setLayerLock')verified=after.selectedLayers.length===before.selectedLayers.length&&after.selectedLayers.every(layer=>layer.locked===action.args.locked);
+ else if(action.tool==='setLayerOrder'){const oldIds=before.selectedLayers.map(layer=>layer.id);verified=oldIds.length>0&&after.layers.filter(layer=>oldIds.includes(layer.id)).length===oldIds.length&&result?.ok===true}
+ else if(action.tool==='fillSelectedColor')verified=after.selectedLayers.length===before.selectedLayers.length&&after.selectedLayers.every(layer=>layer.color===action.args.color&&layer.fillColor===action.args.color);
  else if(action.tool==='cropSelectedImage')verified=after.selected?.id===before.selected?.id&&after.selected?.type==='image'&&after.selectedImageDimensions?.width===result.cropped?.width&&after.selectedImageDimensions?.height===result.cropped?.height;
  else if(action.tool==='undo')verified=result?.ok===true&&after.history?.index<before.history?.index;
  else if(action.tool==='redo')verified=result?.ok===true&&after.history?.index>before.history?.index;
