@@ -2770,10 +2770,14 @@ function validateBrowserAgentAction(action){
   case 'sortFilmStack':case 'assembleCharacter':case 'addPoseKey':return {tool:action.tool,args:{}};
   case 'controlCharacter':{
    if(!['move','rotate','pose'].includes(args.operation))throw new Error('Thao tác điều khiển nhân vật không hợp lệ.');
-   const groupId=text('groupId',100,true);if(!/^char-[A-Za-z0-9_-]{1,90}$/.test(groupId)||!agentSnapshot().characterGroups.some(group=>group.id===groupId))throw new Error('Không tìm thấy nhóm nhân vật trong cảnh hiện tại.');
-   if(args.operation==='pose')return {tool:action.tool,args:{operation:'pose',groupId}};
-   if(args.operation==='move')return {tool:action.tool,args:{operation:'move',groupId,dx:number('dx',-1280,1280,true),dy:number('dy',-720,720,true)}};
-   return {tool:action.tool,args:{operation:'rotate',groupId,degrees:number('degrees',-360,360,true)}};
+   const groupId=text('groupId',100);
+   if(groupId!==undefined&&(!/^char-[A-Za-z0-9_-]{1,90}$/.test(groupId)||!agentSnapshot().characterGroups.some(group=>group.id===groupId)))throw new Error('Không tìm thấy nhóm nhân vật trong cảnh hiện tại.');
+   const selectedGroups=[...new Set(agentSnapshot().selectedLayers.map(layer=>layer.groupId).filter(id=>typeof id==='string'&&id.startsWith('char-')))];
+   if(groupId===undefined&&selectedGroups.length>1)throw new Error('Hãy chọn một nhóm nhân vật trước khi di chuyển.');
+   const clean=groupId===undefined?{}:{groupId};
+   if(args.operation==='pose')return {tool:action.tool,args:{...clean,operation:'pose'}};
+   if(args.operation==='move')return {tool:action.tool,args:{...clean,operation:'move',dx:number('dx',-1280,1280,true),dy:number('dy',-720,720,true)}};
+   return {tool:action.tool,args:{...clean,operation:'rotate',degrees:number('degrees',-360,360,true)}};
   }
   case 'flipSelected':if(!['horizontal','vertical'].includes(args.axis))throw new Error('Trục lật không hợp lệ.');return {tool:action.tool,args:{axis:args.axis}};
   case 'alignSelected':if(!['left','right','hCenter','top','bottom','vCenter','stageCenter'].includes(args.axis))throw new Error('Kiểu căn chỉnh không hợp lệ.');return {tool:action.tool,args:{axis:args.axis}};
