@@ -2,6 +2,9 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { readFileSync } = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 const { AGENT_SYSTEM_PROMPT, sanitizeAgentAction, parseAgentOutput } = require('../lib/ai-agent');
 
 test('agent prompt defines tab-only context and a safe batch scene builder', () => {
@@ -18,6 +21,9 @@ test('agent prompt defines tab-only context and a safe batch scene builder', () 
   assert.match(AGENT_SYSTEM_PROMPT, /Video export is a manual user action/i);
   assert.match(AGENT_SYSTEM_PROMPT, /setSelectedProperties/);
   assert.match(AGENT_SYSTEM_PROMPT, /manageScene/);
+  assert.match(AGENT_SYSTEM_PROMPT, /controlCharacter/);
+  assert.match(AGENT_SYSTEM_PROMPT, /applyClassicTween/);
+  assert.match(AGENT_SYSTEM_PROMPT, /flipSelected/);
   assert.match(AGENT_SYSTEM_PROMPT, /privateMaterials/);
   assert.match(AGENT_SYSTEM_PROMPT, /Video and font materials remain preview-only/);
   assert.match(AGENT_SYSTEM_PROMPT, /Never output code/i);
@@ -232,4 +238,51 @@ test('AI MovieClip controls validate operations, IDs and duration bounds', () =>
   assert.throws(()=>sanitizeAgentAction({tool:'manageSymbol',args:{operation:'setDuration',duration:2.5}}));
   assert.throws(()=>sanitizeAgentAction({tool:'manageSymbol',args:{operation:'insert',symbolId:'../private'}}));
   assert.throws(()=>sanitizeAgentAction({tool:'manageSymbol',args:{operation:'delete',symbolId:'sym-12'}}));
+});
+
+
+test('AI film animation tools enforce roles, exact character groups and safe bounds', () => {
+  assert.deepEqual(sanitizeAgentAction({tool:'setFilmRole',args:{role:'background',extra:true}}),{tool:'setFilmRole',args:{role:'background'}});
+  assert.deepEqual(sanitizeAgentAction({tool:'setFilmRole',args:{role:'none'}}),{tool:'setFilmRole',args:{role:'none'}});
+  assert.deepEqual(sanitizeAgentAction({tool:'sortFilmStack'}),{tool:'sortFilmStack',args:{}});
+  assert.deepEqual(sanitizeAgentAction({tool:'assembleCharacter'}),{tool:'assembleCharacter',args:{}});
+  assert.deepEqual(sanitizeAgentAction({tool:'addPoseKey'}),{tool:'addPoseKey',args:{}});
+  assert.throws(()=>sanitizeAgentAction({tool:'setFilmRole',args:{role:'video'}}));
+  assert.deepEqual(sanitizeAgentAction({tool:'controlCharacter',args:{operation:'move',groupId:'char-12',dx:32,dy:-16,extra:true}}),{tool:'controlCharacter',args:{operation:'move',groupId:'char-12',dx:32,dy:-16}});
+  assert.deepEqual(sanitizeAgentAction({tool:'controlCharacter',args:{operation:'rotate',groupId:'char-12',degrees:15}}),{tool:'controlCharacter',args:{operation:'rotate',groupId:'char-12',degrees:15}});
+  assert.deepEqual(sanitizeAgentAction({tool:'controlCharacter',args:{operation:'pose',groupId:'char-12'}}),{tool:'controlCharacter',args:{operation:'pose',groupId:'char-12'}});
+  assert.throws(()=>sanitizeAgentAction({tool:'controlCharacter',args:{operation:'move',groupId:'../private',dx:1,dy:1}}));
+  assert.throws(()=>sanitizeAgentAction({tool:'controlCharacter',args:{operation:'move',groupId:'char-12',dx:1281,dy:0}}));
+  assert.throws(()=>sanitizeAgentAction({tool:'controlCharacter',args:{operation:'teleport',groupId:'char-12'}}));
+  assert.deepEqual(sanitizeAgentAction({tool:'flipSelected',args:{axis:'horizontal'}}),{tool:'flipSelected',args:{axis:'horizontal'}});
+  assert.deepEqual(sanitizeAgentAction({tool:'flipSelected',args:{axis:'vertical'}}),{tool:'flipSelected',args:{axis:'vertical'}});
+  assert.throws(()=>sanitizeAgentAction({tool:'flipSelected',args:{axis:'diagonal'}}));
+  assert.deepEqual(sanitizeAgentAction({tool:'alignSelected',args:{axis:'hCenter'}}),{tool:'alignSelected',args:{axis:'hCenter'}});
+  assert.deepEqual(sanitizeAgentAction({tool:'alignSelected',args:{axis:'stageCenter'}}),{tool:'alignSelected',args:{axis:'stageCenter'}});
+  assert.throws(()=>sanitizeAgentAction({tool:'alignSelected',args:{axis:'random'}}));
+  assert.deepEqual(sanitizeAgentAction({tool:'holdFrames',args:{frames:8}}),{tool:'holdFrames',args:{frames:8}});
+  assert.throws(()=>sanitizeAgentAction({tool:'holdFrames',args:{frames:0}}));
+  assert.throws(()=>sanitizeAgentAction({tool:'holdFrames',args:{frames:1.5}}));
+  assert.deepEqual(sanitizeAgentAction({tool:'applyClassicTween',args:{}}),{tool:'applyClassicTween',args:{easing:'easeInOut'}});
+  assert.deepEqual(sanitizeAgentAction({tool:'applyClassicTween',args:{easing:'easeOutCubic'}}),{tool:'applyClassicTween',args:{easing:'easeOutCubic'}});
+  assert.throws(()=>sanitizeAgentAction({tool:'applyClassicTween',args:{easing:'javascript'}}));
+  assert.deepEqual(sanitizeAgentAction({tool:'setLayerLock',args:{locked:true}}),{tool:'setLayerLock',args:{locked:true}});
+  assert.throws(()=>sanitizeAgentAction({tool:'setLayerLock',args:{locked:'true'}}));
+  assert.deepEqual(sanitizeAgentAction({tool:'setLayerOrder',args:{direction:'forward'}}),{tool:'setLayerOrder',args:{direction:'forward'}});
+  assert.deepEqual(sanitizeAgentAction({tool:'setLayerOrder',args:{direction:'back'}}),{tool:'setLayerOrder',args:{direction:'back'}});
+  assert.throws(()=>sanitizeAgentAction({tool:'setLayerOrder',args:{direction:'sideways'}}));
+  assert.deepEqual(sanitizeAgentAction({tool:'fillSelectedColor',args:{color:'#12aBcF'}}),{tool:'fillSelectedColor',args:{color:'#12aBcF'}});
+  assert.throws(()=>sanitizeAgentAction({tool:'fillSelectedColor',args:{color:'red'}}));
+  assert.throws(()=>sanitizeAgentAction({tool:'fillSelectedColor',args:{}}));
+});
+
+
+test('inline editor scripts, including the AI bridge, parse as valid JavaScript', () => {
+  const html = readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
+    .map(match => match[1]).filter(source => source.trim());
+  assert.ok(scripts.length > 0, 'expected at least one inline editor script');
+  scripts.forEach((source, index) => {
+    assert.doesNotThrow(() => new vm.Script(source, { filename: 'index.html:inline-' + index }));
+  });
 });
