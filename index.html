@@ -395,7 +395,7 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
     <div class="video-preview-actions">
       <button id="downloadFinishedVideo" type="button">↓ Tải video xuống</button>
       <span class="spacer"></span>
-      <button id="uploadFinishedVideo" type="button" class="primary" disabled>Lưu bản hoàn chỉnh lên R2</button>
+      <button id="uploadFinishedVideo" type="button" class="primary" disabled>Gửi video qua R2 đến Runway</button>
     </div>
     <p class="video-preview-cloud-note" id="videoPreviewCloudStatus" aria-live="polite">Đang kiểm tra kết nối kho lưu trữ đám mây…</p>
   </div>
@@ -1700,13 +1700,14 @@ async function exportVideo(previewMode=false){
 $('exportVideo').onclick=()=>exportVideo(false);
 $('openVideoPreview').onclick=()=>exportVideo(true);
 
-let finishedPreviewBlob=null,finishedPreviewName='geed-hardwin-animation.webm',finishedPreviewObjectUrl=null,r2ExportReady=false,finishedPreviewDownloadUrl='',videoExportState='idle';
+let finishedPreviewBlob=null,finishedPreviewName='geed-hardwin-animation.webm',finishedPreviewObjectUrl=null,r2ExportReady=false,runwayHandoffAvailable=false,finishedPreviewDownloadUrl='',r2PendingObjectKey='',r2RunwayUploadConfirmed=false,videoExportState='idle';
 function clearFinishedPreview(){
  const player=$('finishedVideo');
  if(player){player.pause();player.removeAttribute('src');player.load()}
  if(finishedPreviewObjectUrl){URL.revokeObjectURL(finishedPreviewObjectUrl);finishedPreviewObjectUrl=null}
  finishedPreviewBlob=null;finishedPreviewDownloadUrl='';
- $('downloadFinishedVideo').disabled=true;$('uploadFinishedVideo').disabled=true;
+ $('downloadFinishedVideo').disabled=true;
+ $('uploadFinishedVideo').disabled=!r2ExportReady&&!r2PendingObjectKey;
 }
 function showFinishedVideoPreview(blob,filename,audioTrackCount){
  clearFinishedPreview();finishedPreviewBlob=blob;finishedPreviewName=filename;
@@ -1715,52 +1716,119 @@ function showFinishedVideoPreview(blob,filename,audioTrackCount){
  $('videoPreviewInfo').textContent=(blob.type.includes('mp4')?'MP4':'WebM')+' · '+(blob.size/1024/1024).toFixed(1)+' MB · '+filename;
  $('videoPreviewAudioInfo').textContent=audioTrackCount>0?'✓ Có '+audioTrackCount+' track âm thanh/giọng nói':'Không phát hiện track âm thanh · video vẫn xem được';
  $('downloadFinishedVideo').disabled=false;
- $('uploadFinishedVideo').disabled=!r2ExportReady;
+ $('uploadFinishedVideo').disabled=!r2ExportReady&&!r2PendingObjectKey;
+ $('uploadFinishedVideo').textContent=r2PendingObjectKey?(r2RunwayUploadConfirmed?'Thử dọn tệp khỏi R2':'Thử gửi sang Runway'):'Gửi video qua R2 đến Runway';
  $('videoPreviewDialog').showModal();
 }
 async function checkR2ExportAvailability(){
  const status=$('videoPreviewCloudStatus'),button=$('uploadFinishedVideo');
  try{
-  const response=await fetch('/api/media/upload-url',{headers:{accept:'application/json'}});
-  const data=await response.json().catch(()=>({}));
-  r2ExportReady=response.ok&&data.available===true;
+  const [r2Response,runwayResponse]=await Promise.all([
+   fetch('/api/media/upload-url',{headers:{accept:'application/json'}}),
+   fetch('/api/media/send-to-runway',{headers:{accept:'application/json'}})
+  ]);
+  const [r2Data,runwayData]=await Promise.all([
+   r2Response.json().catch(()=>({})),
+   runwayResponse.json().catch(()=>({}))
+  ]);
+  r2ExportReady=r2Response.ok&&r2Data.available===true;
+  runwayHandoffAvailable=runwayResponse.ok&&runwayData.available===true;
   if(!r2ExportReady){
    status.textContent='R2 chưa sẵn sàng: cần kích hoạt R2, tạo bucket riêng và cấu hình khóa lưu trữ trên máy chủ. Bạn vẫn có thể xem trước hoặc tải video xuống.';
-   button.disabled=true;button.title='R2 chưa được cấu hình';
+   button.disabled=!r2PendingObjectKey;button.title='R2 chưa được cấu hình';
    return;
   }
-  status.textContent='R2 đã sẵn sàng. Bản hoàn chỉnh sẽ được lưu riêng dưới geed-final/ và không tự xóa; liên kết tải xuống có hiệu lực 24 giờ.';
-  button.disabled=!finishedPreviewBlob;
+  if(runwayHandoffAvailable){
+   status.textContent='R2 và Runway đã được cấu hình. Khi bấm gửi, Geed chuyển video sang Runway; chỉ khi Runway nhận đủ tệp, bản trung chuyển trong R2 mới được xóa.';
+  }else{
+   status.textContent='R2 đã sẵn sàng. Luồng chuyển tự động sang Runway đang chờ cấu hình khóa Runway API trên máy chủ; video sẽ được giữ nguyên trong R2 nếu chưa chuyển được.';
+  }
+  button.disabled=!finishedPreviewBlob&&!r2PendingObjectKey;
  }catch(error){
-  r2ExportReady=false;button.disabled=true;
-  status.textContent='Không kiểm tra được kho R2. Bạn vẫn có thể xem trước và tải video xuống.';
+  r2ExportReady=false;runwayHandoffAvailable=false;button.disabled=!r2PendingObjectKey;
+  status.textContent='Không kiểm tra được kết nối R2/Runway. Bạn vẫn có thể xem trước và tải video xuống.';
  }
+}
+async function getVideoExportAccessToken(){
+ if(!window.GeedHardwinAuth||typeof window.GeedHardwinAuth.getAccessToken!=='function')throw new Error('Thành phần đăng nhập chưa sẵn sàng. Hãy tải lại trang.');
+ const token=await window.GeedHardwinAuth.getAccessToken();
+ if(!token)throw new Error('Hãy đăng nhập Google trước khi chuyển video.');
+ return token;
+}
+async function sendStoredVideoToRunway(token){
+ const response=await fetch('/api/media/send-to-runway',{
+  method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+token},
+  body:JSON.stringify({objectKey:r2PendingObjectKey})
+ });
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok||data.accepted!==true){
+  throw new Error((data.error||'Runway chưa xác nhận nhận video.')+' Bản video vẫn được giữ trong R2.');
+ }
+ if(data.r2Deleted===true){
+  r2PendingObjectKey='';r2RunwayUploadConfirmed=false;finishedPreviewDownloadUrl='';
+  statusMessage('Runway đã nhận video thành công. Geed đã xóa bản trung chuyển khỏi R2; bucket và cấu hình R2 vẫn được giữ nguyên. Tệp Runway tạm có hiệu lực 24 giờ.');
+  return;
+ }
+ r2RunwayUploadConfirmed=true;
+ if(data.objectKey)r2PendingObjectKey=data.objectKey;
+ statusMessage('Runway đã nhận video, nhưng R2 chưa xác nhận xóa bản trung chuyển. Bấm nút bên dưới để thử dọn R2; video sẽ không bị tải lên Runway lần nữa.');
+}
+function statusMessage(message){$('videoPreviewCloudStatus').textContent=message}
+async function cleanupTransferredVideo(token){
+ const response=await fetch('/api/media/send-to-runway',{
+  method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+token},
+  body:JSON.stringify({action:'cleanup',objectKey:r2PendingObjectKey})
+ });
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok||data.r2Deleted!==true)throw new Error(data.error||'Chưa dọn được bản trung chuyển trong R2.');
+ r2PendingObjectKey='';r2RunwayUploadConfirmed=false;finishedPreviewDownloadUrl='';
+ statusMessage('Đã dọn video khỏi R2. Bucket và cấu hình kết nối vẫn nguyên vẹn.');
 }
 $('downloadFinishedVideo').onclick=()=>{if(finishedPreviewBlob)download(finishedPreviewBlob,finishedPreviewName)};
 $('uploadFinishedVideo').onclick=async()=>{
- if(!finishedPreviewBlob||!r2ExportReady)return;
  const button=$('uploadFinishedVideo'),status=$('videoPreviewCloudStatus');
- button.disabled=true;button.textContent='Đang tải lên…';
+ if(r2PendingObjectKey){
+  button.disabled=true;button.textContent=r2RunwayUploadConfirmed?'Đang dọn R2…':'Đang gửi Runway…';
+  try{
+   const token=await getVideoExportAccessToken();
+   if(r2RunwayUploadConfirmed)await cleanupTransferredVideo(token);
+   else await sendStoredVideoToRunway(token);
+   button.textContent=r2PendingObjectKey?'Thử dọn tệp khỏi R2':'Đã chuyển sang Runway';
+   button.disabled=!r2PendingObjectKey;
+  }catch(error){
+   status.textContent=(error?.message||'Chưa hoàn tất chuyển video.')+' Tệp gốc không bị xóa khi Runway chưa xác nhận nhận đủ.';
+   button.disabled=false;button.textContent=r2RunwayUploadConfirmed?'Thử dọn R2':'Thử gửi Runway lại';
+  }
+  return;
+ }
+ if(!finishedPreviewBlob||!r2ExportReady)return;
+ button.disabled=true;button.textContent='Đang tải lên R2…';
  try{
-  if(!window.GeedHardwinAuth||typeof window.GeedHardwinAuth.getAccessToken!=='function')throw new Error('Thành phần đăng nhập chưa sẵn sàng. Hãy tải lại trang.');
-  const token=await window.GeedHardwinAuth.getAccessToken();
-  if(!token)throw new Error('Hãy đăng nhập Google trước khi lưu video lên kho riêng.');
+  const token=await getVideoExportAccessToken();
   const contentType=finishedPreviewBlob.type.toLowerCase().includes('mp4')?'video/mp4':'video/webm';
-  const signedResponse=await fetch('/api/media/upload-url',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+token},body:JSON.stringify({contentType,size:finishedPreviewBlob.size,purpose:'final'})});
+  const signedResponse=await fetch('/api/media/upload-url',{
+   method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+token},
+   body:JSON.stringify({contentType,size:finishedPreviewBlob.size,purpose:'final'})
+  });
   const signed=await signedResponse.json().catch(()=>({}));
   if(!signedResponse.ok||!signed.uploadUrl)throw new Error(signed.error||'Không thể tạo quyền tải lên R2.');
   const uploaded=await fetch(signed.uploadUrl,{method:'PUT',headers:{'content-type':contentType},body:finishedPreviewBlob});
   if(!uploaded.ok)throw new Error('R2 từ chối tệp tải lên ('+uploaded.status+'). Kiểm tra CORS và quyền bucket.');
-  finishedPreviewDownloadUrl=signed.downloadUrl||'';
-  status.replaceChildren();
-  const label=document.createElement('span');label.textContent='Đã lưu bản hoàn chỉnh trong bucket R2 riêng. Tệp ở geed-final/ và không thuộc quy tắc tự xóa; liên kết tải xuống có hiệu lực 24 giờ.';status.appendChild(label);
-  if(signed.objectKey){status.appendChild(document.createTextNode(' Khóa tệp: '+signed.objectKey+'.'))}if(finishedPreviewDownloadUrl){status.appendChild(document.createTextNode(' '));const link=document.createElement('a');link.href=finishedPreviewDownloadUrl;link.target='_blank';link.rel='noopener noreferrer';link.textContent='Mở video trên R2 (link 24 giờ)';status.appendChild(link)}
-  button.textContent='Đã lưu lên R2';button.disabled=true;
- }catch(error){status.textContent=error?.message||'Tải video lên R2 thất bại.';button.disabled=false;button.textContent='Thử tải lên lại'}
+  r2PendingObjectKey=signed.objectKey||'';
+  if(!r2PendingObjectKey)throw new Error('R2 không trả về khóa tệp để bàn giao Runway. Bản tải lên vẫn còn trên R2.');
+  button.textContent='Đang bàn giao cho Runway…';
+  status.textContent='Video đã được tải lên R2. Đang chuyển tệp sang Runway; Geed chỉ xóa bản R2 sau khi Runway xác nhận nhận đủ.';
+  await sendStoredVideoToRunway(token);
+  button.textContent=r2PendingObjectKey?'Thử dọn tệp khỏi R2':'Đã chuyển sang Runway';
+  button.disabled=!r2PendingObjectKey;
+ }catch(error){
+  status.textContent=(error?.message||'Tải hoặc chuyển video thất bại.')+(r2PendingObjectKey?' Bản video vẫn còn trong R2; có thể thử lại.':'');
+  button.disabled=false;button.textContent=r2PendingObjectKey?(r2RunwayUploadConfirmed?'Thử dọn R2':'Thử gửi Runway lại'):'Thử tải lên lại';
+ }
 };
 $('closeVideoPreview').onclick=()=>{$('videoPreviewDialog').close()};
 $('videoPreviewDialog').addEventListener('click',event=>{if(event.target===$('videoPreviewDialog'))$('videoPreviewDialog').close()});
-$('videoPreviewDialog').addEventListener('close',()=>{clearFinishedPreview();$('uploadFinishedVideo').textContent='Lưu bản hoàn chỉnh lên R2';checkR2ExportAvailability()});
+$('videoPreviewDialog').addEventListener('close',()=>{clearFinishedPreview();$('uploadFinishedVideo').textContent=r2PendingObjectKey?(r2RunwayUploadConfirmed?'Thử dọn tệp khỏi R2':'Thử gửi sang Runway'):'Gửi video qua R2 đến Runway';checkR2ExportAvailability()});
 checkR2ExportAvailability();
 
 function gifLzw(indices,minCodeSize=8){
