@@ -86,6 +86,11 @@ test('finished video preview records the complete project with its audio tracks'
   assert.match(html, /\$\('openVideoPreview'\)\.onclick=\(\)=>exportVideo\(true\)/);
 });
 
-test('finished video export stays local and keeps preview download', () => {
+test('finished video preview supports direct Runway ephemeral upload without exposing an API key', () => {
   assert.ok(html.includes("$('downloadFinishedVideo').onclick="));
+  assert.ok(html.includes("$('sendFinishedVideoToRunway').onclick=async()=>"));
+  assert.ok(html.includes("form.append('file',finishedPreviewBlob,filename)"));
+  assert.ok(html.includes("releaseFinishedVideoAfterRunwayAcceptance(session.runwayUri)"));
+  assert.ok(html.includes("const RUNWAY_EPHEMERAL_MAX_BYTES=200*1024*1024"));
+  assert.doesNotMatch(html, /GEED_RUNWAY_API_KEY|RUNWAY_API_KEY\\s*=|api\\.dev\\.runwayml\\.com/);
 });
