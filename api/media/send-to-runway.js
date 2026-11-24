@@ -36,7 +36,7 @@ function parseOwnedFinalObjectKey(value, userId) {
   const prefix = 'geed-final/' + String(userId || '') + '/';
   if (!prefix || !value.startsWith(prefix)) return null;
   const filename = value.slice(prefix.length);
-  if (!/^[a-zA-Z0-9-]{1,80}\\.(mp4|webm)$/.test(filename)) return null;
+  if (!/^[a-zA-Z0-9-]{1,80}\.(mp4|webm)$/.test(filename)) return null;
   return {
     key: value,
     filename,
