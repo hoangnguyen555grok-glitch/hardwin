@@ -86,9 +86,11 @@ test('finished video preview records the complete project with its audio tracks'
   assert.match(html, /\$\('openVideoPreview'\)\.onclick=\(\)=>exportVideo\(true\)/);
 });
 
-test('cloud export uploads only authenticated MP4 or WebM blobs through the temporary R2 API', () => {
+test('cloud export uploads only authenticated MP4 or WebM blobs as final renders through R2', () => {
   assert.ok(html.includes("fetch('/api/media/upload-url'"));
+  assert.match(html, /purpose:'final'/);
   assert.match(html, /method:'PUT',headers:\{'content-type':contentType\},body:finishedPreviewBlob/);
   assert.match(html, /id="uploadFinishedVideo"[^>]*disabled/);
-  assert.match(html, /Lưu R2 chưa sẵn sàng/);
+  assert.match(html, /R2 chưa sẵn sàng/);
+  assert.match(html, /geed-final\//);
 });
