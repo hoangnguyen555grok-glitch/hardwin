@@ -2,6 +2,9 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { readFileSync } = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 const { AGENT_SYSTEM_PROMPT, sanitizeAgentAction, parseAgentOutput } = require('../lib/ai-agent');
 
 test('agent prompt defines tab-only context and a safe batch scene builder', () => {
@@ -18,6 +21,9 @@ test('agent prompt defines tab-only context and a safe batch scene builder', () 
   assert.match(AGENT_SYSTEM_PROMPT, /Video export is a manual user action/i);
   assert.match(AGENT_SYSTEM_PROMPT, /setSelectedProperties/);
   assert.match(AGENT_SYSTEM_PROMPT, /manageScene/);
+  assert.match(AGENT_SYSTEM_PROMPT, /controlCharacter/);
+  assert.match(AGENT_SYSTEM_PROMPT, /applyClassicTween/);
+  assert.match(AGENT_SYSTEM_PROMPT, /flipSelected/);
   assert.match(AGENT_SYSTEM_PROMPT, /privateMaterials/);
   assert.match(AGENT_SYSTEM_PROMPT, /Video and font materials remain preview-only/);
   assert.match(AGENT_SYSTEM_PROMPT, /Never output code/i);
@@ -268,4 +274,15 @@ test('AI film animation tools enforce roles, exact character groups and safe bou
   assert.deepEqual(sanitizeAgentAction({tool:'fillSelectedColor',args:{color:'#12aBcF'}}),{tool:'fillSelectedColor',args:{color:'#12aBcF'}});
   assert.throws(()=>sanitizeAgentAction({tool:'fillSelectedColor',args:{color:'red'}}));
   assert.throws(()=>sanitizeAgentAction({tool:'fillSelectedColor',args:{}}));
+});
+
+
+test('inline editor scripts, including the AI bridge, parse as valid JavaScript', () => {
+  const html = readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const scripts = [...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/gi)]
+    .map(match => match[1]).filter(source => source.trim());
+  assert.ok(scripts.length > 0, 'expected at least one inline editor script');
+  scripts.forEach((source, index) => {
+    assert.doesNotThrow(() => new vm.Script(source, { filename: 'index.html:inline-' + index }));
+  });
 });
