@@ -1707,7 +1707,7 @@ function clearFinishedPreview(){
  if(finishedPreviewObjectUrl){URL.revokeObjectURL(finishedPreviewObjectUrl);finishedPreviewObjectUrl=null}
  finishedPreviewBlob=null;finishedPreviewDownloadUrl='';
  $('downloadFinishedVideo').disabled=true;
- $('uploadFinishedVideo').disabled=!r2ExportReady&&!r2PendingObjectKey;
+ $('uploadFinishedVideo').disabled=true;
 }
 function showFinishedVideoPreview(blob,filename,audioTrackCount){
  clearFinishedPreview();finishedPreviewBlob=blob;finishedPreviewName=filename;
