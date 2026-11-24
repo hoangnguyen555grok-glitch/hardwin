@@ -2235,36 +2235,82 @@ function bridgeAssembleCharacter(){
  bridgeSortFilmObjects();renderAll();recordHistory();
  return {ok:true,groupId,rootId:root.id,count:items.length,layerIds:items.map(item=>item.id),status:bridgeStatus()};
 }
+function bridgeResolveCharacterGroup(args={}){
+ const all=objects(),provided=String(args.groupId||'');
+ let items=[],groupId=null;
+ if(provided){
+  if(!/^char-[A-Za-z0-9_-]{1,90}$/.test(provided))throw new Error('Invalid character group ID.');
+  items=all.filter(item=>item.groupId===provided);groupId=provided;
+  if(!items.length)throw new Error('Character group is not present in the current scene.');
+ }else{
+  const chosen=selectedObjects();
+  const chosenGroups=[...new Set(chosen.map(item=>item.groupId).filter(id=>typeof id==='string'&&id.startsWith('char-')))];
+  if(chosenGroups.length>1)throw new Error('Select one character group, or pass its exact group ID.');
+  if(chosenGroups.length===1){groupId=chosenGroups[0];items=all.filter(item=>item.groupId===groupId)}
+  else{
+   const selectedCharacters=chosen.filter(item=>item.filmRole==='character');
+   if(selectedCharacters.length){
+    const roleGroups=[...new Set(selectedCharacters.map(item=>item.groupId).filter(id=>typeof id==='string'&&id.startsWith('char-')))];
+    if(roleGroups.length>1)throw new Error('Select one character group before moving it.');
+    if(roleGroups.length===1){groupId=roleGroups[0];items=all.filter(item=>item.groupId===groupId)}
+    else items=selectedCharacters;
+   }else{
+    const existingGroups=[...new Set(all.filter(item=>item.filmRole==='character'&&typeof item.groupId==='string'&&item.groupId.startsWith('char-')).map(item=>item.groupId))];
+    if(existingGroups.length===1){groupId=existingGroups[0];items=all.filter(item=>item.groupId===groupId)}
+    else if(existingGroups.length>1)throw new Error('There are multiple characters. Select the one to move.');
+    else if(chosen.length&&chosen.every(item=>item.type!=='audio'&&item.type!=='bone'&&!item.isMask))items=chosen;
+    else throw new Error('Select the character layers first, or assign their Film Role as Character.');
+   }
+  }
+ }
+ if(!items.length||items.length>24)throw new Error('Character control requires 1 to 24 visual layers.');
+ if(items.some(item=>item.locked||item.type==='audio'||item.type==='bone'||item.isMask))throw new Error('Unlock the selected character layers before moving them.');
+ if(symbolEditId)throw new Error('Exit MovieClip edit mode before moving a character.');
+ return {items,groupId};
+}
+function bridgeCharacterRoots(items){
+ const ids=new Set(items.map(item=>item.id));
+ const roots=items.filter(item=>!item.parentId||!ids.has(item.parentId));
+ if(!roots.length)throw new Error('Character hierarchy has no movable root layer.');
+ return roots;
+}
+function bridgeGroupBounds(items){
+ const bounds=items.map(item=>bridgeObjectBounds(item,frame));
+ return {
+  left:Math.min(...bounds.map(item=>item.left)),right:Math.max(...bounds.map(item=>item.right)),
+  top:Math.min(...bounds.map(item=>item.top)),bottom:Math.max(...bounds.map(item=>item.bottom))
+ };
+}
 function bridgeControlCharacter(args={}){
- const groupId=String(args.groupId||''),operation=args.operation,items=objects().filter(item=>item.groupId===groupId);
- if(!/^char-[A-Za-z0-9_-]{1,90}$/.test(groupId)||!items.length)throw new Error('Character group is not present in the current scene.');
- if(items.length>24||items.some(item=>item.locked||item.type==='audio'||item.type==='bone'||item.isMask))throw new Error('Unlock a valid visual character group of at most 24 layers.');
- if(items.some(item=>item.parentId&&items.some(parent=>parent.id===item.parentId)))throw new Error('This character group contains nested parent-child layers; detach or regroup it before group movement.');
+ const operation=args.operation,{items,groupId}=bridgeResolveCharacterGroup(args),roots=bridgeCharacterRoots(items),all=objects();
  if(operation==='pose'){
   items.forEach(item=>bridgeStorePoseKey(item,frame,currentState(item)));
  }else if(operation==='move'){
   const dx=Number(args.dx),dy=Number(args.dy);
   if(!Number.isFinite(dx)||Math.abs(dx)>1280||!Number.isFinite(dy)||Math.abs(dy)>720)throw new Error('Character movement is outside supported bounds.');
-  const centers=items.map(item=>objectWorldCenter(item,frame,objects()));
-  const target=centers.map(point=>({x:point.x+dx,y:point.y+dy}));
-  if(target.some(point=>point.x<0||point.x>W||point.y<0||point.y>H))throw new Error('The moved character would leave the stage. Use smaller movement steps.');
-  items.forEach((item,index)=>setObjectWorldCenter(item,target[index].x,target[index].y,frame,objects()));
+  const bounds=bridgeGroupBounds(items);
+  if(bounds.left+dx<0||bounds.right+dx>W||bounds.top+dy<0||bounds.bottom+dy>H)throw new Error('The moved character would leave the stage. Use a smaller movement step.');
+  roots.forEach(root=>{
+   const center=objectWorldCenter(root,frame,all);
+   setObjectWorldCenter(root,center.x+dx,center.y+dy,frame,all);
+  });
  }else if(operation==='rotate'){
   const degrees=Number(args.degrees);if(!Number.isFinite(degrees)||Math.abs(degrees)>360)throw new Error('Character rotation is outside supported bounds.');
-  const bounds=items.map(item=>bridgeObjectBounds(item,frame));
-  const cx=(Math.min(...bounds.map(b=>b.left))+Math.max(...bounds.map(b=>b.right)))/2;
-  const cy=(Math.min(...bounds.map(b=>b.top))+Math.max(...bounds.map(b=>b.bottom)))/2;
-  const rad=degrees*Math.PI/180,cos=Math.cos(rad),sin=Math.sin(rad);
-  items.forEach(item=>{
-   const center=objectWorldCenter(item,frame,objects()),dx=center.x-cx,dy=center.y-cy;
-   setObjectWorldCenter(item,cx+dx*cos-dy*sin,cy+dx*sin+dy*cos,frame,objects());
-   const state=currentState(item);state.rotation=(Number(state.rotation)||0)+degrees;
-   bridgeStorePoseKey(item,frame,state);
-   Object.assign(item,state);
+  const bounds=bridgeGroupBounds(items),cx=(bounds.left+bounds.right)/2,cy=(bounds.top+bounds.bottom)/2,rad=degrees*Math.PI/180,cos=Math.cos(rad),sin=Math.sin(rad);
+  for(const item of items){
+   const b=bridgeObjectBounds(item,frame);
+   const corners=[[b.left,b.top],[b.right,b.top],[b.right,b.bottom],[b.left,b.bottom]].map(([x,y])=>({x:cx+(x-cx)*cos-(y-cy)*sin,y:cy+(x-cx)*sin+(y-cy)*cos}));
+   if(corners.some(point=>point.x<0||point.x>W||point.y<0||point.y>H))throw new Error('The rotated character would leave the stage.');
+  }
+  roots.forEach(root=>{
+   const center=objectWorldCenter(root,frame,all),dx=center.x-cx,dy=center.y-cy;
+   setObjectWorldCenter(root,cx+dx*cos-dy*sin,cy+dx*sin+dy*cos,frame,all);
+   const state=currentState(root);state.rotation=(Number(state.rotation)||0)+degrees;
+   bridgeStorePoseKey(root,frame,state);Object.assign(root,state);
   });
  }else throw new Error('Unsupported character operation.');
  renderAll();recordHistory();
- return {ok:true,operation,groupId,count:items.length,layerIds:items.map(item=>item.id),status:bridgeStatus()};
+ return {ok:true,operation,groupId:groupId||null,count:items.length,rootCount:roots.length,layerIds:items.map(item=>item.id),status:bridgeStatus()};
 }
 function bridgeObjectBounds(item,targetFrame=frame){
  const state=stateAt(item,targetFrame),matrix=objectWorldMatrix(item,targetFrame,objects());
