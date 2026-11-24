@@ -65,7 +65,6 @@ jobs:
           node --check api/community-assets/index.js
           node --check lib/notion-materials.js
           node --input-type=module --check < lib/material-library.js
-          node --check api/media/upload-url.js
           node --check lib/ai-router.js
           node --check lib/ai-agent.js
           node --check lib/gif-export.mjs
