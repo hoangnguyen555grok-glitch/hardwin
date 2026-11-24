@@ -49,7 +49,9 @@ test('R2 signing helper clamps expiry to the S3 maximum and rejects unsupported 
   };
   const signed = new URL(_test.presignS3Url(input));
   assert.equal(signed.searchParams.get('X-Amz-Expires'), '604800');
-  assert.throws(() => _test.presignS3Url({...input, method: 'DELETE'}), /Unsupported/);
+  const deleted = new URL(_test.presignS3Url({...input, method: 'DELETE'}));
+  assert.equal(deleted.pathname, '/geed-hardwin-exports/geed-temp/user/file.mp4');
+  assert.throws(() => _test.presignS3Url({...input, method: 'POST'}), /Unsupported/);
 });
 
 test('R2 upload purposes are explicit and final exports are kept outside the temporary cleanup prefix', () => {
