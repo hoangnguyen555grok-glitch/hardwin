@@ -71,3 +71,4 @@ jobs:
           node --check lib/supabase-ai-gateway.js
           node --input-type=module --check < lib/supabase-auth.js
           node --check lib/community-library.js
+          node --input-type=module --check < workers/runway-transfer/src/index.mjs
