@@ -279,7 +279,7 @@ test('AI film animation tools enforce roles, exact character groups and safe bou
 
 test('inline editor scripts, including the AI bridge, parse as valid JavaScript', () => {
   const html = readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-  const scripts = [...html.matchAll(/<script(?:\\s[^>]*)?>([\\s\\S]*?)<\\/script>/gi)]
+  const scripts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)]
     .map(match => match[1]).filter(source => source.trim());
   assert.ok(scripts.length > 0, 'expected at least one inline editor script');
   scripts.forEach((source, index) => {
