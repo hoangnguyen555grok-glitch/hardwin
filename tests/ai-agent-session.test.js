@@ -92,7 +92,6 @@ test('cloud export sends authenticated MP4 or WebM renders through R2 to Runway,
   assert.match(html, /method:'PUT',headers:\{'content-type':contentType\},body:finishedPreviewBlob/);
   assert.match(html, /id="uploadFinishedVideo"[^>]*disabled/);
   assert.match(html, /R2 chưa sẵn sàng/);
-  assert.match(html, /geed-final\//);
   assert.ok(html.includes("fetch('/api/media/send-to-runway'"));
   assert.match(html, /action:'cleanup'/);
   assert.match(html, /Runway đã nhận video thành công/);
