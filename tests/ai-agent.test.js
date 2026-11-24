@@ -22,6 +22,8 @@ test('agent prompt defines tab-only context and a safe batch scene builder', () 
   assert.match(AGENT_SYSTEM_PROMPT, /setSelectedProperties/);
   assert.match(AGENT_SYSTEM_PROMPT, /manageScene/);
   assert.match(AGENT_SYSTEM_PROMPT, /controlCharacter/);
+  assert.match(AGENT_SYSTEM_PROMPT, /dx:100,dy:0/);
+  assert.match(AGENT_SYSTEM_PROMPT, /groupId is optional/);
   assert.match(AGENT_SYSTEM_PROMPT, /applyClassicTween/);
   assert.match(AGENT_SYSTEM_PROMPT, /flipSelected/);
   assert.match(AGENT_SYSTEM_PROMPT, /privateMaterials/);
@@ -249,6 +251,16 @@ test('AI film animation tools enforce roles, exact character groups and safe bou
   assert.deepEqual(sanitizeAgentAction({tool:'addPoseKey'}),{tool:'addPoseKey',args:{}});
   assert.throws(()=>sanitizeAgentAction({tool:'setFilmRole',args:{role:'video'}}));
   assert.deepEqual(sanitizeAgentAction({tool:'controlCharacter',args:{operation:'move',groupId:'char-12',dx:32,dy:-16,extra:true}}),{tool:'controlCharacter',args:{operation:'move',groupId:'char-12',dx:32,dy:-16}});
+  assert.deepEqual(sanitizeAgentAction({tool:'controlCharacter',args:{operation:'move',dx:32,dy:-16}}),{tool:'controlCharacter',args:{operation:'move',dx:32,dy:-16}});
+  assert.deepEqual(sanitizeAgentAction({tool:'controlCharacter',args:{operation:'rotate',degrees:12}}),{tool:'controlCharacter',args:{operation:'rotate',degrees:12}});
+  assert.deepEqual(sanitizeAgentAction({tool:'controlCharacter',args:{operation:'pose'}}),{tool:'controlCharacter',args:{operation:'pose'}});
+  assert.deepEqual(sanitizeAgentAction({tool:'moveCharacter',args:{dx:32,dy:-16}}),{tool:'controlCharacter',args:{operation:'move',dx:32,dy:-16}});
+  assert.deepEqual(sanitizeAgentAction({tool:'moveSelectedCharacter',args:{dx:32,dy:0,groupId:'char-12'}}),{tool:'controlCharacter',args:{operation:'move',dx:32,dy:0,groupId:'char-12'}});
+  assert.deepEqual(sanitizeAgentAction({tool:'rotateCharacter',args:{degrees:12}}),{tool:'controlCharacter',args:{operation:'rotate',degrees:12}});
+  assert.deepEqual(sanitizeAgentAction({tool:'characterControl',args:{operation:'move',dx:16,dy:0}}),{tool:'controlCharacter',args:{operation:'move',dx:16,dy:0}});
+  const parsedMove=parseAgentOutput(JSON.stringify({message:'Đang di chuyển nhân vật.',action:{tool:'moveCharacter',args:{dx:80,dy:0}},done:false}));
+  assert.equal(parsedMove.formatValid,true);
+  assert.deepEqual(parsedMove.data.action,{tool:'controlCharacter',args:{operation:'move',dx:80,dy:0}});
   assert.deepEqual(sanitizeAgentAction({tool:'controlCharacter',args:{operation:'rotate',groupId:'char-12',degrees:15}}),{tool:'controlCharacter',args:{operation:'rotate',groupId:'char-12',degrees:15}});
   assert.deepEqual(sanitizeAgentAction({tool:'controlCharacter',args:{operation:'pose',groupId:'char-12'}}),{tool:'controlCharacter',args:{operation:'pose',groupId:'char-12'}});
   assert.throws(()=>sanitizeAgentAction({tool:'controlCharacter',args:{operation:'move',groupId:'../private',dx:1,dy:1}}));
@@ -276,6 +288,14 @@ test('AI film animation tools enforce roles, exact character groups and safe bou
   assert.throws(()=>sanitizeAgentAction({tool:'fillSelectedColor',args:{}}));
 });
 
+
+test('character bridge moves hierarchy roots only and accepts existing v1.34 parent-child groups', () => {
+  const html = readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.match(html, /function bridgeResolveCharacterGroup/);
+  assert.match(html, /function bridgeCharacterRoots/);
+  assert.match(html, /roots\.forEach\(root=>/);
+  assert.doesNotMatch(html, /detach or regroup it before group movement/);
+});
 
 test('inline editor scripts, including the AI bridge, parse as valid JavaScript', () => {
   const html = readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
