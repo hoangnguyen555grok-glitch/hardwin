@@ -51,3 +51,21 @@ test('R2 signing helper clamps expiry to the S3 maximum and rejects unsupported 
   assert.equal(signed.searchParams.get('X-Amz-Expires'), '604800');
   assert.throws(() => _test.presignS3Url({...input, method: 'DELETE'}), /Unsupported/);
 });
+
+test('R2 upload purposes are explicit and final exports are kept outside the temporary cleanup prefix', () => {
+  assert.equal(_test.normalizeUploadPurpose(undefined), 'temporary');
+  assert.equal(_test.normalizeUploadPurpose('temporary'), 'temporary');
+  assert.equal(_test.normalizeUploadPurpose('final'), 'final');
+  assert.equal(_test.normalizeUploadPurpose('public'), null);
+
+  assert.equal(
+    _test.buildObjectKey({ purpose: 'final', userId: 'user-123', extension: 'mp4', id: 'render-001' }),
+    'geed-final/user-123/render-001.mp4'
+  );
+  assert.equal(
+    _test.buildObjectKey({ purpose: 'temporary', userId: 'user-123', extension: 'webm', id: 'render-002' }),
+    'geed-temp/user-123/render-002.webm'
+  );
+  assert.throws(() => _test.buildObjectKey({ purpose: 'final', userId: '../other', extension: 'mp4', id: 'render-003' }), /owner/);
+  assert.throws(() => _test.buildObjectKey({ purpose: 'final', userId: 'user-123', extension: 'exe', id: 'render-004' }), /extension/);
+});
