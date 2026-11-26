@@ -162,7 +162,11 @@ export default {
         },
         maxCharacters: 5000,
         outputFormat: "mp3",
-        security: { turnstileRequired: Boolean(env.TURNSTILE_SECRET_KEY), rateLimitRequired: true }
+        security: {
+          turnstileRequired: Boolean(env.TURNSTILE_SECRET_KEY),
+          rateLimitRequired: true,
+          rateLimitBindingAvailable: Boolean(env.TTS_RATE_LIMITER && typeof env.TTS_RATE_LIMITER.limit === "function")
+        }
       }), origin);
     }
     if (request.method !== "POST" || url.pathname !== "/tts") {
