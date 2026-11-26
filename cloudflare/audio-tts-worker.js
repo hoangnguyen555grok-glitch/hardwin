@@ -225,7 +225,7 @@ export default {
         },
         maxCharacters: 500,
         dailyCharactersPerIp: 5000,
-        outputFormat: "mp3",
+        outputFormat: "mp3-or-wav",
         security: {
           turnstileRequired: Boolean(env.TURNSTILE_SECRET_KEY),
           rateLimitRequired: true,
