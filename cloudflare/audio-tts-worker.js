@@ -147,7 +147,7 @@ export default {
       return withCors(errorResponse("Không tìm thấy endpoint.", 404), origin);
     }
     if (!(env.FPT_TTS_ENABLED === "true" && env.FPT_TTS_API_KEY && env.FPT_TTS_API_URL && env.FPT_TTS_MODEL) && !(env.GOOGLE_TTS_ENABLED === "true" && env.GOOGLE_TTS_API_KEY) && !(env.AZURE_TTS_ENABLED === "true" && env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION)) {
-      return withCors(errorResponse("Chưa bật nhà cung cấp nào. FPT và Google đang khóa mặc định để tránh chi phí ngoài ý muốn.", 503), origin);
+      return withCors(errorResponse("Chưa bật nhà cung cấp nào. Azure, FPT và Google đều khóa mặc định cho đến khi chủ dự án cấu hình rõ ràng.", 503), origin);
     }
 
     try {
