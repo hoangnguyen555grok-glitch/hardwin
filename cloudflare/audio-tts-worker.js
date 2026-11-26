@@ -221,7 +221,7 @@ export default {
           fpt: env.FPT_TTS_ENABLED === "true" && Boolean(env.FPT_TTS_API_KEY && env.FPT_TTS_API_URL && env.FPT_TTS_MODEL),
           google: env.GOOGLE_TTS_ENABLED === "true" && Boolean(env.GOOGLE_TTS_API_KEY),
           azure: env.AZURE_TTS_ENABLED === "true" && Boolean(env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION),
-          ttsai: env.TTSAI_TTS_ENABLED === "true"
+          ttsdotai: env.TTSAI_TTS_ENABLED === "true"
         },
         maxCharacters: 500,
         dailyCharactersPerIp: 5000,
