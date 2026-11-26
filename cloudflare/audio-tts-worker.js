@@ -76,7 +76,7 @@ async function fetchGoogle(text, voice, speed, env) {
       voice: { languageCode: "vi-VN", name: voice },
       audioConfig: {
         audioEncoding: "MP3",
-        speakingRate: Math.max(0.75, Math.min(1.25, 1 + speed * 0.08))
+        speakingRate: Math.max(0.75, Math.min(1.25, speed))
       }
     })
   });
@@ -115,7 +115,7 @@ export default {
       return withCors(errorResponse("Không tìm thấy endpoint.", 404), origin);
     }
     if (!(env.FPT_TTS_ENABLED === "true" && env.FPT_TTS_API_KEY && env.FPT_TTS_API_URL && env.FPT_TTS_MODEL) && !(env.GOOGLE_TTS_ENABLED === "true" && env.GOOGLE_TTS_API_KEY)) {
-      return withCors(errorResponse("Chưa cấu hình API key cho FPT AI hoặc Google Cloud TTS.", 503), origin);
+      return withCors(errorResponse("Chưa bật nhà cung cấp nào. FPT và Google đang khóa mặc định để tránh chi phí ngoài ý muốn.", 503), origin);
     }
 
     try {
@@ -123,7 +123,7 @@ export default {
       const provider = body?.provider === "google" ? "google" : body?.provider === "fpt" ? "fpt" : null;
       const text = typeof body?.text === "string" ? body.text.trim() : "";
       const voice = typeof body?.voice === "string" ? body.voice : "";
-      const speed = Number.isFinite(Number(body?.speed)) ? Number(body.speed) : 0;
+      const speed = Number.isFinite(Number(body?.speed)) ? Number(body.speed) : 1;
       if (!provider) return withCors(errorResponse("Nhà cung cấp không hợp lệ."), origin);
       if (text.length < 3 || text.length > 5000) return withCors(errorResponse("Văn bản phải từ 3 đến 5.000 ký tự."), origin);
       if (provider === "fpt" && !(env.FPT_TTS_ENABLED === "true" && env.FPT_TTS_API_KEY && env.FPT_TTS_API_URL && env.FPT_TTS_MODEL)) return withCors(errorResponse("FPT AI Factory đang khóa hoặc chưa cấu hình đầy đủ. Chỉ bật khi đã có voucher/hạn mức an toàn.", 503), origin);
