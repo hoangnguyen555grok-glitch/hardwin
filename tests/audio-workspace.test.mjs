@@ -24,7 +24,8 @@ test("status reports configured cloud providers without exposing credentials", a
   assert.equal(response.status, 200);
   assert.deepEqual(body.providers, { fpt: true, google: true, azure: true });
   assert.equal(JSON.stringify(body).includes("test-fpt-secret"), false);
-  assert.equal(JSON.stringify(body).includes("test-google-secret"), false);\n  assert.equal(JSON.stringify(body).includes("test-azure-secret"), false);
+  assert.equal(JSON.stringify(body).includes("test-google-secret"), false);
+  assert.equal(JSON.stringify(body).includes("test-azure-secret"), false);
   assert.equal(response.headers.get("Access-Control-Allow-Origin"), origin);
 });
 
