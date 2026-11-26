@@ -32,7 +32,7 @@ Important limitations:
 - There is no published character allowance, guaranteed daily quota, SLA, or uptime commitment. The upstream may throttle, change, or stop working without notice.
 - The project code being MIT-licensed does not grant rights to Microsoft's voice service or audio output. Commercial/monetized use rights are not established by this integration; verify the applicable Microsoft terms before publishing monetized or commercial videos.
 - The Worker keeps the existing Turnstile verification and per-IP limiter (4 requests per 60 seconds). Each text request is split into bounded chunks of up to 1,000 characters, with a maximum of 12 chunks.
-- The provider is opt-in through `EDGE_TTS_ENABLED=true`; it must remain off until the live MP3 smoke test succeeds and the project owner accepts the unofficial-service limitations.
+- The provider is opt-in through `EDGE_TTS_ENABLED=true`. The current production Worker has this flag enabled for the first owner-controlled smoke test; keep the existing 4-requests-per-minute-per-IP limit, and switch the flag back to `false` if the live MP3 test fails or the upstream behaves unpredictably.
 
 No Azure account, API key, model download, local Python runtime, local server, R2, KV, D1, or Supabase storage is used for this provider.
 
