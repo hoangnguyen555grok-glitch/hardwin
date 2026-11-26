@@ -230,7 +230,7 @@
             <button class="action-button" type="button" id="clearAudioText">Xóa văn bản</button>
             <button class="action-button primary" type="button" id="generateSpeech" disabled>♫ Tạo giọng nói</button>
           </div>
-          <p class="field-note">Giới hạn 5.000 ký tự mỗi lượt để phù hợp giới hạn API FPT. Chỉ gửi văn bản khi bạn bấm Tạo giọng nói.</p>
+          <p class="field-note">Giới hạn 5.000 ký tự mỗi lượt. Chỉ gửi văn bản khi bạn bấm Tạo giọng nói.</p>
         </section>
 
         <section class="panel" aria-labelledby="voiceOutputTitle">
@@ -244,6 +244,7 @@
 
           <label class="field-label" for="audioProvider">Nhà cung cấp giọng nói</label>
           <select class="voice-select" id="audioProvider">
+            <option value="azure" selected>Azure Speech F0 · 500.000 ký tự/tháng miễn phí</option>
             <option value="fpt">FPT AI Factory · Tiếng Việt</option>
             <option value="google">Google Cloud TTS · Tiếng Việt</option>
           </select>
@@ -281,7 +282,7 @@
           </div>
         </section>
       </div>
-      <p class="footer-note">Không cần Python, model hoặc máy chủ chạy trên máy tính. FPT AI Factory tính phí theo ký tự; Google Cloud yêu cầu bật billing và có thể thu phí khi vượt mức miễn phí. Cả hai đều khóa mặc định trong Worker; chỉ bật sau khi đã có voucher hoặc giới hạn chi tiêu rõ ràng. API key luôn được giữ ở máy chủ, không đưa vào trình duyệt.</p>
+      <p class="footer-note">Không cần Python, model hoặc máy chủ chạy trên máy tính. Azure Speech F0 có hạn mức 500.000 ký tự Neural miễn phí mỗi tháng và giới hạn F0 cố định; chọn đúng gói F0 để tránh nâng cấp sang gói trả phí. FPT AI Factory và Google Cloud vẫn khóa mặc định vì có thể phát sinh chi phí. API key luôn được giữ ở máy chủ, không đưa vào trình duyệt.</p>
     </section>
 
     <section class="workspace" id="musicWorkspace" hidden aria-labelledby="musicTitle">

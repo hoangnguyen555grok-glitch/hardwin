@@ -67,3 +67,20 @@ Required variables:
 The Worker returns MP3 bytes directly. The browser creates an object URL for preview/download and temporarily stores the generated Blob in the existing one-time IndexedDB handoff. The editor consumes and deletes that record, then imports the file through its existing audio input to create a normal Audio track.
 
 No speech model, Python runtime, local server, or large model download is required on the user's computer.
+
+## Azure Speech — preferred free-tier candidate
+
+Microsoft Azure Speech offers 500,000 characters/month for Standard Neural text-to-speech on the Free (F0) tier. F0 quotas are fixed and not adjustable. The Vietnamese standard voices are `vi-VN-HoaiMyNeural` (female) and `vi-VN-NamMinhNeural` (male). The F0 tier must remain selected; do not upgrade the resource to Standard (S0), which is pay-as-you-go.
+
+Official references:
+- Azure free services and F0 allowance: https://azure.microsoft.com/en-gb/pricing/free-services/
+- Speech F0 quotas (20 TTS transactions per 60 seconds): https://learn.microsoft.com/en-us/azure/ai-services/speech-service/speech-services-quotas-and-limits
+- Vietnamese voices: https://learn.microsoft.com/azure/ai-services/speech-service/language-support?tabs=tts
+- REST API: https://learn.microsoft.com/en-us/azure/cognitive-services/speech-service/rest-text-to-speech
+
+Configuration:
+- `AZURE_TTS_ENABLED=false` by default.
+- Worker secrets: `AZURE_SPEECH_KEY`.
+- Worker variable: `AZURE_SPEECH_REGION` (e.g. `southeastasia`).
+- Create an Azure Speech resource on Free (F0), never S0. The application will not auto-enable this provider.
+- The service is invoked only after a user explicitly selects Azure and presses Generate.
