@@ -1,5 +1,4 @@
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
-const FPT_VOICES = new Set(["banmai", "lannhi", "leminh", "myan", "thuminh", "giahuy", "linhsan"]);
 const GOOGLE_VOICES = new Set(["vi-VN-Standard-A", "vi-VN-Standard-B", "vi-VN-Standard-C", "vi-VN-Standard-D"]);
 
 function json(data, status = 200, headers = {}) {
@@ -29,42 +28,38 @@ function errorResponse(message, status = 400) {
 }
 
 async function fetchFpt(text, voice, speed, env) {
-  const response = await fetch("https://api.fpt.ai/hmi/tts/v5", {
+  if (env.FPT_TTS_ENABLED !== "true" || !env.FPT_TTS_API_KEY || !env.FPT_TTS_API_URL || !env.FPT_TTS_MODEL) {
+    throw new Error("FPT AI Factory đang khóa để tránh phát sinh phí. Chỉ bật sau khi đã có voucher/hạn mức chi tiêu an toàn.");
+  }
+  const endpoint = new URL(env.FPT_TTS_API_URL);
+  if (endpoint.protocol !== "https:") throw new Error("FPT TTS API URL phải dùng HTTPS.");
+  const payload = {
+    model: env.FPT_TTS_MODEL,
+    input: text,
+    speed: Math.max(0.75, Math.min(1.25, speed)),
+    response_format: "mp3"
+  };
+  if (voice && voice !== "auto") payload.voice = voice;
+  const response = await fetch(endpoint.toString(), {
     method: "POST",
     headers: {
-      "api_key": env.FPT_TTS_API_KEY,
-      "voice": voice,
-      "speed": String(Math.max(-3, Math.min(3, speed))),
-      "format": "mp3",
-      "Content-Type": "application/json"
+      "Authorization": "Bearer " + env.FPT_TTS_API_KEY,
+      "Content-Type": "application/json",
+      "Accept": "audio/mpeg"
     },
-    body: text
+    body: JSON.stringify(payload)
   });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || Number(payload.error) !== 0 || !payload.async) {
-    throw new Error(payload.message || "FPT AI không nhận được yêu cầu tổng hợp giọng nói.");
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error("FPT AI Factory TTS lỗi HTTP " + response.status + (detail ? ": " + detail.slice(0, 240) : ""));
   }
-
-  const audioUrl = new URL(payload.async);
-  if (audioUrl.protocol !== "https:") throw new Error("FPT AI trả về đường dẫn âm thanh không an toàn.");
-
-  // FPT creates the MP3 asynchronously. Poll only the result URL; never resubmit
-  // the synthesis request because that could create a second billable job.
-  for (let attempt = 0; attempt < 22; attempt++) {
-    if (attempt > 0) await new Promise(resolve => setTimeout(resolve, 5000));
-    const audioResponse = await fetch(audioUrl.toString(), { redirect: "follow" });
-    if (audioResponse.ok) {
-      const type = audioResponse.headers.get("content-type") || "audio/mpeg";
-      if (!type.startsWith("audio/") && type !== "application/octet-stream") continue;
-      return new Response(audioResponse.body, { status: 200, headers: { "content-type": "audio/mpeg", "cache-control": "no-store" } });
-    }
-    if (![403, 404, 425, 429, 500, 502, 503, 504].includes(audioResponse.status)) {
-      throw new Error("Không tải được file âm thanh từ FPT AI (HTTP " + audioResponse.status + ").");
-    }
+  const type = response.headers.get("content-type") || "audio/mpeg";
+  if (!type.startsWith("audio/") && type !== "application/octet-stream") {
+    const detail = await response.text().catch(() => "");
+    throw new Error("FPT AI Factory không trả file âm thanh: " + detail.slice(0, 240));
   }
-  throw new Error("FPT AI vẫn đang xử lý. Hãy chờ một chút rồi tạo lại nếu chưa có file.");
+  return new Response(response.body, { status: 200, headers: { "content-type": type, "cache-control": "no-store" } });
 }
-
 function decodeBase64(value) {
   const binary = atob(value);
   const bytes = new Uint8Array(binary.length);
@@ -109,8 +104,8 @@ export default {
     if (request.method === "GET" && url.pathname === "/status") {
       return withCors(json({
         providers: {
-          fpt: Boolean(env.FPT_TTS_API_KEY),
-          google: Boolean(env.GOOGLE_TTS_API_KEY)
+          fpt: env.FPT_TTS_ENABLED === "true" && Boolean(env.FPT_TTS_API_KEY && env.FPT_TTS_API_URL && env.FPT_TTS_MODEL),
+          google: env.GOOGLE_TTS_ENABLED === "true" && Boolean(env.GOOGLE_TTS_API_KEY)
         },
         maxCharacters: 5000,
         outputFormat: "mp3"
@@ -119,7 +114,7 @@ export default {
     if (request.method !== "POST" || url.pathname !== "/tts") {
       return withCors(errorResponse("Không tìm thấy endpoint.", 404), origin);
     }
-    if (!env.FPT_TTS_API_KEY && !env.GOOGLE_TTS_API_KEY) {
+    if (!(env.FPT_TTS_ENABLED === "true" && env.FPT_TTS_API_KEY && env.FPT_TTS_API_URL && env.FPT_TTS_MODEL) && !(env.GOOGLE_TTS_ENABLED === "true" && env.GOOGLE_TTS_API_KEY)) {
       return withCors(errorResponse("Chưa cấu hình API key cho FPT AI hoặc Google Cloud TTS.", 503), origin);
     }
 
@@ -131,9 +126,9 @@ export default {
       const speed = Number.isFinite(Number(body?.speed)) ? Number(body.speed) : 0;
       if (!provider) return withCors(errorResponse("Nhà cung cấp không hợp lệ."), origin);
       if (text.length < 3 || text.length > 5000) return withCors(errorResponse("Văn bản phải từ 3 đến 5.000 ký tự."), origin);
-      if (provider === "fpt" && !env.FPT_TTS_API_KEY) return withCors(errorResponse("FPT AI chưa được cấu hình API key.", 503), origin);
-      if (provider === "google" && !env.GOOGLE_TTS_API_KEY) return withCors(errorResponse("Google Cloud TTS chưa được cấu hình API key.", 503), origin);
-      if (provider === "fpt" && !FPT_VOICES.has(voice)) return withCors(errorResponse("Giọng FPT không hợp lệ."), origin);
+      if (provider === "fpt" && !(env.FPT_TTS_ENABLED === "true" && env.FPT_TTS_API_KEY && env.FPT_TTS_API_URL && env.FPT_TTS_MODEL)) return withCors(errorResponse("FPT AI Factory đang khóa hoặc chưa cấu hình đầy đủ. Chỉ bật khi đã có voucher/hạn mức an toàn.", 503), origin);
+      if (provider === "google" && !(env.GOOGLE_TTS_ENABLED === "true" && env.GOOGLE_TTS_API_KEY)) return withCors(errorResponse("Google TTS đang khóa hoặc chưa cấu hình đầy đủ. Chỉ bật sau khi đặt giới hạn chi tiêu.", 503), origin);
+      if (provider === "fpt" && voice !== "auto" && (typeof voice !== "string" || voice.length > 120)) return withCors(errorResponse("Mã giọng FPT không hợp lệ."), origin);
       if (provider === "google" && !GOOGLE_VOICES.has(voice)) return withCors(errorResponse("Giọng Google không hợp lệ."), origin);
 
       const audio = provider === "fpt"
