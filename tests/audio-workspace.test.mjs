@@ -185,6 +185,31 @@ test("anonymous TTS.ai Piper returns Vietnamese MP3 without an API key", async (
   }
 });
 
+test("TTS.ai WAV container is detected even when the upstream labels it as MP3", async () => {
+  const originalFetch = globalThis.fetch;
+  const wav = new Uint8Array(44);
+  wav.set([0x52,0x49,0x46,0x46], 0);
+  wav.set([0x57,0x41,0x56,0x45], 8);
+  globalThis.fetch = async url => {
+    if (String(url).includes("/turnstile/v0/siteverify")) {
+      return new Response(JSON.stringify({ success: true, hostname: "geed-hardwin.vercel.app", action: "tts" }), { headers: { "content-type": "application/json" } });
+    }
+    return new Response(wav, { headers: { "content-type": "audio/mpeg" } });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://audio.test/tts", {
+      method: "POST",
+      headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10", "X-Turnstile-Token": "test-turnstile-token" },
+      body: JSON.stringify({ provider: "ttsdotai", text: "Xin chào Geed", voice: "vi_VN-vivos-x_low", speed: 1 })
+    }), env);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("content-type"), "audio/wav");
+    assert.equal((await response.arrayBuffer()).byteLength, 44);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("anonymous TTS.ai queued jobs are polled and MP3 downloads are host-validated", async () => {
   const originalFetch = globalThis.fetch;
   const calls = [];
