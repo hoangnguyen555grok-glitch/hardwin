@@ -207,10 +207,10 @@
         <button class="nav-button" type="button" id="backToAudioHubFromVoice">← Tất cả khu vực</button>
         <div>
           <h2 id="voiceTitle">Giọng nói &amp; lời thoại</h2>
-          <p>Văn bản được chuyển thành giọng nói trực tiếp trên máy tính của bạn.</p>
+          <p>Tạo giọng nói trên đám mây bằng FPT AI hoặc Google, không cài model trên máy.</p>
         </div>
         <span class="spacer"></span>
-        <span class="pill">VieNeu-TTS · Local</span>
+        <span class="pill">FPT AI · Google TTS</span>
       </div>
 
       <div class="workspace-layout">
@@ -223,54 +223,71 @@
             <span class="panel-icon" aria-hidden="true">✎</span>
           </div>
           <label class="field-label" for="audioSourceText">Văn bản cần đọc</label>
-          <textarea id="audioSourceText" maxlength="20000" placeholder="Nhập lời thoại, lời dẫn hoặc đoạn văn bản tiếng Việt…"></textarea>
+          <textarea id="audioSourceText" maxlength="5000" placeholder="Nhập lời thoại, lời dẫn hoặc đoạn văn bản cần đọc…"></textarea>
           <div class="voice-toolbar">
-            <span class="field-note" id="audioTextCount">0 / 20.000</span>
+            <span class="field-note" id="audioTextCount">0 / 5.000</span>
             <span class="spacer"></span>
             <button class="action-button" type="button" id="clearAudioText">Xóa văn bản</button>
             <button class="action-button primary" type="button" id="generateSpeech" disabled>♫ Tạo giọng nói</button>
           </div>
-          <p class="field-note">Một lượt hỗ trợ tối đa 20.000 ký tự. Có thể tạo lại sau khi chỉnh sửa văn bản hoặc đổi giọng.</p>
+          <p class="field-note">Giới hạn 5.000 ký tự mỗi lượt để phù hợp giới hạn API FPT. Chỉ gửi văn bản khi bạn bấm Tạo giọng nói.</p>
         </section>
 
         <section class="panel" aria-labelledby="voiceOutputTitle">
           <div class="panel-head">
             <div>
-              <h3 id="voiceOutputTitle">Giọng đọc &amp; kết quả</h3>
-              <p>Kết nối bộ máy VieNeu chạy cục bộ, không dùng API tính phí theo lượt.</p>
+              <h3 id="voiceOutputTitle">Nhà cung cấp &amp; kết quả</h3>
+              <p>Chọn dịch vụ, giọng đọc và nghe thử trước khi đưa âm thanh vào Edit.</p>
             </div>
             <span class="panel-icon" aria-hidden="true">◖</span>
           </div>
-          <label class="field-label" for="audioEngineUrl">Địa chỉ bộ máy trên máy tính</label>
-          <div class="engine-url-row">
-            <input id="audioEngineUrl" type="url" value="http://127.0.0.1:8000" spellcheck="false" autocomplete="off" />
-            <button class="action-button" type="button" id="connectAudioEngine">Kiểm tra kết nối</button>
-          </div>
-          <div class="audio-engine-status" id="audioEngineStatus" data-state="idle" role="status" aria-live="polite">
-            Chưa kết nối. Mở audio-engine trước; Chrome có thể hỏi quyền truy cập mạng cục bộ ở lần đầu.
-          </div>
+
+          <label class="field-label" for="audioProvider">Nhà cung cấp giọng nói</label>
+          <select class="voice-select" id="audioProvider">
+            <option value="fpt">FPT AI Speech · Tiếng Việt</option>
+            <option value="google">Google Cloud TTS · Tiếng Việt</option>
+          </select>
 
           <label class="field-label" for="audioVoice">Chọn giọng đọc</label>
-          <select class="voice-select" id="audioVoice" disabled>
-            <option value="">Kết nối bộ máy để tải danh sách giọng</option>
+          <select class="voice-select" id="audioVoice">
+            <option value="banmai">Ban Mai · Nữ miền Bắc (FPT)</option>
+            <option value="lannhi">Lan Nhi · Nữ miền Nam (FPT)</option>
+            <option value="leminh">Lê Minh · Nam miền Bắc (FPT)</option>
+            <option value="myan">Mỹ An · Nữ miền Trung (FPT)</option>
+            <option value="thuminh">Thu Minh · Nữ miền Bắc (FPT)</option>
+            <option value="giahuy">Gia Huy · Nam miền Trung (FPT)</option>
+            <option value="linhsan">Linh San · Nữ miền Nam (FPT)</option>
           </select>
-          <p class="field-note">Danh sách giọng được lấy trực tiếp từ mô hình VieNeu-TTS v3 Turbo.</p>
+
+          <label class="field-label" for="audioSpeed">Tốc độ đọc</label>
+          <select class="voice-select" id="audioSpeed">
+            <option value="0">Bình thường</option>
+            <option value="-1">Chậm hơn một mức</option>
+            <option value="1">Nhanh hơn một mức</option>
+            <option value="-2">Chậm hơn hai mức</option>
+            <option value="2">Nhanh hơn hai mức</option>
+          </select>
+
+          <div class="audio-engine-status" id="audioEngineStatus" data-state="idle" role="status" aria-live="polite">
+            Đang kiểm tra cấu hình dịch vụ…
+          </div>
+          <button class="action-button" type="button" id="connectAudioEngine">Kiểm tra dịch vụ</button>
 
           <div class="audio-result" id="audioResult" hidden>
             <div class="audio-result-title">
               <strong>Âm thanh đã tạo</strong>
-              <span class="pill">WAV · 48 kHz</span>
+              <span class="pill" id="audioResultFormat">MP3</span>
             </div>
             <audio id="generatedAudioPlayer" controls preload="metadata"></audio>
             <div class="voice-result-actions">
-              <a class="action-button" id="downloadGeneratedAudio" hidden>↓ Tải file WAV</a>
+              <a class="action-button" id="downloadGeneratedAudio" hidden>↓ Tải file âm thanh</a>
               <button class="action-button primary" type="button" id="sendAudioToEditor" disabled>Đưa vào trình biên tập →</button>
             </div>
-            <p class="field-note">File được giữ tạm trong trình duyệt. Khi đưa vào trình biên tập, nó sẽ xuất hiện dưới dạng một track âm thanh để bạn cắt, căn thời gian và chỉnh âm lượng.</p>
+            <p class="field-note">File chỉ được giữ tạm trong trình duyệt để nghe và chuyển sang Edit. Sau khi nhận file, Edit tự tạo Audio track để bạn căn thời gian, cắt và chỉnh âm lượng.</p>
           </div>
         </section>
       </div>
-      <p class="footer-note">VieNeu chạy trên máy tính của bạn. Văn bản và âm thanh không được tải lên Geed hoặc kho đám mây. Lần đầu khởi động cần tải mô hình một lần; giữ cửa sổ audio-engine mở trong khi sử dụng.</p>
+      <p class="footer-note">Không cần Python, model hoặc máy chủ chạy trên máy tính. FPT AI và Google xử lý trên máy chủ của họ; Geed không lưu văn bản hay âm thanh vào kho dữ liệu. Mỗi nhà cung cấp cần API key riêng được lưu an toàn ở Cloudflare Worker, không đưa vào mã trình duyệt.</p>
     </section>
 
     <section class="workspace" id="musicWorkspace" hidden aria-labelledby="musicTitle">
