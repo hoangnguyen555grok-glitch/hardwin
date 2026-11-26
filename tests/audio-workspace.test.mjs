@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import worker from "../cloudflare/audio-tts-worker.js";
 
 const origin = "https://geed.example";
@@ -177,4 +178,26 @@ test("Azure Speech remains locked unless explicitly enabled", async () => {
     body: JSON.stringify({ provider: "azure", text: "Xin chào", voice: "vi-VN-HoaiMyNeural" })
   }), locked);
   assert.equal(response.status, 503);
+});
+
+
+test("voice workspace exposes Azure Vietnamese voices and submits the selected provider", async () => {
+  const source = await readFile(new URL("../lib/audio-workspace.mjs", import.meta.url), "utf8");
+  assert.match(source, /azure:\s*\{\s*label: "Azure Speech F0"/);
+  assert.match(source, /vi-VN-HoaiMyNeural/);
+  assert.match(source, /vi-VN-NamMinhNeural/);
+  assert.match(source, /Object\.hasOwn\(PROVIDERS, selected\)/);
+  assert.match(source, /provider: selectedProvider/);
+  assert.match(source, /azure: status\.providers\?\.azure === true/);
+});
+
+test("generated TTS handoff imports a real audio file into the editor timeline player", async () => {
+  const editor = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  assert.match(editor, /async function consumeGeneratedAudioHandoff\(\)/);
+  assert.match(editor, /takeGeneratedAudio\(transferId\)/);
+  assert.match(editor, /transfer\.items\.add\(file\)/);
+  assert.match(editor, /input\.dispatchEvent\(new Event\('change',\{bubbles:true\}\)\)/);
+  assert.match(editor, /makeObject\('audio',\{name:file\.name,dataUrl:reader\.result,audioStartFrame:frame,inFrame:frame,outFrame:MAX,volume:\.8\}\)/);
+  assert.match(editor, /function syncAudioPlayback\(force=false\)/);
+  assert.match(editor, /audioPlayers\.forEach\(p=>p\.pause\(\)\)/);
 });
