@@ -69,9 +69,9 @@ function decodeBase64(value) {
 }
 
 async function fetchGoogle(text, voice, speed, env) {
-  const response = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize?key=" + encodeURIComponent(env.GOOGLE_TTS_API_KEY), {
+  const response = await fetch("https://texttospeech.googleapis.com/v1/text:synthesize, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "x-goog-api-key": env.GOOGLE_TTS_API_KEY },
     body: JSON.stringify({
       input: { text },
       voice: { languageCode: "vi-VN", name: voice },
