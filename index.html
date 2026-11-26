@@ -2508,6 +2508,31 @@ async function refreshSavedPrivateMaterialUrls(knownMaterials=null){
  return materials;
 }
 
+async function consumeGeneratedAudioHandoff(){
+ let transferId=null;
+ try{transferId=sessionStorage.getItem('geedTtsAudioHandoff')}catch{return}
+ if(!transferId)return;
+ try{
+  const {takeGeneratedAudio}=await import('/lib/tts-handoff.js');
+  const file=await takeGeneratedAudio(transferId);
+  if(!file)throw new Error('Không tìm thấy file giọng nói vừa tạo trong trình duyệt.');
+  const input=$('audioInput');
+  if(!input)throw new Error('Trình biên tập chưa sẵn sàng nhận track âm thanh.');
+  const transfer=new DataTransfer();
+  transfer.items.add(file);
+  input.files=transfer.files;
+  input.dispatchEvent(new Event('change',{bubbles:true}));
+  sessionStorage.removeItem('geedTtsAudioHandoff');
+  try{
+   const url=new URL(window.location.href);
+   url.searchParams.delete('audioHandoff');
+   history.replaceState({},'',url.pathname+url.search+url.hash);
+  }catch(error){}
+ }catch(error){
+  toast(error?.message||'Không thể nhận âm thanh từ công cụ giọng nói.');
+ }
+}
+
 async function consumePrivateMaterialHandoff(knownMaterials=null){
  let materialId=null;
  try{materialId=sessionStorage.getItem('geedPrivateMaterialHandoff');sessionStorage.removeItem('geedPrivateMaterialHandoff')}catch{return}
@@ -3143,6 +3168,7 @@ window.addEventListener('load',async()=>{
   let materials=null;
   try{materials=await refreshSavedPrivateMaterialUrls()}catch(error){console.warn('Saved private materials could not be refreshed:',error)}
   await consumePrivateMaterialHandoff(materials);
+  await consumeGeneratedAudioHandoff();
   await consumeCommunityAssetHandoff();
  },{once:true});
 
