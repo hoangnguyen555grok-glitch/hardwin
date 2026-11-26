@@ -8,10 +8,11 @@ The Worker is deployed but provider generation is closed by default:
 - `GEED_ALLOWED_ORIGINS` allows only `https://geed-hardwin.vercel.app`; requests from other browser origins are rejected.
 - Azure, FPT, and Google provider flags must each be explicitly set to the literal string `true`.
 - Every generation request must pass Cloudflare Turnstile Siteverify with the expected hostname and `tts` action.
-- Every generation request must pass the Cloudflare `TTS_RATE_LIMITER` binding. The binding is configured for 4 requests per client IP per 60 seconds; if the binding or client IP is missing, the Worker fails closed.
+- Every generation request must pass the Cloudflare `TTS_RATE_LIMITER` binding: 4 requests per client IP per 60 seconds.
+- Azure requests additionally pass `AZURE_F0_RATE_LIMITER`: 15 requests per 60 seconds per Cloudflare location, leaving headroom below Azure F0's documented 20 transactions per 60 seconds. Missing bindings or client IP fail closed.
 - Request bodies are limited to 24,000 bytes and JSON only; the text itself is limited to 5,000 characters.
 - Provider errors are sanitized before they are returned to the browser; credentials and upstream diagnostics are not exposed.
-- Cloudflare's Rate Limiting API is location-local and best-effort, not a strict global counter. Turnstile and per-IP limiting reduce abuse but do not replace monitoring of Azure F0 quota.
+- Cloudflare's Rate Limiting API is location-local and best-effort, not a strict global counter. The Azure limiter's 15/60 threshold applies per Cloudflare location, not globally across all locations. Turnstile and rate limits reduce abuse but do not guarantee the Azure subscription-wide quota; monitor the Azure F0 quota and do not share the endpoint as an unrestricted public service.
 - Provider credentials are Worker secrets only. Never put API keys in `audio.html`, browser storage, GitHub, or chat.
 - No provider request is made until the user presses **Tạo giọng nói**.
 - Generated audio is streamed to the browser; the Worker does not save it to R2, KV, D1, Supabase, or Notion.
@@ -64,7 +65,11 @@ Required secret names:
 
 Public frontend Turnstile sitekey: `0x4AAAAAAGT9EV5DiOxVQMlW` (restricted to `geed-hardwin.vercel.app`).
 
-The Worker also requires the Cloudflare Rate Limiting binding `TTS_RATE_LIMITER`. Its deployment metadata uses namespace ID `2026112601` and a threshold of 4 requests per 60 seconds per client IP. Keep the binding attached; the Worker intentionally rejects TTS requests when it is missing.
+The Worker requires two Cloudflare Rate Limiting bindings:
+- `TTS_RATE_LIMITER`: namespace ID `2026112601`, 4 requests per 60 seconds per client IP.
+- `AZURE_F0_RATE_LIMITER`: namespace ID `2026112602`, 15 requests per 60 seconds per Cloudflare location using the shared key `azure-speech-f0`.
+
+Keep both bindings attached; the Worker intentionally rejects requests if the relevant binding is missing.
 
 Required variables:
 - `GEED_ALLOWED_ORIGINS`
