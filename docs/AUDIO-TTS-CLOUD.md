@@ -1,6 +1,6 @@
 # Geed Hardwin — Cloud TTS setup
 
-This integration adds Azure Speech F0, FPT AI Factory, and Google Cloud Text-to-Speech through the Cloudflare Worker `geed-audio-tts`.
+This integration routes community Edge TTS, Azure Speech F0, FPT AI Factory, and Google Cloud Text-to-Speech through the Cloudflare Worker `geed-audio-tts`.
 
 ## Safety defaults
 
@@ -16,6 +16,25 @@ The Worker is deployed but provider generation is closed by default:
 - Provider credentials are Worker secrets only. Never put API keys in `audio.html`, browser storage, GitHub, or chat.
 - No provider request is made until the user presses **Tạo giọng nói**.
 - Generated audio is streamed to the browser; the Worker does not save it to R2, KV, D1, Supabase, or Notion.
+
+## Community Edge TTS (primary candidate)
+
+The Worker includes an MIT-licensed, Worker-compatible Edge TTS engine adapted from [neosun100/edgetts-ws-worker](https://github.com/neosun100/edgetts-ws-worker). The source and its MIT license are retained in:
+- `cloudflare/edge-tts-engine.js`
+- `cloudflare/EDGE-TTS-MIT-LICENSE.txt`
+
+It uses Microsoft's consumer Edge/Translator speech endpoints without an Azure Speech resource or Azure API key. Supported Vietnamese voice IDs exposed in Geed are:
+- `vi-VN-HoaiMyNeural` — Hoài My
+- `vi-VN-NamMinhNeural` — Nam Minh
+
+Important limitations:
+- This is an unofficial community integration, not a Microsoft-supported API.
+- There is no published character allowance, guaranteed daily quota, SLA, or uptime commitment. The upstream may throttle, change, or stop working without notice.
+- The project code being MIT-licensed does not grant rights to Microsoft's voice service or audio output. Commercial/monetized use rights are not established by this integration; verify the applicable Microsoft terms before publishing monetized or commercial videos.
+- The Worker keeps the existing Turnstile verification and per-IP limiter (4 requests per 60 seconds). Each text request is split into bounded chunks of up to 1,000 characters, with a maximum of 12 chunks.
+- The provider is opt-in through `EDGE_TTS_ENABLED=true`; it must remain off until the live MP3 smoke test succeeds and the project owner accepts the unofficial-service limitations.
+
+No Azure account, API key, model download, local Python runtime, local server, R2, KV, D1, or Supabase storage is used for this provider.
 
 ## FPT AI Factory
 
@@ -73,6 +92,7 @@ Keep both bindings attached; the Worker intentionally rejects requests if the re
 
 Required variables:
 - `GEED_ALLOWED_ORIGINS`
+- `EDGE_TTS_ENABLED` (default false; enable only after live smoke test and acceptance of the unofficial upstream limitations)
 - `FPT_TTS_ENABLED` (default false)
 - `FPT_TTS_API_URL`
 - `FPT_TTS_MODEL`
@@ -86,7 +106,7 @@ The Worker returns MP3 bytes directly. The browser creates an object URL for pre
 
 No speech model, Python runtime, local server, or large model download is required on the user's computer.
 
-## Azure Speech — preferred free-tier candidate
+## Azure Speech F0 — optional fallback candidate
 
 Microsoft Azure Speech offers 500,000 characters/month for Standard Neural text-to-speech on the Free (F0) tier. F0 quotas are fixed and not adjustable. The Vietnamese standard voices are `vi-VN-HoaiMyNeural` (female) and `vi-VN-NamMinhNeural` (male). The F0 tier must remain selected; do not upgrade the resource to Standard (S0), which is pay-as-you-go.
 
