@@ -28,7 +28,7 @@ test("status reports configured cloud providers without exposing credentials", a
   }), env);
   const body = await response.json();
   assert.equal(response.status, 200);
-  assert.deepEqual(body.providers, { fpt: true, google: true, azure: true, ttsai: true });
+  assert.deepEqual(body.providers, { fpt: true, google: true, azure: true, ttsdotai: true });
   assert.equal(JSON.stringify(body).includes("test-fpt-secret"), false);
   assert.equal(JSON.stringify(body).includes("test-google-secret"), false);
   assert.equal(JSON.stringify(body).includes("test-azure-secret"), false);
@@ -47,7 +47,7 @@ test("both providers stay locked unless explicit enable flags are set", async ()
     headers: { Origin: origin }
   }), lockedEnv);
   const status = await statusResponse.json();
-  assert.deepEqual(status.providers, { fpt: false, google: false, azure: false, ttsai: false });
+  assert.deepEqual(status.providers, { fpt: false, google: false, azure: false, ttsdotai: false });
 
   const originalFetch = globalThis.fetch;
   let called = false;
