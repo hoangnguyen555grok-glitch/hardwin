@@ -46,7 +46,7 @@ test("both providers stay locked unless explicit enable flags are set", async ()
     headers: { Origin: origin }
   }), lockedEnv);
   const status = await statusResponse.json();
-  assert.deepEqual(status.providers, { fpt: false, google: false, azure: false });
+  assert.deepEqual(status.providers, { fpt: false, google: false, azure: false, edge: false });
 
   const originalFetch = globalThis.fetch;
   let called = false;
