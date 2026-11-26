@@ -165,7 +165,8 @@ export default {
         security: {
           turnstileRequired: Boolean(env.TURNSTILE_SECRET_KEY),
           rateLimitRequired: true,
-          rateLimitBindingAvailable: Boolean(env.TTS_RATE_LIMITER && typeof env.TTS_RATE_LIMITER.limit === "function")
+          rateLimitBindingAvailable: Boolean(env.TTS_RATE_LIMITER && typeof env.TTS_RATE_LIMITER.limit === "function"),
+          azureF0RateLimitBindingAvailable: Boolean(env.AZURE_F0_RATE_LIMITER && typeof env.AZURE_F0_RATE_LIMITER.limit === "function")
         }
       }), origin);
     }
@@ -223,6 +224,19 @@ export default {
       if (provider === "google" && !GOOGLE_VOICES.has(voice)) return withCors(errorResponse("Giọng Google không hợp lệ."), origin);
       if (provider === "azure" && !AZURE_VOICES.has(voice)) return withCors(errorResponse("Giọng Azure không hợp lệ."), origin);
       if (provider === "azure" && !(env.AZURE_TTS_ENABLED === "true" && env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION)) return withCors(errorResponse("Azure Speech đang khóa hoặc chưa cấu hình tài nguyên F0.", 503), origin);
+      if (provider === "azure") {
+        if (!env.AZURE_F0_RATE_LIMITER || typeof env.AZURE_F0_RATE_LIMITER.limit !== "function") {
+          return withCors(errorResponse("Azure F0 chưa có lớp giới hạn lưu lượng riêng. Yêu cầu đã bị chặn an toàn.", 503), origin);
+        }
+        try {
+          const { success } = await env.AZURE_F0_RATE_LIMITER.limit({ key: "azure-speech-f0" });
+          if (!success) return withCors(errorResponse("Azure F0 đang nhận nhiều yêu cầu. Vui lòng đợi một phút rồi thử lại.", 429, {
+            "Retry-After": String(RATE_LIMIT_WINDOW)
+          }), origin);
+        } catch {
+          return withCors(errorResponse("Không xác minh được hạn mức Azure F0. Yêu cầu đã bị chặn an toàn.", 503), origin);
+        }
+      }
 
       const turnstileToken = request.headers.get("X-Turnstile-Token") || "";
       if (!await verifyTurnstile(turnstileToken, clientIp, env)) {
