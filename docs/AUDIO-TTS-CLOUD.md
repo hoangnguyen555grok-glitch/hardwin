@@ -9,6 +9,7 @@ The Worker is deployed but provider generation is closed by default:
 - TTS.ai, Azure, FPT, and Google provider flags must each be explicitly set to the literal string `true`.
 - Every generation request must pass Cloudflare Turnstile Siteverify with the expected hostname and `tts` action.
 - Every generation request must pass the Cloudflare `TTS_RATE_LIMITER` binding: 4 requests per client IP per 60 seconds.
+- TTS.ai requests additionally pass `TTSAI_RATE_LIMITER`: 2 requests per 60 seconds per Cloudflare location, to protect its anonymous free allowance.
 - Azure requests additionally pass `AZURE_F0_RATE_LIMITER`: 15 requests per 60 seconds per Cloudflare location, leaving headroom below Azure F0's documented 20 transactions per 60 seconds. Missing bindings or client IP fail closed.
 - Request bodies are limited to 24,000 bytes and JSON only; the text itself is limited to 5,000 characters.
 - Provider errors are sanitized before they are returned to the browser; credentials and upstream diagnostics are not exposed.
@@ -94,8 +95,9 @@ Public frontend Turnstile sitekey: `0x4AAAAAAGT9EV5DiOxVQMlW` (restricted to `ge
 The Worker requires two Cloudflare Rate Limiting bindings:
 - `TTS_RATE_LIMITER`: namespace ID `2026112601`, 4 requests per 60 seconds per client IP.
 - `AZURE_F0_RATE_LIMITER`: namespace ID `2026112602`, 15 requests per 60 seconds per Cloudflare location using the shared key `azure-speech-f0`.
+- `TTSAI_RATE_LIMITER`: namespace ID `2026112603`, 2 requests per 60 seconds per Cloudflare location using the shared key `ttsai-free-anonymous`.
 
-Keep both bindings attached; the Worker intentionally rejects requests if the relevant binding is missing.
+Keep all three bindings attached; the Worker intentionally rejects requests if the relevant binding is missing.
 
 Required variables:
 - `GEED_ALLOWED_ORIGINS`
