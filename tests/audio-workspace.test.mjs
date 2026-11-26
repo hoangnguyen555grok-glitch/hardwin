@@ -25,6 +25,36 @@ test("status reports configured cloud providers without exposing credentials", a
   assert.equal(response.headers.get("Access-Control-Allow-Origin"), origin);
 });
 
+test("both providers stay locked unless explicit enable flags are set", async () => {
+  const lockedEnv = {
+    GEED_ALLOWED_ORIGINS: origin,
+    FPT_TTS_API_KEY: "present-but-disabled",
+    FPT_TTS_API_URL: "https://fpt.example/tts",
+    FPT_TTS_MODEL: "FPT.TTS-ultra",
+    GOOGLE_TTS_API_KEY: "present-but-disabled"
+  };
+  const statusResponse = await worker.fetch(new Request("https://audio.test/status", {
+    headers: { Origin: origin }
+  }), lockedEnv);
+  const status = await statusResponse.json();
+  assert.deepEqual(status.providers, { fpt: false, google: false });
+
+  const originalFetch = globalThis.fetch;
+  let called = false;
+  globalThis.fetch = async () => { called = true; throw new Error("provider must not be called"); };
+  try {
+    const response = await worker.fetch(new Request("https://audio.test/tts", {
+      method: "POST",
+      headers: { Origin: origin, "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: "google", text: "Xin chào Geed", voice: "vi-VN-Standard-A", speed: 1 })
+    }), lockedEnv);
+    assert.equal(response.status, 503);
+    assert.equal(called, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("rejects requests from origins outside the explicit allowlist", async () => {
   const response = await worker.fetch(new Request("https://audio.test/status", {
     headers: { Origin: "https://attacker.example" }
