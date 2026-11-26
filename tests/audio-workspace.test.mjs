@@ -16,7 +16,8 @@ const env = {
   AZURE_SPEECH_KEY: "test-azure-secret",
   AZURE_SPEECH_REGION: "southeastasia",
   TURNSTILE_SECRET_KEY: "test-turnstile-secret",
-  TTS_RATE_LIMITER: { limit: async () => ({ success: true }) }
+  TTS_RATE_LIMITER: { limit: async () => ({ success: true }) },
+  AZURE_F0_RATE_LIMITER: { limit: async () => ({ success: true }) }
 };
 
 test("status reports configured cloud providers without exposing credentials", async () => {
@@ -275,6 +276,42 @@ test("TTS requires a verified Turnstile token with the expected hostname and act
 test("status advertises that Turnstile and rate limiting are required without exposing secrets", async () => {
   const response = await worker.fetch(new Request("https://audio.test/status", { headers: { Origin: origin } }), env);
   const body = await response.json();
-  assert.deepEqual(body.security, { turnstileRequired: true, rateLimitRequired: true, rateLimitBindingAvailable: true });
+  assert.deepEqual(body.security, { turnstileRequired: true, rateLimitRequired: true, rateLimitBindingAvailable: true, azureF0RateLimitBindingAvailable: true });
   assert.equal(JSON.stringify(body).includes("test-turnstile-secret"), false);
+});
+
+
+test("Azure F0 fails closed when its dedicated limiter is missing", async () => {
+  const { AZURE_F0_RATE_LIMITER, ...unprotectedEnv } = env;
+  const response = await worker.fetch(new Request("https://audio.test/tts", {
+    method: "POST",
+    headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10", "X-Turnstile-Token": "test-turnstile-token" },
+    body: JSON.stringify({ provider: "azure", text: "Xin chào", voice: "vi-VN-HoaiMyNeural" })
+  }), unprotectedEnv);
+  assert.equal(response.status, 503);
+});
+
+test("Azure F0 dedicated limiter caps requests at its configured threshold", async () => {
+  const limitedEnv = { ...env, AZURE_F0_RATE_LIMITER: { limit: async ({ key }) => {
+    assert.equal(key, "azure-speech-f0");
+    return { success: false };
+  } } };
+  const originalFetch = globalThis.fetch;
+  let providerCalled = false;
+  globalThis.fetch = async url => {
+    if (String(url).includes("/turnstile/v0/siteverify")) return new Response(JSON.stringify({ success: true, hostname: "geed-hardwin.vercel.app", action: "tts" }), { headers: { "content-type": "application/json" } });
+    providerCalled = true;
+    return new Response("unexpected");
+  };
+  try {
+    const response = await worker.fetch(new Request("https://audio.test/tts", {
+      method: "POST",
+      headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10", "X-Turnstile-Token": "test-turnstile-token" },
+      body: JSON.stringify({ provider: "azure", text: "Xin chào", voice: "vi-VN-HoaiMyNeural" })
+    }), limitedEnv);
+    assert.equal(response.status, 429);
+    assert.equal(providerCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
