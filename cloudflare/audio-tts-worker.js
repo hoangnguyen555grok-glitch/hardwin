@@ -29,8 +29,8 @@ function withCors(response, origin) {
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
-function errorResponse(message, status = 400) {
-  return json({ error: message }, status);
+function errorResponse(message, status = 400, headers = {}) {
+  return json({ error: message }, status, headers);
 }
 
 async function fetchFpt(text, voice, speed, env) {
@@ -164,7 +164,7 @@ export default {
     }
 
     const contentType = request.headers.get("Content-Type") || "";
-    if (!contentType.toLowerCase().startsWith("application/json")) {
+    if (!/^application\/json(?:\s*;|$)/i.test(contentType)) {
       return withCors(errorResponse("Chỉ chấp nhận yêu cầu JSON.", 415), origin);
     }
     const declaredLength = Number(request.headers.get("Content-Length") || 0);
