@@ -18,6 +18,7 @@ on:
       - "audio.html"
       - "lib/audio-workspace.mjs"
       - "cloudflare/audio-tts-worker.js"
+      - "docs/AUDIO-TTS-CLOUD.md"
       - "tests/audio-workspace.test.mjs"
       - "lib/tts-handoff.mjs"
       - "library.html"
