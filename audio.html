@@ -132,6 +132,38 @@
       .empty-state { min-height: 220px; }
       .spacer { min-width: 0; }
     }
+
+    .voice-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:8px; margin-top:14px; }
+    .voice-toolbar .field-note { margin:0; }
+    .engine-url-row { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+    .engine-url-row input, .voice-select {
+      min-width:0; width:100%; padding:9px 10px; border:1px solid #39475a;
+      border-radius:8px; color:var(--text); background:#101720; outline:none; font-size:11px;
+    }
+    .engine-url-row input:focus, .voice-select:focus { border-color:#6d9ce7; box-shadow:0 0 0 3px #6d9ce71c; }
+    .engine-url-row button { white-space:nowrap; flex:0 0 auto; }
+    .audio-engine-status {
+      margin:0 0 18px; padding:9px 10px; border:1px solid #46506a; border-radius:8px;
+      color:#c0cbe0; background:#1a2230; font-size:11px; line-height:1.5;
+    }
+    .audio-engine-status[data-state="loading"] { border-color:#665c36; color:#f2d79b; background:#282516; }
+    .audio-engine-status.connected { border-color:#315c4b; color:#a7e6c8; background:#18342b; }
+    .audio-engine-status.error { border-color:#70464a; color:#f0b8bd; background:#351f25; }
+    .voice-select { margin-bottom:4px; }
+    .voice-select:disabled { opacity:.55; }
+    .audio-result { margin-top:18px; padding:13px; border:1px solid #3c4a60; border-radius:11px; background:#151d29; }
+    .audio-result[hidden] { display:none; }
+    .audio-result-title { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; font-size:12px; }
+    #generatedAudioPlayer { display:block; width:100%; height:42px; margin-bottom:12px; }
+    .voice-result-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+    .voice-result-actions .action-button { flex:1; min-width:135px; }
+    .action-button[hidden] { display:none; }
+    @media(max-width:760px) {
+      .engine-url-row { flex-wrap:wrap; }
+      .engine-url-row button { width:100%; }
+      .voice-result-actions .action-button { width:100%; }
+    }
+
   </style>
 </head>
 <body>
@@ -156,11 +188,11 @@
     </section>
 
     <section class="hub-grid" id="audioHub" aria-label="Các khu vực âm thanh">
-      <button class="hub-card" type="button" disabled>
+      <button class="hub-card" type="button" id="openVoiceWorkspace">
         <span class="card-icon" aria-hidden="true">◖</span>
         <strong>Giọng nói &amp; lời thoại</strong>
-        <p>Không gian chuẩn bị văn bản, bản dịch, giọng đọc nhân vật và lời dẫn.</p>
-        <span class="card-foot"><span>Đang chuẩn bị</span><span class="pill">Sắp mở</span></span>
+        <p>Nhập văn bản, chọn giọng tiếng Việt, tạo file âm thanh và chuyển thẳng vào trình biên tập.</p>
+        <span class="card-foot"><span>Mở công cụ chuyển văn bản thành giọng nói</span><span aria-hidden="true">→</span></span>
       </button>
       <button class="hub-card music" type="button" id="openMusicWorkspace">
         <span class="card-icon" aria-hidden="true">♫</span>
@@ -168,6 +200,77 @@
         <p>Nhập văn bản làm việc và xem các bản nhạc hiện có trong kho dữ liệu.</p>
         <span class="card-foot"><span>Mở khu vực âm nhạc</span><span aria-hidden="true">→</span></span>
       </button>
+    </section>
+
+    <section class="workspace" id="voiceWorkspace" hidden aria-labelledby="voiceTitle">
+      <div class="workspace-head">
+        <button class="nav-button" type="button" id="backToAudioHubFromVoice">← Tất cả khu vực</button>
+        <div>
+          <h2 id="voiceTitle">Giọng nói &amp; lời thoại</h2>
+          <p>Văn bản được chuyển thành giọng nói trực tiếp trên máy tính của bạn.</p>
+        </div>
+        <span class="spacer"></span>
+        <span class="pill">VieNeu-TTS · Local</span>
+      </div>
+
+      <div class="workspace-layout">
+        <section class="panel" aria-labelledby="voiceTextTitle">
+          <div class="panel-head">
+            <div>
+              <h3 id="voiceTextTitle">Nhập văn bản</h3>
+              <p>Dán lời thoại hoặc lời dẫn cần chuyển thành giọng đọc.</p>
+            </div>
+            <span class="panel-icon" aria-hidden="true">✎</span>
+          </div>
+          <label class="field-label" for="audioSourceText">Văn bản cần đọc</label>
+          <textarea id="audioSourceText" maxlength="20000" placeholder="Nhập lời thoại, lời dẫn hoặc đoạn văn bản tiếng Việt…"></textarea>
+          <div class="voice-toolbar">
+            <span class="field-note" id="audioTextCount">0 / 20.000</span>
+            <span class="spacer"></span>
+            <button class="action-button" type="button" id="clearAudioText">Xóa văn bản</button>
+            <button class="action-button primary" type="button" id="generateSpeech" disabled>♫ Tạo giọng nói</button>
+          </div>
+          <p class="field-note">Một lượt hỗ trợ tối đa 20.000 ký tự. Có thể tạo lại sau khi chỉnh sửa văn bản hoặc đổi giọng.</p>
+        </section>
+
+        <section class="panel" aria-labelledby="voiceOutputTitle">
+          <div class="panel-head">
+            <div>
+              <h3 id="voiceOutputTitle">Giọng đọc &amp; kết quả</h3>
+              <p>Kết nối bộ máy VieNeu chạy cục bộ, không dùng API tính phí theo lượt.</p>
+            </div>
+            <span class="panel-icon" aria-hidden="true">◖</span>
+          </div>
+          <label class="field-label" for="audioEngineUrl">Địa chỉ bộ máy trên máy tính</label>
+          <div class="engine-url-row">
+            <input id="audioEngineUrl" type="url" value="http://127.0.0.1:8000" spellcheck="false" autocomplete="off" />
+            <button class="action-button" type="button" id="connectAudioEngine">Kiểm tra kết nối</button>
+          </div>
+          <div class="audio-engine-status" id="audioEngineStatus" data-state="idle" role="status" aria-live="polite">
+            Chưa kết nối. Hãy mở audio-engine trên máy tính trước.
+          </div>
+
+          <label class="field-label" for="audioVoice">Chọn giọng đọc</label>
+          <select class="voice-select" id="audioVoice" disabled>
+            <option value="">Kết nối bộ máy để tải danh sách giọng</option>
+          </select>
+          <p class="field-note">Danh sách giọng được lấy trực tiếp từ mô hình VieNeu-TTS v3 Turbo.</p>
+
+          <div class="audio-result" id="audioResult" hidden>
+            <div class="audio-result-title">
+              <strong>Âm thanh đã tạo</strong>
+              <span class="pill">WAV · 48 kHz</span>
+            </div>
+            <audio id="generatedAudioPlayer" controls preload="metadata"></audio>
+            <div class="voice-result-actions">
+              <a class="action-button" id="downloadGeneratedAudio" hidden>↓ Tải file WAV</a>
+              <button class="action-button primary" type="button" id="sendAudioToEditor" disabled>Đưa vào trình biên tập →</button>
+            </div>
+            <p class="field-note">File được giữ tạm trong trình duyệt. Khi đưa vào trình biên tập, nó sẽ xuất hiện dưới dạng một track âm thanh để bạn cắt, căn thời gian và chỉnh âm lượng.</p>
+          </div>
+        </section>
+      </div>
+      <p class="footer-note">VieNeu chạy trên máy tính của bạn. Văn bản và âm thanh không được tải lên Geed hoặc kho đám mây. Lần đầu khởi động cần tải mô hình một lần; giữ cửa sổ audio-engine mở trong khi sử dụng.</p>
     </section>
 
     <section class="workspace" id="musicWorkspace" hidden aria-labelledby="musicTitle">
@@ -191,7 +294,7 @@
             <span class="panel-icon" aria-hidden="true">✎</span>
           </div>
           <label class="field-label" for="audioSourceText">Văn bản đầu vào</label>
-          <textarea id="audioSourceText" placeholder="Nhập lời thoại, lời dẫn hoặc nội dung bạn muốn làm việc…"></textarea>
+          <textarea id="musicNotesText" placeholder="Ghi chú hoặc mô tả âm nhạc cần tìm sau này…"></textarea>
           <p class="field-note">Hiện tại đây là vùng nhập giao diện. Nội dung chưa được gửi tới dịch vụ AI hoặc lưu vào kho.</p>
           <div class="text-actions">
             <button class="action-button" type="button" disabled>Hỗ trợ dịch</button>
@@ -223,30 +326,6 @@
     </section>
   </main>
 
-  <script>
-    (() => {
-      const hub = document.getElementById('audioHub');
-      const workspace = document.getElementById('musicWorkspace');
-      const open = document.getElementById('openMusicWorkspace');
-      const back = document.getElementById('backToAudioHub');
-      function showMusic() {
-        hub.hidden = true;
-        workspace.hidden = false;
-        document.getElementById('audioSourceText').focus({ preventScroll: true });
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-      function showHub() {
-        workspace.hidden = true;
-        hub.hidden = false;
-        open.focus();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-      open.addEventListener('click', showMusic);
-      back.addEventListener('click', showHub);
-      document.addEventListener('keydown', event => {
-        if (event.key === 'Escape' && !workspace.hidden) showHub();
-      });
-    })();
-  </script>
+  <script type="module" src="/lib/audio-workspace.js"></script>
 </body>
 </html>
