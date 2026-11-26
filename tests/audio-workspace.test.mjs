@@ -10,7 +10,10 @@ const env = {
   FPT_TTS_API_URL: "https://fpt.example/tts",
   FPT_TTS_MODEL: "FPT.TTS-ultra",
   GOOGLE_TTS_ENABLED: "true",
-  GOOGLE_TTS_API_KEY: "test-google-secret",\n  AZURE_TTS_ENABLED: "true",\n  AZURE_SPEECH_KEY: "test-azure-secret",\n  AZURE_SPEECH_REGION: "southeastasia"
+  GOOGLE_TTS_API_KEY: "test-google-secret",
+  AZURE_TTS_ENABLED: "true",
+  AZURE_SPEECH_KEY: "test-azure-secret",
+  AZURE_SPEECH_REGION: "southeastasia"
 };
 
 test("status reports configured cloud providers without exposing credentials", async () => {
