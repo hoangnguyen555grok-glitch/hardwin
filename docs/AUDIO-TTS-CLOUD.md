@@ -1,14 +1,15 @@
 # Geed Hardwin — Cloud TTS setup
 
-This integration routes community Edge TTS, Azure Speech F0, FPT AI Factory, and Google Cloud Text-to-Speech through the Cloudflare Worker `geed-audio-tts`.
+This integration routes TTS.ai Vietnamese Piper, Azure Speech F0, FPT AI Factory, and Google Cloud Text-to-Speech through the Cloudflare Worker `geed-audio-tts`.
 
 ## Safety defaults
 
 The Worker is deployed but provider generation is closed by default:
 - `GEED_ALLOWED_ORIGINS` allows only `https://geed-hardwin.vercel.app`; requests from other browser origins are rejected.
-- Azure, FPT, and Google provider flags must each be explicitly set to the literal string `true`.
+- TTS.ai, Azure, FPT, and Google provider flags must each be explicitly set to the literal string `true`.
 - Every generation request must pass Cloudflare Turnstile Siteverify with the expected hostname and `tts` action.
 - Every generation request must pass the Cloudflare `TTS_RATE_LIMITER` binding: 4 requests per client IP per 60 seconds.
+- TTS.ai requests additionally pass `TTSAI_RATE_LIMITER`: 2 requests per 60 seconds per Cloudflare location, to protect its anonymous free allowance.
 - Azure requests additionally pass `AZURE_F0_RATE_LIMITER`: 15 requests per 60 seconds per Cloudflare location, leaving headroom below Azure F0's documented 20 transactions per 60 seconds. Missing bindings or client IP fail closed.
 - Request bodies are limited to 24,000 bytes and JSON only; the text itself is limited to 5,000 characters.
 - Provider errors are sanitized before they are returned to the browser; credentials and upstream diagnostics are not exposed.
@@ -17,24 +18,31 @@ The Worker is deployed but provider generation is closed by default:
 - No provider request is made until the user presses **Tạo giọng nói**.
 - Generated audio is streamed to the browser; the Worker does not save it to R2, KV, D1, Supabase, or Notion.
 
-## Community Edge TTS (primary candidate)
+## TTS.ai — Vietnamese Piper (current free candidate)
 
-The Worker includes an MIT-licensed, Worker-compatible Edge TTS engine adapted from [neosun100/edgetts-ws-worker](https://github.com/neosun100/edgetts-ws-worker). The source and its MIT license are retained in:
-- `cloudflare/edge-tts-engine.js`
-- `cloudflare/EDGE-TTS-MIT-LICENSE.txt`
+Geed uses the anonymous TTS.ai API with the open-source Piper model for Vietnamese. The documented anonymous free tier:
+- No account or API key required.
+- 5,000 characters per day per source IP.
+- 500 characters per request.
+- 10 requests per minute and 2 concurrent requests.
+- Free models include Piper, VITS, MeloTTS and Kokoro; the API selects or accepts the Piper model for Vietnamese.
+- Geed currently selects the Piper Vietnamese voice ID `vi_VN-vivos-x_low` (VIVOS; the live TTS.ai voice catalog reports neutral gender).
 
-It uses Microsoft's consumer Edge/Translator speech endpoints without an Azure Speech resource or Azure API key. Supported Vietnamese voice IDs exposed in Geed are:
-- `vi-VN-HoaiMyNeural` — Hoài My
-- `vi-VN-NamMinhNeural` — Nam Minh
+API:
+- Voice catalog: `GET https://api.tts.ai/v1/voices/?model=piper&language=vi`
+- Synthesis: `POST https://api.tts.ai/v1/tts/`
+- Body: `{"model":"piper","language":"vi","text":"...","voice":"vi_VN-vivos-x_low","format":"mp3","speed":1}`
+- Anonymous calls omit Authorization. The API may return binary audio directly or a queued job UUID; Geed handles both and validates the final download host. The live API currently labels a RIFF/WAVE payload as `audio/mpeg` and uses a `.mp3` URL; the Worker inspects the RIFF/WAVE signature and correctly returns it as `audio/wav`. The browser names the file `.wav` and labels the player accordingly. If the service returns genuine MP3 bytes later, Geed keeps `audio/mpeg` and `.mp3`.
 
-Important limitations:
-- This is an unofficial community integration, not a Microsoft-supported API.
-- There is no published character allowance, guaranteed daily quota, SLA, or uptime commitment. The upstream may throttle, change, or stop working without notice.
-- The project code being MIT-licensed does not grant rights to Microsoft's voice service or audio output. Commercial/monetized use rights are not established by this integration; verify the applicable Microsoft terms before publishing monetized or commercial videos.
-- The Worker keeps the existing Turnstile verification and per-IP limiter (4 requests per 60 seconds). Each text request is split into bounded chunks of up to 1,000 characters, with a maximum of 12 chunks.
-- The provider is opt-in through `EDGE_TTS_ENABLED=true`. The current production Worker has this flag enabled for the first owner-controlled smoke test; keep the existing 4-requests-per-minute-per-IP limit, and switch the flag back to `false` if the live MP3 test fails or the upstream behaves unpredictably.
+Important limits and use conditions:
+- The 5,000-character daily quota is per source IP, not a guaranteed project-wide allowance. Cloudflare Worker egress may be shared; actual usable daily capacity can be lower if the upstream groups requests by egress IP.
+- Free anonymous requests are capped at 500 characters each. The voice workspace enforces that limit. Create several short voice clips and place them separately on the editor timeline for longer narration.
+- The free tier's generated audio is for personal, non-commercial use only according to TTS.ai's published terms. Do not use this free tier for monetized videos, client work, ads or other commercial output unless you obtain a suitable license.
+- TTS.ai is a hosted third-party service, not a guaranteed community resource. Its limits, model availability, queue time and terms may change. It has no SLA for this free tier.
+- Text is sent to TTS.ai for synthesis. Do not submit confidential, personal or sensitive text unless that external processing is acceptable.
+- Geed does not persist generated audio: it streams the MP3 to the browser for preview and one-time editor handoff.
 
-No Azure account, API key, model download, local Python runtime, local server, R2, KV, D1, or Supabase storage is used for this provider.
+The previous unofficial Microsoft Edge TTS integration is no longer the active provider. Community reports describe persistent HTTP 403 failures against the Edge Read Aloud endpoint since October 2026; it remains archived in source for reference only and is not imported by the production Worker.
 
 ## FPT AI Factory
 
@@ -87,12 +95,13 @@ Public frontend Turnstile sitekey: `0x4AAAAAAGT9EV5DiOxVQMlW` (restricted to `ge
 The Worker requires two Cloudflare Rate Limiting bindings:
 - `TTS_RATE_LIMITER`: namespace ID `2026112601`, 4 requests per 60 seconds per client IP.
 - `AZURE_F0_RATE_LIMITER`: namespace ID `2026112602`, 15 requests per 60 seconds per Cloudflare location using the shared key `azure-speech-f0`.
+- `TTSAI_RATE_LIMITER`: namespace ID `2026112603`, 2 requests per 60 seconds per Cloudflare location using the shared key `ttsai-free-anonymous`.
 
-Keep both bindings attached; the Worker intentionally rejects requests if the relevant binding is missing.
+Keep all three bindings attached; the Worker intentionally rejects requests if the relevant binding is missing.
 
 Required variables:
 - `GEED_ALLOWED_ORIGINS`
-- `EDGE_TTS_ENABLED` (default false; enable only after live smoke test and acceptance of the unofficial upstream limitations)
+- `TTSAI_TTS_ENABLED` (default false; set to `true` to enable anonymous Vietnamese Piper synthesis)
 - `FPT_TTS_ENABLED` (default false)
 - `FPT_TTS_API_URL`
 - `FPT_TTS_MODEL`
@@ -102,7 +111,7 @@ Required variables:
 
 ## Audio handoff
 
-The Worker returns MP3 bytes directly. The browser creates an object URL for preview/download and temporarily stores the generated Blob in the existing one-time IndexedDB handoff. The editor consumes and deletes that record, then imports the file through its existing audio input to create a normal Audio track.
+The Worker returns the detected audio container (WAV or MP3). The browser creates an object URL for preview/download and temporarily stores the generated Blob in the existing one-time IndexedDB handoff. The editor consumes and deletes that record, then imports the file through its existing audio input to create a normal Audio track.
 
 No speech model, Python runtime, local server, or large model download is required on the user's computer.
 

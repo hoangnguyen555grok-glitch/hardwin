@@ -1,9 +1,7 @@
-import { synthesizeEdgeTts, chunkEdgeTtsText } from "./edge-tts-engine.js";
-
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
 const GOOGLE_VOICES = new Set(["vi-VN-Standard-A", "vi-VN-Standard-B", "vi-VN-Standard-C", "vi-VN-Standard-D"]);
 const AZURE_VOICES = new Set(["vi-VN-HoaiMyNeural", "vi-VN-NamMinhNeural"]);
-const EDGE_TTS_VOICES = new Set(["vi-VN-HoaiMyNeural", "vi-VN-NamMinhNeural"]);
+const TTSAI_VOICES = new Set(["vi_VN-vivos-x_low"]);
 const MAX_REQUEST_BYTES = 24000;
 const RATE_LIMIT_WINDOW = 60;
 function xmlEscape(value) {
@@ -97,41 +95,64 @@ function decodeBase64(value) {
 }
 
 
-async function fetchEdgeTts(text, voice, speed, env) {
-  if (env.EDGE_TTS_ENABLED !== "true") {
-    throw new Error("Edge TTS cộng đồng chưa được bật.");
+function detectAudioContentType(buffer, declaredType = "") {
+  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+  if (bytes.length >= 12 &&
+      bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+      bytes[8] === 0x57 && bytes[9] === 0x41 && bytes[10] === 0x56 && bytes[11] === 0x45) {
+    return "audio/wav";
   }
-  const selectedVoice = EDGE_TTS_VOICES.has(voice) ? voice : "vi-VN-HoaiMyNeural";
-  const safeSpeed = Math.max(0.75, Math.min(1.25, speed));
-  const rate = String(Math.round((safeSpeed - 1) * 100));
-  const chunks = chunkEdgeTtsText(text, 1000);
-  if (!chunks.length || chunks.length > 12) {
-    throw new Error("Văn bản cần được chia thành ít đoạn hơn để bảo vệ dịch vụ.");
-  }
-  const response = await synthesizeEdgeTts(
-    chunks,
-    3,
-    null,
-    selectedVoice,
-    rate,
-    "0",
-    "general",
-    "audio-24khz-48kbitrate-mono-mp3",
-    "audio/mpeg"
-  );
-  if (!response.ok) {
-    throw new Error("Edge TTS cộng đồng từ chối yêu cầu (HTTP " + response.status + ").");
-  }
-  const contentType = response.headers.get("content-type") || "audio/mpeg";
-  if (!contentType.startsWith("audio/")) {
-    throw new Error("Edge TTS cộng đồng không trả về dữ liệu âm thanh.");
-  }
-  const audio = await response.arrayBuffer();
-  if (!audio.byteLength) throw new Error("Edge TTS cộng đồng trả về file rỗng.");
-  return new Response(audio, {
-    status: 200,
-    headers: { "content-type": "audio/mpeg", "cache-control": "no-store" }
+  if (bytes.length >= 3 && bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) return "audio/mpeg";
+  if (bytes.length >= 2 && bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) return "audio/mpeg";
+  return declaredType.startsWith("audio/") ? declaredType : "";
+}
+
+async function fetchTtsAi(text, voice, speed) {
+  if (text.length > 500) throw new Error("Gói TTS.ai miễn phí ẩn danh giới hạn 500 ký tự mỗi lượt. Hãy tách lời thoại thành các đoạn ngắn.");
+  const selectedVoice = TTSAI_VOICES.has(voice) ? voice : "vi_VN-vais1000-medium";
+  const response = await fetch("https://api.tts.ai/v1/tts/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Accept": "audio/mpeg, application/json" },
+    body: JSON.stringify({
+      model: "piper", language: "vi", text, voice: selectedVoice, format: "mp3",
+      speed: Math.max(0.75, Math.min(1.25, speed))
+    })
   });
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error("TTS.ai từ chối yêu cầu (HTTP " + response.status + "). " + detail.slice(0, 180));
+  }
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.startsWith("audio/") || contentType === "application/octet-stream") {
+    const bytes = await response.arrayBuffer();
+    if (!bytes.byteLength) throw new Error("TTS.ai trả về file âm thanh rỗng.");
+    const detectedType = detectAudioContentType(bytes, contentType);
+    if (!detectedType) throw new Error("TTS.ai trả về định dạng âm thanh không nhận diện được.");
+    return new Response(bytes, { status: 200, headers: { "content-type": detectedType, "cache-control": "no-store" } });
+  }
+  const job = await response.json().catch(() => ({}));
+  if (!job.uuid) throw new Error("TTS.ai không trả về MP3 hoặc mã tác vụ hợp lệ.");
+  for (let attempt = 0; attempt < 24; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    const poll = await fetch("https://api.tts.ai/v1/speech/results/?uuid=" + encodeURIComponent(job.uuid), {
+      headers: { "Accept": "application/json" }
+    });
+    const result = await poll.json().catch(() => ({}));
+    if (!poll.ok) throw new Error("TTS.ai không thể kiểm tra trạng thái tác vụ (HTTP " + poll.status + ").");
+    if (result.status === "failed") throw new Error("TTS.ai không thể hoàn tất tác vụ tổng hợp.");
+    if (result.status === "completed" && result.result_url) {
+      const resultUrl = new URL(result.result_url);
+      if (!["https://api.tts.ai", "https://cdn.tts.ai"].includes(resultUrl.origin)) throw new Error("TTS.ai trả về địa chỉ tải âm thanh không hợp lệ.");
+      const download = await fetch(resultUrl.toString(), { headers: { "Accept": "audio/mpeg" } });
+      if (!download.ok) throw new Error("Không tải được MP3 đã tạo từ TTS.ai (HTTP " + download.status + ").");
+      const bytes = await download.arrayBuffer();
+      if (!bytes.byteLength) throw new Error("TTS.ai trả về file âm thanh rỗng.");
+      const detectedType = detectAudioContentType(bytes, download.headers.get("content-type") || "");
+      if (!detectedType) throw new Error("TTS.ai trả về định dạng âm thanh không nhận diện được.");
+      return new Response(bytes, { status: 200, headers: { "content-type": detectedType, "cache-control": "no-store" } });
+    }
+  }
+  throw new Error("TTS.ai xử lý quá lâu. Hãy thử lại với một đoạn văn ngắn hơn.");
 }
 
 async function fetchAzure(text, voice, speed, env) {
@@ -200,15 +221,17 @@ export default {
           fpt: env.FPT_TTS_ENABLED === "true" && Boolean(env.FPT_TTS_API_KEY && env.FPT_TTS_API_URL && env.FPT_TTS_MODEL),
           google: env.GOOGLE_TTS_ENABLED === "true" && Boolean(env.GOOGLE_TTS_API_KEY),
           azure: env.AZURE_TTS_ENABLED === "true" && Boolean(env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION),
-          edge: env.EDGE_TTS_ENABLED === "true"
+          ttsdotai: env.TTSAI_TTS_ENABLED === "true"
         },
-        maxCharacters: 5000,
-        outputFormat: "mp3",
+        maxCharacters: 500,
+        dailyCharactersPerIp: 5000,
+        outputFormat: "mp3-or-wav",
         security: {
           turnstileRequired: Boolean(env.TURNSTILE_SECRET_KEY),
           rateLimitRequired: true,
           rateLimitBindingAvailable: Boolean(env.TTS_RATE_LIMITER && typeof env.TTS_RATE_LIMITER.limit === "function"),
-          azureF0RateLimitBindingAvailable: Boolean(env.AZURE_F0_RATE_LIMITER && typeof env.AZURE_F0_RATE_LIMITER.limit === "function")
+          azureF0RateLimitBindingAvailable: Boolean(env.AZURE_F0_RATE_LIMITER && typeof env.AZURE_F0_RATE_LIMITER.limit === "function"),
+          ttsAiRateLimitBindingAvailable: Boolean(env.TTSAI_RATE_LIMITER && typeof env.TTSAI_RATE_LIMITER.limit === "function")
         }
       }), origin);
     }
@@ -239,7 +262,7 @@ export default {
       return withCors(errorResponse("Yêu cầu vượt quá dung lượng cho phép.", 413), origin);
     }
 
-    if (!(env.FPT_TTS_ENABLED === "true" && env.FPT_TTS_API_KEY && env.FPT_TTS_API_URL && env.FPT_TTS_MODEL) && !(env.GOOGLE_TTS_ENABLED === "true" && env.GOOGLE_TTS_API_KEY) && !(env.AZURE_TTS_ENABLED === "true" && env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION) && env.EDGE_TTS_ENABLED !== "true") {
+    if (!(env.FPT_TTS_ENABLED === "true" && env.FPT_TTS_API_KEY && env.FPT_TTS_API_URL && env.FPT_TTS_MODEL) && !(env.GOOGLE_TTS_ENABLED === "true" && env.GOOGLE_TTS_API_KEY) && !(env.AZURE_TTS_ENABLED === "true" && env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION) && env.TTSAI_TTS_ENABLED !== "true") {
       return withCors(errorResponse("Chưa bật nhà cung cấp giọng đọc nào trên máy chủ.", 503), origin);
     }
 
@@ -254,20 +277,35 @@ export default {
       if (!body || typeof body !== "object" || Array.isArray(body)) {
         return withCors(errorResponse("Dữ liệu yêu cầu không hợp lệ."), origin);
       }
-      const provider = ["fpt", "google", "azure", "edge"].includes(body?.provider) ? body.provider : null;
+      const provider = ["fpt", "google", "azure", "ttsdotai"].includes(body?.provider) ? body.provider : null;
       const text = typeof body?.text === "string" ? body.text.trim() : "";
       const voice = typeof body?.voice === "string" ? body.voice : "";
       const speed = Number.isFinite(Number(body?.speed)) ? Number(body.speed) : 1;
       if (!provider) return withCors(errorResponse("Nhà cung cấp không hợp lệ."), origin);
       if (text.length < 3 || text.length > 5000) return withCors(errorResponse("Văn bản phải từ 3 đến 5.000 ký tự."), origin);
       if (provider === "fpt" && !(env.FPT_TTS_ENABLED === "true" && env.FPT_TTS_API_KEY && env.FPT_TTS_API_URL && env.FPT_TTS_MODEL)) return withCors(errorResponse("FPT AI Factory đang khóa hoặc chưa cấu hình đầy đủ. Chỉ bật khi đã có voucher/hạn mức an toàn.", 503), origin);
-      if (provider === "edge" && env.EDGE_TTS_ENABLED !== "true") return withCors(errorResponse("Edge TTS cộng đồng đang khóa trên máy chủ.", 503), origin);
+      if (provider === "ttsdotai" && env.TTSAI_TTS_ENABLED !== "true") return withCors(errorResponse("TTS.ai Piper đang khóa trên máy chủ.", 503), origin);
+      if (provider === "ttsdotai" && text.length > 500) return withCors(errorResponse("Gói TTS.ai miễn phí ẩn danh giới hạn 500 ký tự mỗi lượt.", 413), origin);
       if (provider === "google" && !(env.GOOGLE_TTS_ENABLED === "true" && env.GOOGLE_TTS_API_KEY)) return withCors(errorResponse("Google TTS đang khóa hoặc chưa cấu hình đầy đủ. Chỉ bật sau khi đặt giới hạn chi tiêu.", 503), origin);
       if (provider === "fpt" && voice !== "auto" && (typeof voice !== "string" || voice.length > 120)) return withCors(errorResponse("Mã giọng FPT không hợp lệ."), origin);
       if (provider === "google" && !GOOGLE_VOICES.has(voice)) return withCors(errorResponse("Giọng Google không hợp lệ."), origin);
       if (provider === "azure" && !AZURE_VOICES.has(voice)) return withCors(errorResponse("Giọng Azure không hợp lệ."), origin);
-      if (provider === "edge" && !EDGE_TTS_VOICES.has(voice)) return withCors(errorResponse("Giọng Edge TTS không hợp lệ."), origin);
+      if (provider === "ttsdotai" && !TTSAI_VOICES.has(voice)) return withCors(errorResponse("Giọng Piper tiếng Việt không hợp lệ."), origin);
       if (provider === "azure" && !(env.AZURE_TTS_ENABLED === "true" && env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION)) return withCors(errorResponse("Azure Speech đang khóa hoặc chưa cấu hình tài nguyên F0.", 503), origin);
+      if (provider === "ttsdotai") {
+        if (!env.TTSAI_RATE_LIMITER || typeof env.TTSAI_RATE_LIMITER.limit !== "function") {
+          return withCors(errorResponse("TTS.ai chưa có lớp giới hạn lưu lượng riêng. Yêu cầu đã bị chặn an toàn.", 503), origin);
+        }
+        try {
+          const { success } = await env.TTSAI_RATE_LIMITER.limit({ key: "ttsai-free-anonymous" });
+          if (!success) return withCors(errorResponse("Nguồn Piper miễn phí đang nhận nhiều yêu cầu. Vui lòng đợi một phút rồi thử lại.", 429, {
+            "Retry-After": String(RATE_LIMIT_WINDOW)
+          }), origin);
+        } catch {
+          return withCors(errorResponse("Không xác minh được giới hạn lưu lượng TTS.ai. Yêu cầu đã bị chặn an toàn.", 503), origin);
+        }
+      }
+
       if (provider === "azure") {
         if (!env.AZURE_F0_RATE_LIMITER || typeof env.AZURE_F0_RATE_LIMITER.limit !== "function") {
           return withCors(errorResponse("Azure F0 chưa có lớp giới hạn lưu lượng riêng. Yêu cầu đã bị chặn an toàn.", 503), origin);
@@ -291,7 +329,7 @@ export default {
         ? await fetchFpt(text, voice, speed, env)
         : provider === "google" ? await fetchGoogle(text, voice, speed, env)
         : provider === "azure" ? await fetchAzure(text, voice, speed, env)
-        : await fetchEdgeTts(text, voice, speed, env);
+        : await fetchTtsAi(text, voice, speed);
       const headers = new Headers(audio.headers);
       headers.set("Access-Control-Allow-Origin", origin);
       headers.set("Vary", "Origin");

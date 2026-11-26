@@ -15,9 +15,10 @@ const env = {
   AZURE_TTS_ENABLED: "true",
   AZURE_SPEECH_KEY: "test-azure-secret",
   AZURE_SPEECH_REGION: "southeastasia",
-  EDGE_TTS_ENABLED: "true",
+  TTSAI_TTS_ENABLED: "true",
   TURNSTILE_SECRET_KEY: "test-turnstile-secret",
   TTS_RATE_LIMITER: { limit: async () => ({ success: true }) },
+  TTSAI_RATE_LIMITER: { limit: async () => ({ success: true }) },
   AZURE_F0_RATE_LIMITER: { limit: async () => ({ success: true }) }
 };
 
@@ -27,7 +28,7 @@ test("status reports configured cloud providers without exposing credentials", a
   }), env);
   const body = await response.json();
   assert.equal(response.status, 200);
-  assert.deepEqual(body.providers, { fpt: true, google: true, azure: true, edge: true });
+  assert.deepEqual(body.providers, { fpt: true, google: true, azure: true, ttsdotai: true });
   assert.equal(JSON.stringify(body).includes("test-fpt-secret"), false);
   assert.equal(JSON.stringify(body).includes("test-google-secret"), false);
   assert.equal(JSON.stringify(body).includes("test-azure-secret"), false);
@@ -46,7 +47,7 @@ test("both providers stay locked unless explicit enable flags are set", async ()
     headers: { Origin: origin }
   }), lockedEnv);
   const status = await statusResponse.json();
-  assert.deepEqual(status.providers, { fpt: false, google: false, azure: false, edge: false });
+  assert.deepEqual(status.providers, { fpt: false, google: false, azure: false, ttsdotai: false });
 
   const originalFetch = globalThis.fetch;
   let called = false;
@@ -150,16 +151,114 @@ test("rejects invalid Google voice IDs and text over the provider request limit"
 });
 
 
-test("community Edge TTS is wired through the protected Worker with bounded Vietnamese MP3 synthesis", async () => {
-  const workerSource = await readFile(new URL("../cloudflare/audio-tts-worker.js", import.meta.url), "utf8");
-  const engineSource = await readFile(new URL("../cloudflare/edge-tts-engine.js", import.meta.url), "utf8");
-  assert.match(workerSource, /EDGE_TTS_ENABLED !== "true"/);
-  assert.match(workerSource, /chunkEdgeTtsText\(text, 1000\)/);
-  assert.match(workerSource, /synthesizeEdgeTts\(/);
-  assert.match(workerSource, /EDGE_TTS_VOICES = new Set\(\["vi-VN-HoaiMyNeural", "vi-VN-NamMinhNeural"\]\)/);
-  assert.match(engineSource, /dev\.microsofttranslator\.com\/apps\/endpoint/);
-  assert.match(engineSource, /audio-24khz-48kbitrate-mono-mp3/);
-  assert.match(engineSource, /export \{ getVoice as synthesizeEdgeTts, smartChunkText as chunkEdgeTtsText \}/);
+test("anonymous TTS.ai Piper returns Vietnamese MP3 without an API key", async () => {
+  const originalFetch = globalThis.fetch;
+  let calledUrl = "";
+  let calledOptions = {};
+  globalThis.fetch = async (url, options = {}) => {
+    const target = String(url);
+    if (target.includes("/turnstile/v0/siteverify")) {
+      return new Response(JSON.stringify({ success: true, hostname: "geed-hardwin.vercel.app", action: "tts" }), { headers: { "content-type": "application/json" } });
+    }
+    calledUrl = target;
+    calledOptions = options;
+    return new Response("ttsai-piper-mp3", { headers: { "content-type": "audio/mpeg" } });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://audio.test/tts", {
+      method: "POST",
+      headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10", "X-Turnstile-Token": "test-turnstile-token" },
+      body: JSON.stringify({ provider: "ttsdotai", text: "Xin chào Geed", voice: "vi_VN-vivos-x_low", speed: 1 })
+    }), env);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("content-type"), "audio/mpeg");
+    assert.equal(await response.text(), "ttsai-piper-mp3");
+    assert.equal(calledUrl, "https://api.tts.ai/v1/tts/");
+    assert.equal(calledOptions.headers.Authorization, undefined);
+    const payload = JSON.parse(calledOptions.body);
+    assert.equal(payload.model, "piper");
+    assert.equal(payload.language, "vi");
+    assert.equal(payload.voice, "vi_VN-vivos-x_low");
+    assert.equal(payload.format, "mp3");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("TTS.ai WAV container is detected even when the upstream labels it as MP3", async () => {
+  const originalFetch = globalThis.fetch;
+  const wav = new Uint8Array(44);
+  wav.set([0x52,0x49,0x46,0x46], 0);
+  wav.set([0x57,0x41,0x56,0x45], 8);
+  globalThis.fetch = async url => {
+    if (String(url).includes("/turnstile/v0/siteverify")) {
+      return new Response(JSON.stringify({ success: true, hostname: "geed-hardwin.vercel.app", action: "tts" }), { headers: { "content-type": "application/json" } });
+    }
+    return new Response(wav, { headers: { "content-type": "audio/mpeg" } });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://audio.test/tts", {
+      method: "POST",
+      headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10", "X-Turnstile-Token": "test-turnstile-token" },
+      body: JSON.stringify({ provider: "ttsdotai", text: "Xin chào Geed", voice: "vi_VN-vivos-x_low", speed: 1 })
+    }), env);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("content-type"), "audio/wav");
+    assert.equal((await response.arrayBuffer()).byteLength, 44);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("anonymous TTS.ai queued jobs are polled and MP3 downloads are host-validated", async () => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url) => {
+    const target = String(url);
+    calls.push(target);
+    if (target.includes("/turnstile/v0/siteverify")) {
+      return new Response(JSON.stringify({ success: true, hostname: "geed-hardwin.vercel.app", action: "tts" }), { headers: { "content-type": "application/json" } });
+    }
+    if (target === "https://api.tts.ai/v1/tts/") {
+      return new Response(JSON.stringify({ uuid: "job-123", status: "queued" }), { headers: { "content-type": "application/json" } });
+    }
+    if (target.includes("/v1/speech/results/")) {
+      return new Response(JSON.stringify({ status: "completed", result_url: "https://cdn.tts.ai/job-123/output.mp3" }), { headers: { "content-type": "application/json" } });
+    }
+    if (target === "https://cdn.tts.ai/job-123/output.mp3") {
+      return new Response("queued-piper-mp3", { headers: { "content-type": "audio/mpeg" } });
+    }
+    throw new Error("Unexpected upstream request " + target);
+  };
+  try {
+    const response = await worker.fetch(new Request("https://audio.test/tts", {
+      method: "POST",
+      headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10", "X-Turnstile-Token": "test-turnstile-token" },
+      body: JSON.stringify({ provider: "ttsdotai", text: "Xin chào Geed", voice: "vi_VN-vivos-x_low", speed: 1 })
+    }), env);
+    assert.equal(response.status, 200);
+    assert.equal(await response.text(), "queued-piper-mp3");
+    assert.equal(calls.some(url => url.includes("/v1/speech/results/")), true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("anonymous TTS.ai enforces the 500-character per-request free limit", async () => {
+  const originalFetch = globalThis.fetch;
+  let upstreamCalled = false;
+  globalThis.fetch = async () => { upstreamCalled = true; throw new Error("must not call upstream"); };
+  try {
+    const response = await worker.fetch(new Request("https://audio.test/tts", {
+      method: "POST",
+      headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10", "X-Turnstile-Token": "test-turnstile-token" },
+      body: JSON.stringify({ provider: "ttsdotai", text: "x".repeat(501), voice: "vi_VN-vivos-x_low" })
+    }), env);
+    assert.equal(response.status, 413);
+    assert.equal(upstreamCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("Azure Speech F0 returns MP3 and safely escapes Vietnamese SSML", async () => {
@@ -203,14 +302,13 @@ test("Azure Speech remains locked unless explicitly enabled", async () => {
 
 test("voice workspace exposes Azure Vietnamese voices and submits the selected provider", async () => {
   const source = await readFile(new URL("../lib/audio-workspace.mjs", import.meta.url), "utf8");
-  assert.match(source, /edge:\s*\{\s*label: "Edge TTS · Cộng đồng"/);
+  assert.match(source, /ttsdotai:\s*\{\s*label: "Piper tiếng Việt · TTS.ai miễn phí"/);
   assert.match(source, /azure:\s*\{\s*label: "Azure Speech F0"/);
-  assert.match(source, /vi-VN-HoaiMyNeural/);
-  assert.match(source, /vi-VN-NamMinhNeural/);
-  assert.match(source, /vi-VN-NamMinhNeural/);
+  assert.match(source, /vi_VN-vivos-x_low/);
+  assert.match(source, /MAX_TEXT_LENGTH = 500/);
   assert.match(source, /Object\.hasOwn\(PROVIDERS, selected\)/);
   assert.match(source, /provider: selectedProvider/);
-  assert.match(source, /azure: status\.providers\?\.azure === true/);
+  assert.match(source, /ttsdotai: status\.providers\?\.ttsdotai === true/);
 });
 
 test("generated TTS handoff imports a real audio file into the editor timeline player", async () => {
@@ -292,10 +390,42 @@ test("TTS requires a verified Turnstile token with the expected hostname and act
 test("status advertises that Turnstile and rate limiting are required without exposing secrets", async () => {
   const response = await worker.fetch(new Request("https://audio.test/status", { headers: { Origin: origin } }), env);
   const body = await response.json();
-  assert.deepEqual(body.security, { turnstileRequired: true, rateLimitRequired: true, rateLimitBindingAvailable: true, azureF0RateLimitBindingAvailable: true });
+  assert.deepEqual(body.security, { turnstileRequired: true, rateLimitRequired: true, rateLimitBindingAvailable: true, azureF0RateLimitBindingAvailable: true, ttsAiRateLimitBindingAvailable: true });
   assert.equal(JSON.stringify(body).includes("test-turnstile-secret"), false);
 });
 
+
+test("TTS.ai fails closed when its dedicated shared limiter is missing", async () => {
+  const { TTSAI_RATE_LIMITER, ...unprotectedEnv } = env;
+  const response = await worker.fetch(new Request("https://audio.test/tts", {
+    method: "POST",
+    headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10", "X-Turnstile-Token": "test-turnstile-token" },
+    body: JSON.stringify({ provider: "ttsdotai", text: "Xin chào", voice: "vi_VN-vivos-x_low" })
+  }), unprotectedEnv);
+  assert.equal(response.status, 503);
+});
+
+test("TTS.ai shared limiter returns Retry-After when its location budget is exhausted", async () => {
+  const limitedEnv = { ...env, TTSAI_RATE_LIMITER: { limit: async ({ key }) => {
+    assert.equal(key, "ttsai-free-anonymous");
+    return { success: false };
+  } } };
+  const originalFetch = globalThis.fetch;
+  let upstreamCalled = false;
+  globalThis.fetch = async () => { upstreamCalled = true; throw new Error("must not call upstream"); };
+  try {
+    const response = await worker.fetch(new Request("https://audio.test/tts", {
+      method: "POST",
+      headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10", "X-Turnstile-Token": "test-turnstile-token" },
+      body: JSON.stringify({ provider: "ttsdotai", text: "Xin chào", voice: "vi_VN-vivos-x_low" })
+    }), limitedEnv);
+    assert.equal(response.status, 429);
+    assert.equal(response.headers.get("Retry-After"), "60");
+    assert.equal(upstreamCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test("Azure F0 fails closed when its dedicated limiter is missing", async () => {
   const { AZURE_F0_RATE_LIMITER, ...unprotectedEnv } = env;
