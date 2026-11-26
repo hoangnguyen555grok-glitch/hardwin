@@ -207,13 +207,15 @@ export default {
           azure: env.AZURE_TTS_ENABLED === "true" && Boolean(env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION),
           ttsai: env.TTSAI_TTS_ENABLED === "true"
         },
-        maxCharacters: 5000,
+        maxCharacters: 500,
+        dailyCharactersPerIp: 5000,
         outputFormat: "mp3",
         security: {
           turnstileRequired: Boolean(env.TURNSTILE_SECRET_KEY),
           rateLimitRequired: true,
           rateLimitBindingAvailable: Boolean(env.TTS_RATE_LIMITER && typeof env.TTS_RATE_LIMITER.limit === "function"),
-          azureF0RateLimitBindingAvailable: Boolean(env.AZURE_F0_RATE_LIMITER && typeof env.AZURE_F0_RATE_LIMITER.limit === "function")
+          azureF0RateLimitBindingAvailable: Boolean(env.AZURE_F0_RATE_LIMITER && typeof env.AZURE_F0_RATE_LIMITER.limit === "function"),
+          ttsAiRateLimitBindingAvailable: Boolean(env.TTSAI_RATE_LIMITER && typeof env.TTSAI_RATE_LIMITER.limit === "function")
         }
       }), origin);
     }
@@ -274,6 +276,20 @@ export default {
       if (provider === "azure" && !AZURE_VOICES.has(voice)) return withCors(errorResponse("Giọng Azure không hợp lệ."), origin);
       if (provider === "ttsdotai" && !TTSAI_VOICES.has(voice)) return withCors(errorResponse("Giọng Piper tiếng Việt không hợp lệ."), origin);
       if (provider === "azure" && !(env.AZURE_TTS_ENABLED === "true" && env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION)) return withCors(errorResponse("Azure Speech đang khóa hoặc chưa cấu hình tài nguyên F0.", 503), origin);
+      if (provider === "ttsdotai") {
+        if (!env.TTSAI_RATE_LIMITER || typeof env.TTSAI_RATE_LIMITER.limit !== "function") {
+          return withCors(errorResponse("TTS.ai chưa có lớp giới hạn lưu lượng riêng. Yêu cầu đã bị chặn an toàn.", 503), origin);
+        }
+        try {
+          const { success } = await env.TTSAI_RATE_LIMITER.limit({ key: "ttsai-free-anonymous" });
+          if (!success) return withCors(errorResponse("Nguồn Piper miễn phí đang nhận nhiều yêu cầu. Vui lòng đợi một phút rồi thử lại.", 429, {
+            "Retry-After": String(RATE_LIMIT_WINDOW)
+          }), origin);
+        } catch {
+          return withCors(errorResponse("Không xác minh được giới hạn lưu lượng TTS.ai. Yêu cầu đã bị chặn an toàn.", 503), origin);
+        }
+      }
+
       if (provider === "azure") {
         if (!env.AZURE_F0_RATE_LIMITER || typeof env.AZURE_F0_RATE_LIMITER.limit !== "function") {
           return withCors(errorResponse("Azure F0 chưa có lớp giới hạn lưu lượng riêng. Yêu cầu đã bị chặn an toàn.", 503), origin);
