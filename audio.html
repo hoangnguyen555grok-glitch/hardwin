@@ -207,10 +207,10 @@
         <button class="nav-button" type="button" id="backToAudioHubFromVoice">← Tất cả khu vực</button>
         <div>
           <h2 id="voiceTitle">Giọng nói &amp; lời thoại</h2>
-          <p>Tạo giọng đọc tiếng Việt trên đám mây bằng nguồn cộng đồng, không cài model hoặc lưu file lâu dài trên máy.</p>
+          <p>Tạo giọng đọc tiếng Việt bằng model Piper mã nguồn mở trên máy chủ TTS.ai; không cần tài khoản, API key hay cài model trên máy tính.</p>
         </div>
         <span class="spacer"></span>
-        <span class="pill">Edge TTS cộng đồng · FPT · Azure · Google</span>
+        <span class="pill">Piper tiếng Việt · TTS.ai</span>
       </div>
 
       <div class="workspace-layout">
@@ -223,14 +223,14 @@
             <span class="panel-icon" aria-hidden="true">✎</span>
           </div>
           <label class="field-label" for="audioSourceText">Văn bản cần đọc</label>
-          <textarea id="audioSourceText" maxlength="5000" placeholder="Nhập lời thoại, lời dẫn hoặc đoạn văn bản cần đọc…"></textarea>
+          <textarea id="audioSourceText" maxlength="500" placeholder="Nhập tối đa 500 ký tự tiếng Việt cho mỗi lượt đọc…"></textarea>
           <div class="voice-toolbar">
-            <span class="field-note" id="audioTextCount">0 / 5.000</span>
+            <span class="field-note" id="audioTextCount">0 / 500</span>
             <span class="spacer"></span>
             <button class="action-button" type="button" id="clearAudioText">Xóa văn bản</button>
             <button class="action-button primary" type="button" id="generateSpeech" disabled>♫ Tạo giọng nói</button>
           </div>
-          <p class="field-note">Giới hạn 5.000 ký tự mỗi lượt. Chỉ gửi văn bản khi bạn bấm Tạo giọng nói.</p>
+          <p class="field-note">Giới hạn miễn phí 500 ký tự mỗi lượt; hạn mức ẩn danh công bố là 5.000 ký tự/ngày. Chỉ gửi văn bản khi bạn bấm Tạo giọng nói.</p>
         </section>
 
         <section class="panel" aria-labelledby="voiceOutputTitle">
@@ -244,7 +244,7 @@
 
           <label class="field-label" for="audioProvider">Nhà cung cấp giọng nói</label>
           <select class="voice-select" id="audioProvider">
-            <option value="edge" selected>Edge TTS cộng đồng · không cần API key Azure</option>
+            <option value="ttsdotai" selected>Piper tiếng Việt · TTS.ai · 5.000 ký tự/ngày miễn phí</option>
             <option value="azure">Azure Speech F0 · 500.000 ký tự/tháng miễn phí</option>
             <option value="fpt">FPT AI Factory · Tiếng Việt</option>
             <option value="google">Google Cloud TTS · Tiếng Việt</option>
@@ -283,7 +283,7 @@
           </div>
         </section>
       </div>
-      <p class="footer-note">Edge TTS là nguồn cộng đồng dùng giao thức trực tuyến không chính thức của Microsoft; không có hạn mức hoặc SLA được bảo đảm và có thể bị giới hạn bất kỳ lúc nào. Chỉ gửi nội dung bạn có quyền sử dụng. Không cần Python, model hoặc máy chủ chạy trên máy tính; MP3 chỉ được giữ tạm trong trình duyệt để nghe và chuyển vào Edit. Azure, FPT và Google vẫn khóa mặc định để tránh phát sinh chi phí.</p>
+      <p class="footer-note">TTS.ai công bố hạn mức ẩn danh miễn phí 5.000 ký tự/ngày mỗi IP, tối đa 500 ký tự mỗi lượt và 10 yêu cầu/phút. Âm thanh từ gói miễn phí chỉ dành cho mục đích cá nhân, phi thương mại; không dùng cho video kiếm tiền hoặc công việc thương mại nếu chưa có giấy phép phù hợp. Văn bản được gửi tới máy chủ TTS.ai để tạo giọng. MP3 chỉ được giữ tạm trong trình duyệt rồi chuyển vào Edit; Geed không lưu audio lên R2, Supabase hay kho riêng. Không cần Python, model hoặc máy chủ trên máy tính.</p>
     </section>
 
     <section class="workspace" id="musicWorkspace" hidden aria-labelledby="musicTitle">
