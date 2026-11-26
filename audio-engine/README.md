@@ -32,7 +32,7 @@ Requirements: Windows 10/11, Python 3.10 or newer, and an internet connection fo
 4. Wait for the first-time installation and model download to finish.
 5. Keep the terminal window open while generating speech in Geed.
 
-The service address is `http://127.0.0.1:8000`. The API follows the upstream VieNeu OpenAI-compatible routes:
+The service address is `http://127.0.0.1:8000`. On Chrome 142 or newer, the first connection from the hosted Geed page can trigger a Local Network Access permission prompt; allow it when you enter the voice workspace. The Geed page must be served over HTTPS (or localhost during development). The API follows the upstream VieNeu OpenAI-compatible routes:
 - `GET /health`
 - `GET /v1/voices`
 - `POST /v1/audio/speech`
