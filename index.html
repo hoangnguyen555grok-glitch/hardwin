@@ -175,17 +175,59 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
 .video-preview-actions button{min-width:120px}
 @media(max-width:700px){.video-preview-dialog{width:calc(100vw - 12px);max-width:calc(100vw - 12px)}.video-preview-content{padding:8px}.video-preview-actions{padding:9px}.video-preview-actions button{flex:1}}
 
+
+/* Responsive topbar layout: keep project tools separate from account/export actions. */
+body{display:flex;flex-direction:column}
+.topbar{
+  height:auto;min-height:56px;flex:0 0 auto;flex-wrap:wrap;align-content:center;
+  gap:8px 12px;padding:8px 16px;position:relative;z-index:130;
+}
+.topbar-identity{display:flex;align-items:center;gap:10px;flex:0 0 auto;min-width:0}
+.topbar-navigation{display:flex;align-items:center;flex-wrap:wrap;gap:7px;min-width:0}
+.topbar>.topspacer{flex:1 1 12px;min-width:12px}
+.topbar-secondary{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex:0 1 auto;min-width:0;flex-wrap:wrap}
+.topbar-tools{display:flex;align-items:center;gap:7px;flex:0 1 auto;min-width:0;flex-wrap:wrap}
+.topbar-account-actions{display:flex;align-items:center;gap:10px;flex:0 0 auto;min-width:0;padding-left:12px;border-left:1px solid var(--line)}
+.topbar .account-area,.topbar .export-options{flex:0 0 auto}
+.topbar .status{font-size:11px}
+.app{height:auto;flex:1 1 auto;min-height:0}
+@media(max-width:1320px){
+  .topbar{gap:8px 10px}
+  .topbar .topmeta,.topbar .status{display:none}
+  .topbar-secondary{flex:1 1 100%;width:100%;justify-content:flex-end}
+  .topbar>.topspacer{display:none}
+  .topbar-navigation .library-nav-link{padding:6px 8px}
+}
+@media(max-width:980px){
+  .topbar-identity{flex:1 1 100%}
+  .topbar-navigation{flex:1 1 100%;justify-content:center}
+  .topbar-secondary{justify-content:center;gap:8px}
+  .topbar-tools{justify-content:center}
+  .topbar-account-actions{border-left:0;padding-left:0}
+}
+@media(max-width:720px){
+  .topbar{padding:8px 10px}
+  .topbar-tools{width:100%;justify-content:center}
+  .topbar-account-actions{width:100%;justify-content:center;padding-top:8px;border-top:1px solid var(--line)}
+}
 </style>
 </head>
 <body>
 <header class="topbar">
+  <div class="topbar-identity">
+
   <div class="brand"><img class="brandlogo" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRYHE1V2gwMtLSOzrCNG-C3zeWnRj-i1GtkR8pLxDeUJQ&amp;s=10" alt="Geed Hardwin brand image" referrerpolicy="no-referrer" onerror="this.style.display='none'" /><span>GEED HARDWIN</span></div>
   <span class="topmeta">2D Animation Editor · v1.30</span>
+  </div>
+  <nav class="topbar-navigation" aria-label="Khu vực làm việc">
   <a class="library-nav-link" href="/materials.html" title="Thư viện nguyên liệu đầu vào trên Notion">▧ Thư viện vật liệu</a>
   <a class="library-nav-link" href="/library.html" title="Mở kho vật liệu cộng đồng">▧ Kho vật liệu</a>
   <a class="library-nav-link" href="/audio.html" title="Mở không gian âm thanh và âm nhạc">♫ Âm thanh &amp; Âm nhạc</a>
-  <div class="topspacer"></div>
-  <button id="openVideoPreview" type="button" class="primary" title="Xem trước video hoàn chỉnh">▶ Xem trước</button>
+  </nav>
+  <div class="topspacer" aria-hidden="true"></div>
+  <div class="topbar-secondary">
+    <div class="topbar-tools">
+<button id="openVideoPreview" type="button" class="primary" title="Xem trước video hoàn chỉnh">▶ Xem trước</button>
   <span class="status">Animation workspace · v1.30</span>
   <button class="ghost" id="undoBtn" title="Undo (Ctrl+Z)">↶</button>
   <button class="ghost" id="redoBtn" title="Redo (Ctrl+Shift+Z)">↷</button>
@@ -193,7 +235,9 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
   <button class="ghost" id="saveProject">Save project</button>
   <input id="projectInput" type="file" accept="application/json,.json" hidden />
   <button class="ghost" id="aiBridgeOpen" title="Open AI control bridge">✦ AI Bridge</button>
-  <div class="account-area" id="accountArea">
+    </div>
+    <div class="topbar-account-actions">
+<div class="account-area" id="accountArea">
     <span class="account-status" id="accountStatus">Lưu dự án trên thiết bị</span>
     <button class="ghost account-trigger" id="accountButton" type="button" data-authenticated="false" aria-haspopup="menu" aria-expanded="false" aria-controls="accountMenu" title="Đăng nhập bằng Google">
       <span class="account-avatar" id="accountAvatarWrap" hidden><img id="accountAvatar" alt="" referrerpolicy="no-referrer" hidden/><span class="account-avatar-fallback" id="accountAvatarFallback" aria-hidden="true">G</span></span>
@@ -224,6 +268,8 @@ dialog.account-dialog::backdrop{background:#070b12c9;backdrop-filter:blur(5px)}
   <div class="field"><label>GIF FPS</label><select id="exportGifFps"><option>5</option><option>8</option><option selected>12</option><option>15</option><option>24</option></select></div>
   <div class="export-actions"><button id="exportStill">Current frame</button><button id="exportGif">Animated GIF</button><button id="exportPngSequence">PNG sequence</button><button class="primary" id="exportVideo">Export video</button></div>
   </div></details>
+    </div>
+  </div>
 </header>
 
 <dialog class="account-dialog" id="accountDialog" aria-labelledby="accountDialogTitle">
@@ -3175,5 +3221,25 @@ window.addEventListener('load',async()=>{
 })();
 </script>
 <script type="module" src="/lib/supabase-auth.js"></script>
+
+<script>
+/* Avoid showing the account menu and export popover on top of one another. */
+(()=>{
+  const accountButton=document.getElementById('accountButton');
+  const accountMenu=document.getElementById('accountMenu');
+  const exportOptions=document.getElementById('exportOptions');
+  if(accountButton&&exportOptions){
+    accountButton.addEventListener('click',()=>{exportOptions.open=false;});
+  }
+  if(exportOptions){
+    exportOptions.addEventListener('toggle',()=>{
+      if(exportOptions.open&&accountMenu){
+        accountMenu.hidden=true;
+        accountButton?.setAttribute('aria-expanded','false');
+      }
+    });
+  }
+})();
+</script>
 </body>
 </html>
