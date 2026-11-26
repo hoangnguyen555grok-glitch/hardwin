@@ -244,28 +244,22 @@
 
           <label class="field-label" for="audioProvider">Nhà cung cấp giọng nói</label>
           <select class="voice-select" id="audioProvider">
-            <option value="fpt">FPT AI Speech · Tiếng Việt</option>
+            <option value="fpt">FPT AI Factory · Tiếng Việt</option>
             <option value="google">Google Cloud TTS · Tiếng Việt</option>
           </select>
 
           <label class="field-label" for="audioVoice">Chọn giọng đọc</label>
           <select class="voice-select" id="audioVoice">
-            <option value="banmai">Ban Mai · Nữ miền Bắc (FPT)</option>
-            <option value="lannhi">Lan Nhi · Nữ miền Nam (FPT)</option>
-            <option value="leminh">Lê Minh · Nam miền Bắc (FPT)</option>
-            <option value="myan">Mỹ An · Nữ miền Trung (FPT)</option>
-            <option value="thuminh">Thu Minh · Nữ miền Bắc (FPT)</option>
-            <option value="giahuy">Gia Huy · Nam miền Trung (FPT)</option>
-            <option value="linhsan">Linh San · Nữ miền Nam (FPT)</option>
+            <option value="auto">Tự chọn giọng · FPT.TTS-ultra</option>
           </select>
 
           <label class="field-label" for="audioSpeed">Tốc độ đọc</label>
           <select class="voice-select" id="audioSpeed">
-            <option value="0">Bình thường</option>
-            <option value="-1">Chậm hơn một mức</option>
-            <option value="1">Nhanh hơn một mức</option>
-            <option value="-2">Chậm hơn hai mức</option>
-            <option value="2">Nhanh hơn hai mức</option>
+            <option value="1">Bình thường</option>
+            <option value="0.9">Chậm hơn nhẹ</option>
+            <option value="1.1">Nhanh hơn nhẹ</option>
+            <option value="0.8">Chậm</option>
+            <option value="1.2">Nhanh</option>
           </select>
 
           <div class="audio-engine-status" id="audioEngineStatus" data-state="idle" role="status" aria-live="polite">
@@ -287,7 +281,7 @@
           </div>
         </section>
       </div>
-      <p class="footer-note">Không cần Python, model hoặc máy chủ chạy trên máy tính. FPT AI và Google xử lý trên máy chủ của họ; Geed không lưu văn bản hay âm thanh vào kho dữ liệu. Mỗi nhà cung cấp cần API key riêng được lưu an toàn ở Cloudflare Worker, không đưa vào mã trình duyệt.</p>
+      <p class="footer-note">Không cần Python, model hoặc máy chủ chạy trên máy tính. FPT AI Factory tính phí theo ký tự; Google Cloud yêu cầu bật billing và có thể thu phí khi vượt mức miễn phí. Cả hai đều khóa mặc định trong Worker; chỉ bật sau khi đã có voucher hoặc giới hạn chi tiêu rõ ràng. API key luôn được giữ ở máy chủ, không đưa vào trình duyệt.</p>
     </section>
 
     <section class="workspace" id="musicWorkspace" hidden aria-labelledby="musicTitle">
