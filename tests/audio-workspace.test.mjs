@@ -168,7 +168,7 @@ test("anonymous TTS.ai Piper returns Vietnamese MP3 without an API key", async (
     const response = await worker.fetch(new Request("https://audio.test/tts", {
       method: "POST",
       headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10", "X-Turnstile-Token": "test-turnstile-token" },
-      body: JSON.stringify({ provider: "ttsdotai", text: "Xin chào Geed", voice: "vi_VN-vais1000-medium", speed: 1 })
+      body: JSON.stringify({ provider: "ttsdotai", text: "Xin chào Geed", voice: "vi_VN-vivos-x_low", speed: 1 })
     }), env);
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("content-type"), "audio/mpeg");
@@ -178,7 +178,7 @@ test("anonymous TTS.ai Piper returns Vietnamese MP3 without an API key", async (
     const payload = JSON.parse(calledOptions.body);
     assert.equal(payload.model, "piper");
     assert.equal(payload.language, "vi");
-    assert.equal(payload.voice, "vi_VN-vais1000-medium");
+    assert.equal(payload.voice, "vi_VN-vivos-x_low");
     assert.equal(payload.format, "mp3");
   } finally {
     globalThis.fetch = originalFetch;
@@ -198,9 +198,9 @@ test("anonymous TTS.ai queued jobs are polled and MP3 downloads are host-validat
       return new Response(JSON.stringify({ uuid: "job-123", status: "queued" }), { headers: { "content-type": "application/json" } });
     }
     if (target.includes("/v1/speech/results/")) {
-      return new Response(JSON.stringify({ status: "completed", result_url: "https://api.tts.ai/static/downloads/job-123/output.mp3" }), { headers: { "content-type": "application/json" } });
+      return new Response(JSON.stringify({ status: "completed", result_url: "https://cdn.tts.ai/job-123/output.mp3" }), { headers: { "content-type": "application/json" } });
     }
-    if (target === "https://api.tts.ai/static/downloads/job-123/output.mp3") {
+    if (target === "https://cdn.tts.ai/job-123/output.mp3") {
       return new Response("queued-piper-mp3", { headers: { "content-type": "audio/mpeg" } });
     }
     throw new Error("Unexpected upstream request " + target);
@@ -209,7 +209,7 @@ test("anonymous TTS.ai queued jobs are polled and MP3 downloads are host-validat
     const response = await worker.fetch(new Request("https://audio.test/tts", {
       method: "POST",
       headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10", "X-Turnstile-Token": "test-turnstile-token" },
-      body: JSON.stringify({ provider: "ttsdotai", text: "Xin chào Geed", voice: "vi_VN-vais1000-medium", speed: 1 })
+      body: JSON.stringify({ provider: "ttsdotai", text: "Xin chào Geed", voice: "vi_VN-vivos-x_low", speed: 1 })
     }), env);
     assert.equal(response.status, 200);
     assert.equal(await response.text(), "queued-piper-mp3");
@@ -227,7 +227,7 @@ test("anonymous TTS.ai enforces the 500-character per-request free limit", async
     const response = await worker.fetch(new Request("https://audio.test/tts", {
       method: "POST",
       headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10", "X-Turnstile-Token": "test-turnstile-token" },
-      body: JSON.stringify({ provider: "ttsdotai", text: "x".repeat(501), voice: "vi_VN-vais1000-medium" })
+      body: JSON.stringify({ provider: "ttsdotai", text: "x".repeat(501), voice: "vi_VN-vivos-x_low" })
     }), env);
     assert.equal(response.status, 413);
     assert.equal(upstreamCalled, false);
@@ -279,7 +279,7 @@ test("voice workspace exposes Azure Vietnamese voices and submits the selected p
   const source = await readFile(new URL("../lib/audio-workspace.mjs", import.meta.url), "utf8");
   assert.match(source, /ttsdotai:\s*\{\s*label: "Piper tiếng Việt · TTS.ai miễn phí"/);
   assert.match(source, /azure:\s*\{\s*label: "Azure Speech F0"/);
-  assert.match(source, /vi_VN-vais1000-medium/);
+  assert.match(source, /vi_VN-vivos-x_low/);
   assert.match(source, /MAX_TEXT_LENGTH = 500/);
   assert.match(source, /Object\.hasOwn\(PROVIDERS, selected\)/);
   assert.match(source, /provider: selectedProvider/);
@@ -375,7 +375,7 @@ test("TTS.ai fails closed when its dedicated shared limiter is missing", async (
   const response = await worker.fetch(new Request("https://audio.test/tts", {
     method: "POST",
     headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10", "X-Turnstile-Token": "test-turnstile-token" },
-    body: JSON.stringify({ provider: "ttsdotai", text: "Xin chào", voice: "vi_VN-vais1000-medium" })
+    body: JSON.stringify({ provider: "ttsdotai", text: "Xin chào", voice: "vi_VN-vivos-x_low" })
   }), unprotectedEnv);
   assert.equal(response.status, 503);
 });
@@ -392,7 +392,7 @@ test("TTS.ai shared limiter returns Retry-After when its location budget is exha
     const response = await worker.fetch(new Request("https://audio.test/tts", {
       method: "POST",
       headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10", "X-Turnstile-Token": "test-turnstile-token" },
-      body: JSON.stringify({ provider: "ttsdotai", text: "Xin chào", voice: "vi_VN-vais1000-medium" })
+      body: JSON.stringify({ provider: "ttsdotai", text: "Xin chào", voice: "vi_VN-vivos-x_low" })
     }), limitedEnv);
     assert.equal(response.status, 429);
     assert.equal(response.headers.get("Retry-After"), "60");
