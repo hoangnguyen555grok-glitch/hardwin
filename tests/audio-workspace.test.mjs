@@ -14,7 +14,8 @@ const env = {
   GOOGLE_TTS_API_KEY: "test-google-secret",
   AZURE_TTS_ENABLED: "true",
   AZURE_SPEECH_KEY: "test-azure-secret",
-  AZURE_SPEECH_REGION: "southeastasia"
+  AZURE_SPEECH_REGION: "southeastasia",
+  TTS_RATE_LIMITER: { limit: async () => ({ success: true }) }
 };
 
 test("status reports configured cloud providers without exposing credentials", async () => {
@@ -50,7 +51,7 @@ test("both providers stay locked unless explicit enable flags are set", async ()
   try {
     const response = await worker.fetch(new Request("https://audio.test/tts", {
       method: "POST",
-      headers: { Origin: origin, "Content-Type": "application/json" },
+      headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10" },
       body: JSON.stringify({ provider: "google", text: "Xin chào Geed", voice: "vi-VN-Standard-A", speed: 1 })
     }), lockedEnv);
     assert.equal(response.status, 503);
@@ -85,7 +86,7 @@ test("Google TTS returns MP3 bytes and keeps the API key server-side", async () 
   try {
     const response = await worker.fetch(new Request("https://audio.test/tts", {
       method: "POST",
-      headers: { Origin: origin, "Content-Type": "application/json" },
+      headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10" },
       body: JSON.stringify({ provider: "google", text: "Xin chào Geed", voice: "vi-VN-Standard-A", speed: 0 })
     }), env);
     assert.equal(response.status, 200);
@@ -116,7 +117,7 @@ test("FPT AI Factory TTS sends the configured model and returns MP3 bytes", asyn
   try {
     const response = await worker.fetch(new Request("https://audio.test/tts", {
       method: "POST",
-      headers: { Origin: origin, "Content-Type": "application/json" },
+      headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10" },
       body: JSON.stringify({ provider: "fpt", text: "Xin chào Geed", voice: "auto", speed: 1 })
     }), env);
     assert.equal(response.status, 200);
@@ -131,13 +132,13 @@ test("FPT AI Factory TTS sends the configured model and returns MP3 bytes", asyn
 test("rejects invalid Google voice IDs and text over the provider request limit", async () => {
   const badVoice = await worker.fetch(new Request("https://audio.test/tts", {
     method: "POST",
-    headers: { Origin: origin, "Content-Type": "application/json" },
+    headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10" },
     body: JSON.stringify({ provider: "google", text: "Xin chào", voice: "not-a-voice" })
   }), env);
   assert.equal(badVoice.status, 400);
   const tooLong = await worker.fetch(new Request("https://audio.test/tts", {
     method: "POST",
-    headers: { Origin: origin, "Content-Type": "application/json" },
+    headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10" },
     body: JSON.stringify({ provider: "google", text: "x".repeat(5001), voice: "vi-VN-Standard-A" })
   }), env);
   assert.equal(tooLong.status, 400);
@@ -155,7 +156,7 @@ test("Azure Speech F0 returns MP3 and safely escapes Vietnamese SSML", async () 
   try {
     const response = await worker.fetch(new Request("https://audio.test/tts", {
       method: "POST",
-      headers: { Origin: origin, "Content-Type": "application/json" },
+      headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10" },
       body: JSON.stringify({ provider: "azure", text: "Xin chào <Geed> & bạn", voice: "vi-VN-HoaiMyNeural", speed: 1.1 })
     }), env);
     assert.equal(response.status, 200);
@@ -174,7 +175,7 @@ test("Azure Speech remains locked unless explicitly enabled", async () => {
   const locked = { GEED_ALLOWED_ORIGINS: origin, AZURE_SPEECH_KEY: "present-but-disabled", AZURE_SPEECH_REGION: "southeastasia" };
   const response = await worker.fetch(new Request("https://audio.test/tts", {
     method: "POST",
-    headers: { Origin: origin, "Content-Type": "application/json" },
+    headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10" },
     body: JSON.stringify({ provider: "azure", text: "Xin chào", voice: "vi-VN-HoaiMyNeural" })
   }), locked);
   assert.equal(response.status, 503);
@@ -200,4 +201,45 @@ test("generated TTS handoff imports a real audio file into the editor timeline p
   assert.match(editor, /makeObject\('audio',\{name:file\.name,dataUrl:reader\.result,audioStartFrame:frame,inFrame:frame,outFrame:MAX,volume:\.8\}\)/);
   assert.match(editor, /function syncAudioPlayback\(force=false\)/);
   assert.match(editor, /audioPlayers\.forEach\(p=>p\.pause\(\)\)/);
+});
+
+
+test("TTS fails closed when the Cloudflare rate-limit binding is missing", async () => {
+  const { TTS_RATE_LIMITER, ...unprotectedEnv } = env;
+  const response = await worker.fetch(new Request("https://audio.test/tts", {
+    method: "POST",
+    headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10" },
+    body: JSON.stringify({ provider: "azure", text: "Xin chào", voice: "vi-VN-HoaiMyNeural" })
+  }), unprotectedEnv);
+  assert.equal(response.status, 503);
+});
+
+test("TTS rate limits each client IP and returns Retry-After", async () => {
+  const limitedEnv = { ...env, TTS_RATE_LIMITER: { limit: async ({ key }) => {
+    assert.equal(key, "203.0.113.10");
+    return { success: false };
+  } } };
+  const response = await worker.fetch(new Request("https://audio.test/tts", {
+    method: "POST",
+    headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10" },
+    body: JSON.stringify({ provider: "azure", text: "Xin chào", voice: "vi-VN-HoaiMyNeural" })
+  }), limitedEnv);
+  assert.equal(response.status, 429);
+  assert.equal(response.headers.get("Retry-After"), "60");
+});
+
+test("TTS rejects non-JSON and oversized requests before provider access", async () => {
+  const wrongType = await worker.fetch(new Request("https://audio.test/tts", {
+    method: "POST",
+    headers: { Origin: origin, "Content-Type": "text/plain", "CF-Connecting-IP": "203.0.113.10" },
+    body: "Xin chào"
+  }), env);
+  assert.equal(wrongType.status, 415);
+
+  const oversized = await worker.fetch(new Request("https://audio.test/tts", {
+    method: "POST",
+    headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10" },
+    body: JSON.stringify({ provider: "azure", text: "x".repeat(25000), voice: "vi-VN-HoaiMyNeural" })
+  }), env);
+  assert.equal(oversized.status, 413);
 });
