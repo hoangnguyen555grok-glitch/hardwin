@@ -10,7 +10,7 @@ const env = {
   FPT_TTS_API_URL: "https://fpt.example/tts",
   FPT_TTS_MODEL: "FPT.TTS-ultra",
   GOOGLE_TTS_ENABLED: "true",
-  GOOGLE_TTS_API_KEY: "test-google-secret"
+  GOOGLE_TTS_API_KEY: "test-google-secret",\n  AZURE_TTS_ENABLED: "true",\n  AZURE_SPEECH_KEY: "test-azure-secret",\n  AZURE_SPEECH_REGION: "southeastasia"
 };
 
 test("status reports configured cloud providers without exposing credentials", async () => {
@@ -19,9 +19,9 @@ test("status reports configured cloud providers without exposing credentials", a
   }), env);
   const body = await response.json();
   assert.equal(response.status, 200);
-  assert.deepEqual(body.providers, { fpt: true, google: true });
+  assert.deepEqual(body.providers, { fpt: true, google: true, azure: true });
   assert.equal(JSON.stringify(body).includes("test-fpt-secret"), false);
-  assert.equal(JSON.stringify(body).includes("test-google-secret"), false);
+  assert.equal(JSON.stringify(body).includes("test-google-secret"), false);\n  assert.equal(JSON.stringify(body).includes("test-azure-secret"), false);
   assert.equal(response.headers.get("Access-Control-Allow-Origin"), origin);
 });
 
@@ -37,7 +37,7 @@ test("both providers stay locked unless explicit enable flags are set", async ()
     headers: { Origin: origin }
   }), lockedEnv);
   const status = await statusResponse.json();
-  assert.deepEqual(status.providers, { fpt: false, google: false });
+  assert.deepEqual(status.providers, { fpt: false, google: false, azure: false });
 
   const originalFetch = globalThis.fetch;
   let called = false;
@@ -136,4 +136,41 @@ test("rejects invalid Google voice IDs and text over the provider request limit"
     body: JSON.stringify({ provider: "google", text: "x".repeat(5001), voice: "vi-VN-Standard-A" })
   }), env);
   assert.equal(tooLong.status, 400);
+});
+
+test("Azure Speech F0 returns MP3 and safely escapes Vietnamese SSML", async () => {
+  const originalFetch = globalThis.fetch;
+  let calledUrl = "";
+  let calledOptions = {};
+  globalThis.fetch = async (url, options = {}) => {
+    calledUrl = String(url);
+    calledOptions = options;
+    return new Response("azure-mp3", { headers: { "content-type": "audio/mpeg" } });
+  };
+  try {
+    const response = await worker.fetch(new Request("https://audio.test/tts", {
+      method: "POST",
+      headers: { Origin: origin, "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: "azure", text: "Xin chào <Geed> & bạn", voice: "vi-VN-HoaiMyNeural", speed: 1.1 })
+    }), env);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("content-type"), "audio/mpeg");
+    assert.equal(await response.text(), "azure-mp3");
+    assert.equal(calledUrl, "https://southeastasia.tts.speech.microsoft.com/cognitiveservices/v1");
+    assert.equal(calledOptions.headers["Ocp-Apim-Subscription-Key"], "test-azure-secret");
+    assert.match(calledOptions.body, /Xin chào &lt;Geed&gt; &amp; bạn/);
+    assert.match(calledOptions.body, /rate="+10%"/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("Azure Speech remains locked unless explicitly enabled", async () => {
+  const locked = { GEED_ALLOWED_ORIGINS: origin, AZURE_SPEECH_KEY: "present-but-disabled", AZURE_SPEECH_REGION: "southeastasia" };
+  const response = await worker.fetch(new Request("https://audio.test/tts", {
+    method: "POST",
+    headers: { Origin: origin, "Content-Type": "application/json" },
+    body: JSON.stringify({ provider: "azure", text: "Xin chào", voice: "vi-VN-HoaiMyNeural" })
+  }), locked);
+  assert.equal(response.status, 503);
 });
