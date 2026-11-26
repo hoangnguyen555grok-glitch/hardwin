@@ -23,7 +23,7 @@ function withCors(response, origin) {
     headers.set("Access-Control-Allow-Origin", origin);
     headers.set("Vary", "Origin");
     headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    headers.set("Access-Control-Allow-Headers", "Content-Type");
+    headers.set("Access-Control-Allow-Headers", "Content-Type, X-Turnstile-Token");
     headers.set("Access-Control-Max-Age", "86400");
   }
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
@@ -31,6 +31,25 @@ function withCors(response, origin) {
 
 function errorResponse(message, status = 400, headers = {}) {
   return json({ error: message }, status, headers);
+}
+
+async function verifyTurnstile(token, clientIp, env) {
+  if (!env.TURNSTILE_SECRET_KEY || !token || token.length > 2048) return false;
+  const form = new FormData();
+  form.append("secret", env.TURNSTILE_SECRET_KEY);
+  form.append("response", token);
+  form.append("remoteip", clientIp);
+  try {
+    const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      body: form
+    });
+    const result = await response.json().catch(() => ({}));
+    return response.ok && result.success === true &&
+      result.hostname === "geed-hardwin.vercel.app" && result.action === "tts";
+  } catch {
+    return false;
+  }
 }
 
 async function fetchFpt(text, voice, speed, env) {
@@ -142,7 +161,8 @@ export default {
           azure: env.AZURE_TTS_ENABLED === "true" && Boolean(env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION)
         },
         maxCharacters: 5000,
-        outputFormat: "mp3"
+        outputFormat: "mp3",
+        security: { turnstileRequired: Boolean(env.TURNSTILE_SECRET_KEY), rateLimitRequired: true }
       }), origin);
     }
     if (request.method !== "POST" || url.pathname !== "/tts") {
@@ -199,6 +219,11 @@ export default {
       if (provider === "google" && !GOOGLE_VOICES.has(voice)) return withCors(errorResponse("Giọng Google không hợp lệ."), origin);
       if (provider === "azure" && !AZURE_VOICES.has(voice)) return withCors(errorResponse("Giọng Azure không hợp lệ."), origin);
       if (provider === "azure" && !(env.AZURE_TTS_ENABLED === "true" && env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION)) return withCors(errorResponse("Azure Speech đang khóa hoặc chưa cấu hình tài nguyên F0.", 503), origin);
+
+      const turnstileToken = request.headers.get("X-Turnstile-Token") || "";
+      if (!await verifyTurnstile(turnstileToken, clientIp, env)) {
+        return withCors(errorResponse("Không xác minh được yêu cầu bảo mật. Hãy tải lại trang và thử lại.", 403), origin);
+      }
 
       const audio = provider === "fpt"
         ? await fetchFpt(text, voice, speed, env)
