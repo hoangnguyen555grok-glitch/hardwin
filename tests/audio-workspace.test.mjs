@@ -18,6 +18,7 @@ const env = {
   TTSAI_TTS_ENABLED: "true",
   TURNSTILE_SECRET_KEY: "test-turnstile-secret",
   TTS_RATE_LIMITER: { limit: async () => ({ success: true }) },
+  TTSAI_RATE_LIMITER: { limit: async () => ({ success: true }) },
   AZURE_F0_RATE_LIMITER: { limit: async () => ({ success: true }) }
 };
 
@@ -364,10 +365,42 @@ test("TTS requires a verified Turnstile token with the expected hostname and act
 test("status advertises that Turnstile and rate limiting are required without exposing secrets", async () => {
   const response = await worker.fetch(new Request("https://audio.test/status", { headers: { Origin: origin } }), env);
   const body = await response.json();
-  assert.deepEqual(body.security, { turnstileRequired: true, rateLimitRequired: true, rateLimitBindingAvailable: true, azureF0RateLimitBindingAvailable: true });
+  assert.deepEqual(body.security, { turnstileRequired: true, rateLimitRequired: true, rateLimitBindingAvailable: true, azureF0RateLimitBindingAvailable: true, ttsAiRateLimitBindingAvailable: true });
   assert.equal(JSON.stringify(body).includes("test-turnstile-secret"), false);
 });
 
+
+test("TTS.ai fails closed when its dedicated shared limiter is missing", async () => {
+  const { TTSAI_RATE_LIMITER, ...unprotectedEnv } = env;
+  const response = await worker.fetch(new Request("https://audio.test/tts", {
+    method: "POST",
+    headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10", "X-Turnstile-Token": "test-turnstile-token" },
+    body: JSON.stringify({ provider: "ttsdotai", text: "Xin chào", voice: "vi_VN-vais1000-medium" })
+  }), unprotectedEnv);
+  assert.equal(response.status, 503);
+});
+
+test("TTS.ai shared limiter returns Retry-After when its location budget is exhausted", async () => {
+  const limitedEnv = { ...env, TTSAI_RATE_LIMITER: { limit: async ({ key }) => {
+    assert.equal(key, "ttsai-free-anonymous");
+    return { success: false };
+  } } };
+  const originalFetch = globalThis.fetch;
+  let upstreamCalled = false;
+  globalThis.fetch = async () => { upstreamCalled = true; throw new Error("must not call upstream"); };
+  try {
+    const response = await worker.fetch(new Request("https://audio.test/tts", {
+      method: "POST",
+      headers: { Origin: origin, "Content-Type": "application/json", "CF-Connecting-IP": "203.0.113.10", "X-Turnstile-Token": "test-turnstile-token" },
+      body: JSON.stringify({ provider: "ttsdotai", text: "Xin chào", voice: "vi_VN-vais1000-medium" })
+    }), limitedEnv);
+    assert.equal(response.status, 429);
+    assert.equal(response.headers.get("Retry-After"), "60");
+    assert.equal(upstreamCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test("Azure F0 fails closed when its dedicated limiter is missing", async () => {
   const { AZURE_F0_RATE_LIMITER, ...unprotectedEnv } = env;
