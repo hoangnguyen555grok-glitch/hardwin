@@ -4,9 +4,14 @@ This integration adds FPT AI Factory and Google Cloud Text-to-Speech through the
 
 ## Safety defaults
 
-The Worker is deployed but closed by default:
-- `GEED_ALLOWED_ORIGINS` is empty, so browser requests are rejected.
-- `FPT_TTS_ENABLED` and `GOOGLE_TTS_ENABLED` must be explicitly set to the literal string `true`.
+The Worker is deployed but provider generation is closed by default:
+- `GEED_ALLOWED_ORIGINS` allows only `https://geed-hardwin.vercel.app`; requests from other browser origins are rejected.
+- Azure, FPT, and Google provider flags must each be explicitly set to the literal string `true`.
+- Every generation request must pass Cloudflare Turnstile Siteverify with the expected hostname and `tts` action.
+- Every generation request must pass the Cloudflare `TTS_RATE_LIMITER` binding. The binding is configured for 4 requests per client IP per 60 seconds; if the binding or client IP is missing, the Worker fails closed.
+- Request bodies are limited to 24,000 bytes and JSON only; the text itself is limited to 5,000 characters.
+- Provider errors are sanitized before they are returned to the browser; credentials and upstream diagnostics are not exposed.
+- Cloudflare's Rate Limiting API is location-local and best-effort, not a strict global counter. Turnstile and per-IP limiting reduce abuse but do not replace monitoring of Azure F0 quota.
 - Provider credentials are Worker secrets only. Never put API keys in `audio.html`, browser storage, GitHub, or chat.
 - No provider request is made until the user presses **Tạo giọng nói**.
 - Generated audio is streamed to the browser; the Worker does not save it to R2, KV, D1, Supabase, or Notion.
@@ -52,8 +57,14 @@ Worker URL: `https://geed-audio-tts.geed-hardwin.workers.dev`
 The deployed Worker currently allows exactly `https://geed-hardwin.vercel.app` through `GEED_ALLOWED_ORIGINS`. This must match the browser origin exactly (scheme + hostname + optional port; no path). Do not add `*`.
 
 Required secret names:
-- `FPT_TTS_API_KEY`
-- `GOOGLE_TTS_API_KEY`
+- `TURNSTILE_SECRET_KEY` — server-side Turnstile secret; never expose it in the browser.
+- `AZURE_SPEECH_KEY` — only when Azure F0 is intentionally enabled.
+- `FPT_TTS_API_KEY` — only when FPT is intentionally enabled.
+- `GOOGLE_TTS_API_KEY` — only when Google is intentionally enabled.
+
+Public frontend Turnstile sitekey: `0x4AAAAAAGT9EV5DiOxVQMlW` (restricted to `geed-hardwin.vercel.app`).
+
+The Worker also requires the Cloudflare Rate Limiting binding `TTS_RATE_LIMITER`. Its deployment metadata uses namespace ID `2026112601` and a threshold of 4 requests per 60 seconds per client IP. Keep the binding attached; the Worker intentionally rejects TTS requests when it is missing.
 
 Required variables:
 - `GEED_ALLOWED_ORIGINS`
@@ -61,6 +72,8 @@ Required variables:
 - `FPT_TTS_API_URL`
 - `FPT_TTS_MODEL`
 - `GOOGLE_TTS_ENABLED` (default false)
+- `AZURE_TTS_ENABLED` (default false)
+- `AZURE_SPEECH_REGION` (only when Azure is intentionally enabled)
 
 ## Audio handoff
 
