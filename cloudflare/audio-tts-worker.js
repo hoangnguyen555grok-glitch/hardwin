@@ -95,6 +95,18 @@ function decodeBase64(value) {
 }
 
 
+function detectAudioContentType(buffer, declaredType = "") {
+  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+  if (bytes.length >= 12 &&
+      bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+      bytes[8] === 0x57 && bytes[9] === 0x41 && bytes[10] === 0x56 && bytes[11] === 0x45) {
+    return "audio/wav";
+  }
+  if (bytes.length >= 3 && bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) return "audio/mpeg";
+  if (bytes.length >= 2 && bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) return "audio/mpeg";
+  return declaredType.startsWith("audio/") ? declaredType : "";
+}
+
 async function fetchTtsAi(text, voice, speed) {
   if (text.length > 500) throw new Error("Gói TTS.ai miễn phí ẩn danh giới hạn 500 ký tự mỗi lượt. Hãy tách lời thoại thành các đoạn ngắn.");
   const selectedVoice = TTSAI_VOICES.has(voice) ? voice : "vi_VN-vais1000-medium";
@@ -114,7 +126,9 @@ async function fetchTtsAi(text, voice, speed) {
   if (contentType.startsWith("audio/") || contentType === "application/octet-stream") {
     const bytes = await response.arrayBuffer();
     if (!bytes.byteLength) throw new Error("TTS.ai trả về file âm thanh rỗng.");
-    return new Response(bytes, { status: 200, headers: { "content-type": "audio/mpeg", "cache-control": "no-store" } });
+    const detectedType = detectAudioContentType(bytes, contentType);
+    if (!detectedType) throw new Error("TTS.ai trả về định dạng âm thanh không nhận diện được.");
+    return new Response(bytes, { status: 200, headers: { "content-type": detectedType, "cache-control": "no-store" } });
   }
   const job = await response.json().catch(() => ({}));
   if (!job.uuid) throw new Error("TTS.ai không trả về MP3 hoặc mã tác vụ hợp lệ.");
@@ -133,7 +147,9 @@ async function fetchTtsAi(text, voice, speed) {
       if (!download.ok) throw new Error("Không tải được MP3 đã tạo từ TTS.ai (HTTP " + download.status + ").");
       const bytes = await download.arrayBuffer();
       if (!bytes.byteLength) throw new Error("TTS.ai trả về file âm thanh rỗng.");
-      return new Response(bytes, { status: 200, headers: { "content-type": "audio/mpeg", "cache-control": "no-store" } });
+      const detectedType = detectAudioContentType(bytes, download.headers.get("content-type") || "");
+      if (!detectedType) throw new Error("TTS.ai trả về định dạng âm thanh không nhận diện được.");
+      return new Response(bytes, { status: 200, headers: { "content-type": detectedType, "cache-control": "no-store" } });
     }
   }
   throw new Error("TTS.ai xử lý quá lâu. Hãy thử lại với một đoạn văn ngắn hơn.");
