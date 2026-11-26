@@ -275,6 +275,6 @@ test("TTS requires a verified Turnstile token with the expected hostname and act
 test("status advertises that Turnstile and rate limiting are required without exposing secrets", async () => {
   const response = await worker.fetch(new Request("https://audio.test/status", { headers: { Origin: origin } }), env);
   const body = await response.json();
-  assert.deepEqual(body.security, { turnstileRequired: true, rateLimitRequired: true });
+  assert.deepEqual(body.security, { turnstileRequired: true, rateLimitRequired: true, rateLimitBindingAvailable: true });
   assert.equal(JSON.stringify(body).includes("test-turnstile-secret"), false);
 });
