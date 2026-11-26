@@ -15,6 +15,10 @@ on:
       - "lib/ai-agent.js"
       - "lib/supabase-*.js"
       - "index.html"
+      - "audio.html"
+      - "audio-engine/**"
+      - "lib/audio-workspace.mjs"
+      - "lib/tts-handoff.mjs"
       - "library.html"
       - "lib/community-library.js"
       - "assets/community-library.json"
@@ -56,8 +60,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
       - name: Run account, AI and community integration tests
-        run: node --test tests/*.test.js
+        run: node --test tests/*.test.js tests/*.test.mjs
       - name: Syntax-check server and browser modules
         run: |
           node --check api/ai/chat.js
@@ -71,3 +78,7 @@ jobs:
           node --check lib/supabase-ai-gateway.js
           node --input-type=module --check < lib/supabase-auth.js
           node --check lib/community-library.js
+          node --check lib/audio-workspace.mjs
+          node --check lib/tts-handoff.mjs
+      - name: Syntax-check local TTS gateway
+        run: python -m py_compile audio-engine/server.py
