@@ -85,7 +85,8 @@ test("Google TTS returns MP3 bytes and keeps the API key server-side", async () 
     assert.equal(response.headers.get("content-type"), "audio/mpeg");
     assert.equal(await response.text(), "mp3-data");
     assert.match(calledUrl, /texttospeech\.googleapis\.com/);
-    assert.equal(calledUrl.includes("test-google-secret"), true);
+    assert.equal(calledUrl.includes("test-google-secret"), false);
+    assert.equal(options.headers["x-goog-api-key"], "test-google-secret");
   } finally {
     globalThis.fetch = originalFetch;
   }
