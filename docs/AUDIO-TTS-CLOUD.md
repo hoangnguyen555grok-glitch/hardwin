@@ -1,6 +1,6 @@
 # Geed Hardwin — Cloud TTS setup
 
-This integration adds FPT AI Factory and Google Cloud Text-to-Speech through the Cloudflare Worker `geed-audio-tts`.
+This integration adds Azure Speech F0, FPT AI Factory, and Google Cloud Text-to-Speech through the Cloudflare Worker `geed-audio-tts`.
 
 ## Safety defaults
 
