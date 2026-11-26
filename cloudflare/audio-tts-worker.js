@@ -40,6 +40,7 @@ async function fetchFpt(text, voice, speed, env) {
     response_format: "mp3"
   };
   if (voice && voice !== "auto") payload.voice = voice;
+  else if (env.FPT_TTS_DEFAULT_VOICE) payload.voice = env.FPT_TTS_DEFAULT_VOICE;
   const response = await fetch(endpoint.toString(), {
     method: "POST",
     headers: {
