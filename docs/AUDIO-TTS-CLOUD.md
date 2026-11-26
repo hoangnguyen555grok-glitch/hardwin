@@ -26,7 +26,7 @@ Geed uses the anonymous TTS.ai API with the open-source Piper model for Vietname
 - 500 characters per request.
 - 10 requests per minute and 2 concurrent requests.
 - Free models include Piper, VITS, MeloTTS and Kokoro; the API selects or accepts the Piper model for Vietnamese.
-- Geed currently selects the official Piper Vietnamese voice ID `vi_VN-vais1000-medium` (Vais1000, female).
+- Geed currently selects the Piper Vietnamese voice ID `vi_VN-vivos-x_low` (VIVOS; the live TTS.ai voice catalog reports neutral gender).
 
 API:
 - Voice catalog: `GET https://api.tts.ai/v1/voices/?model=piper&language=vi`
