@@ -1,7 +1,7 @@
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
 const GOOGLE_VOICES = new Set(["vi-VN-Standard-A", "vi-VN-Standard-B", "vi-VN-Standard-C", "vi-VN-Standard-D"]);
 const AZURE_VOICES = new Set(["vi-VN-HoaiMyNeural", "vi-VN-NamMinhNeural"]);
-const TTSAI_VOICES = new Set(["vi_VN-vais1000-medium"]);
+const TTSAI_VOICES = new Set(["vi_VN-vivos-x_low"]);
 const MAX_REQUEST_BYTES = 24000;
 const RATE_LIMIT_WINDOW = 60;
 function xmlEscape(value) {
@@ -128,7 +128,7 @@ async function fetchTtsAi(text, voice, speed) {
     if (result.status === "failed") throw new Error("TTS.ai không thể hoàn tất tác vụ tổng hợp.");
     if (result.status === "completed" && result.result_url) {
       const resultUrl = new URL(result.result_url);
-      if (resultUrl.origin !== "https://api.tts.ai") throw new Error("TTS.ai trả về địa chỉ tải âm thanh không hợp lệ.");
+      if (!["https://api.tts.ai", "https://cdn.tts.ai"].includes(resultUrl.origin)) throw new Error("TTS.ai trả về địa chỉ tải âm thanh không hợp lệ.");
       const download = await fetch(resultUrl.toString(), { headers: { "Accept": "audio/mpeg" } });
       if (!download.ok) throw new Error("Không tải được MP3 đã tạo từ TTS.ai (HTTP " + download.status + ").");
       const bytes = await download.arrayBuffer();
