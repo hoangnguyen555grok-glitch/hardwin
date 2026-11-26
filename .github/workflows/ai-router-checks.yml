@@ -15,6 +15,12 @@ on:
       - "lib/ai-agent.js"
       - "lib/supabase-*.js"
       - "index.html"
+      - "audio.html"
+      - "lib/audio-workspace.mjs"
+      - "cloudflare/audio-tts-worker.js"
+      - "docs/AUDIO-TTS-CLOUD.md"
+      - "tests/audio-workspace.test.mjs"
+      - "lib/tts-handoff.mjs"
       - "library.html"
       - "lib/community-library.js"
       - "assets/community-library.json"
@@ -35,6 +41,11 @@ on:
       - "lib/ai-router.js"
       - "lib/supabase-*.js"
       - "index.html"
+      - "audio.html"
+      - "lib/audio-workspace.mjs"
+      - "lib/tts-handoff.mjs"
+      - "cloudflare/audio-tts-worker.js"
+      - "tests/audio-workspace.test.mjs"
       - "library.html"
       - "lib/community-library.js"
       - "assets/community-library.json"
@@ -57,7 +68,7 @@ jobs:
         with:
           node-version: "22"
       - name: Run account, AI and community integration tests
-        run: node --test tests/*.test.js
+        run: node --test tests/*.test.js tests/*.test.mjs
       - name: Syntax-check server and browser modules
         run: |
           node --check api/ai/chat.js
@@ -71,3 +82,6 @@ jobs:
           node --check lib/supabase-ai-gateway.js
           node --input-type=module --check < lib/supabase-auth.js
           node --check lib/community-library.js
+          node --check lib/audio-workspace.mjs
+          node --check lib/tts-handoff.mjs
+          node --check cloudflare/audio-tts-worker.js
