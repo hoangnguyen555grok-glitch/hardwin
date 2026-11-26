@@ -49,7 +49,7 @@ Worker name: `geed-audio-tts`
 
 Worker URL: `https://geed-audio-tts.geed-hardwin.workers.dev`
 
-Set `GEED_ALLOWED_ORIGINS` to the exact HTTPS origin serving Geed (scheme + hostname + optional port; no path). Do not use `*`.
+The deployed Worker currently allows exactly `https://geed-hardwin.vercel.app` through `GEED_ALLOWED_ORIGINS`. This must match the browser origin exactly (scheme + hostname + optional port; no path). Do not add `*`.
 
 Required secret names:
 - `FPT_TTS_API_KEY`
