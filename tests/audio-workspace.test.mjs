@@ -65,8 +65,10 @@ test("rejects requests from origins outside the explicit allowlist", async () =>
 test("Google TTS returns MP3 bytes and keeps the API key server-side", async () => {
   const originalFetch = globalThis.fetch;
   let calledUrl = "";
+  let calledHeaders = {};
   globalThis.fetch = async (url, options) => {
     calledUrl = String(url);
+    calledHeaders = options.headers;
     assert.equal(options.method, "POST");
     const body = JSON.parse(options.body);
     assert.equal(body.voice.name, "vi-VN-Standard-A");
@@ -86,7 +88,7 @@ test("Google TTS returns MP3 bytes and keeps the API key server-side", async () 
     assert.equal(await response.text(), "mp3-data");
     assert.match(calledUrl, /texttospeech\.googleapis\.com/);
     assert.equal(calledUrl.includes("test-google-secret"), false);
-    assert.equal(options.headers["x-goog-api-key"], "test-google-secret");
+    assert.equal(calledHeaders["x-goog-api-key"], "test-google-secret");
   } finally {
     globalThis.fetch = originalFetch;
   }
