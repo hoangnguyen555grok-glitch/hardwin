@@ -1,6 +1,8 @@
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
 const GOOGLE_VOICES = new Set(["vi-VN-Standard-A", "vi-VN-Standard-B", "vi-VN-Standard-C", "vi-VN-Standard-D"]);
 const AZURE_VOICES = new Set(["vi-VN-HoaiMyNeural", "vi-VN-NamMinhNeural"]);
+const MAX_REQUEST_BYTES = 24000;
+const RATE_LIMIT_WINDOW = 60;
 function xmlEscape(value) {
   return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 }
@@ -146,12 +148,45 @@ export default {
     if (request.method !== "POST" || url.pathname !== "/tts") {
       return withCors(errorResponse("Không tìm thấy endpoint.", 404), origin);
     }
+
+    // Fail closed if the Cloudflare rate-limit binding is missing.
+    const clientIp = request.headers.get("CF-Connecting-IP");
+    if (!clientIp || !env.TTS_RATE_LIMITER || typeof env.TTS_RATE_LIMITER.limit !== "function") {
+      return withCors(errorResponse("Dịch vụ TTS chưa có lớp bảo vệ lưu lượng. Vui lòng thử lại sau.", 503), origin);
+    }
+    try {
+      const { success } = await env.TTS_RATE_LIMITER.limit({ key: clientIp });
+      if (!success) return withCors(errorResponse("Bạn đã gửi quá nhiều yêu cầu. Vui lòng đợi một phút rồi thử lại.", 429, {
+        "Retry-After": String(RATE_LIMIT_WINDOW)
+      }), origin);
+    } catch {
+      return withCors(errorResponse("Không xác minh được giới hạn lưu lượng. Yêu cầu đã bị chặn an toàn.", 503), origin);
+    }
+
+    const contentType = request.headers.get("Content-Type") || "";
+    if (!contentType.toLowerCase().startsWith("application/json")) {
+      return withCors(errorResponse("Chỉ chấp nhận yêu cầu JSON.", 415), origin);
+    }
+    const declaredLength = Number(request.headers.get("Content-Length") || 0);
+    if (declaredLength > MAX_REQUEST_BYTES) {
+      return withCors(errorResponse("Yêu cầu vượt quá dung lượng cho phép.", 413), origin);
+    }
+
     if (!(env.FPT_TTS_ENABLED === "true" && env.FPT_TTS_API_KEY && env.FPT_TTS_API_URL && env.FPT_TTS_MODEL) && !(env.GOOGLE_TTS_ENABLED === "true" && env.GOOGLE_TTS_API_KEY) && !(env.AZURE_TTS_ENABLED === "true" && env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION)) {
       return withCors(errorResponse("Chưa bật nhà cung cấp nào. Azure, FPT và Google đều khóa mặc định cho đến khi chủ dự án cấu hình rõ ràng.", 503), origin);
     }
 
     try {
-      const body = await request.json();
+      const rawBody = await request.text();
+      if (new TextEncoder().encode(rawBody).byteLength > MAX_REQUEST_BYTES) {
+        return withCors(errorResponse("Yêu cầu vượt quá dung lượng cho phép.", 413), origin);
+      }
+      let body;
+      try { body = JSON.parse(rawBody); }
+      catch { return withCors(errorResponse("Dữ liệu JSON không hợp lệ."), origin); }
+      if (!body || typeof body !== "object" || Array.isArray(body)) {
+        return withCors(errorResponse("Dữ liệu yêu cầu không hợp lệ."), origin);
+      }
       const provider = ["fpt", "google", "azure"].includes(body?.provider) ? body.provider : null;
       const text = typeof body?.text === "string" ? body.text.trim() : "";
       const voice = typeof body?.voice === "string" ? body.voice : "";
@@ -176,7 +211,8 @@ export default {
       headers.set("X-Content-Type-Options", "nosniff");
       return new Response(audio.body, { status: audio.status, headers });
     } catch (error) {
-      return withCors(errorResponse(error?.message || "Lỗi tổng hợp giọng nói.", 502), origin);
+      // Never return upstream provider details or credential-related diagnostics to browsers.
+      return withCors(errorResponse("Nhà cung cấp giọng nói chưa thể xử lý yêu cầu. Vui lòng thử lại sau.", 502), origin);
     }
   }
 };
