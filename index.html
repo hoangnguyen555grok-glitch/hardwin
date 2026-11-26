@@ -2513,7 +2513,7 @@ async function consumeGeneratedAudioHandoff(){
  try{transferId=sessionStorage.getItem('geedTtsAudioHandoff')}catch{return}
  if(!transferId)return;
  try{
-  const {takeGeneratedAudio}=await import('/lib/tts-handoff.js');
+  const {takeGeneratedAudio}=await import('/lib/tts-handoff.mjs');
   const file=await takeGeneratedAudio(transferId);
   if(!file)throw new Error('Không tìm thấy file giọng nói vừa tạo trong trình duyệt.');
   const input=$('audioInput');
