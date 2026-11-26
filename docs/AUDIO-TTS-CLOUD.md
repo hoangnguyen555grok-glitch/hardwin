@@ -31,8 +31,8 @@ Geed uses the anonymous TTS.ai API with the open-source Piper model for Vietname
 API:
 - Voice catalog: `GET https://api.tts.ai/v1/voices/?model=piper&language=vi`
 - Synthesis: `POST https://api.tts.ai/v1/tts/`
-- Body: `{"model":"piper","language":"vi","text":"...","voice":"vi_VN-vais1000-medium","format":"mp3","speed":1}`
-- Anonymous calls omit Authorization. The API may return MP3 bytes directly or a queued job UUID; Geed handles both and validates the final download host before returning MP3 to the browser.
+- Body: `{"model":"piper","language":"vi","text":"...","voice":"vi_VN-vivos-x_low","format":"mp3","speed":1}`
+- Anonymous calls omit Authorization. The API may return binary audio directly or a queued job UUID; Geed handles both and validates the final download host. The live API currently labels a RIFF/WAVE payload as `audio/mpeg` and uses a `.mp3` URL; the Worker inspects the RIFF/WAVE signature and correctly returns it as `audio/wav`. The browser names the file `.wav` and labels the player accordingly. If the service returns genuine MP3 bytes later, Geed keeps `audio/mpeg` and `.mp3`.
 
 Important limits and use conditions:
 - The 5,000-character daily quota is per source IP, not a guaranteed project-wide allowance. Cloudflare Worker egress may be shared; actual usable daily capacity can be lower if the upstream groups requests by egress IP.
@@ -111,7 +111,7 @@ Required variables:
 
 ## Audio handoff
 
-The Worker returns MP3 bytes directly. The browser creates an object URL for preview/download and temporarily stores the generated Blob in the existing one-time IndexedDB handoff. The editor consumes and deletes that record, then imports the file through its existing audio input to create a normal Audio track.
+The Worker returns the detected audio container (WAV or MP3). The browser creates an object URL for preview/download and temporarily stores the generated Blob in the existing one-time IndexedDB handoff. The editor consumes and deletes that record, then imports the file through its existing audio input to create a normal Audio track.
 
 No speech model, Python runtime, local server, or large model download is required on the user's computer.
 
