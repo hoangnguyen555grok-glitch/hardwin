@@ -163,7 +163,7 @@ test("Azure Speech F0 returns MP3 and safely escapes Vietnamese SSML", async () 
     assert.equal(calledUrl, "https://southeastasia.tts.speech.microsoft.com/cognitiveservices/v1");
     assert.equal(calledOptions.headers["Ocp-Apim-Subscription-Key"], "test-azure-secret");
     assert.match(calledOptions.body, /Xin chào &lt;Geed&gt; &amp; bạn/);
-    assert.match(calledOptions.body, /rate="+10%"/);
+    assert.match(calledOptions.body, /rate="\+10%"/);
   } finally {
     globalThis.fetch = originalFetch;
   }
