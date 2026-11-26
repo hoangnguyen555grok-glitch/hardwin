@@ -39,6 +39,7 @@ test("live TTS.ai anonymous Vietnamese Piper smoke test", { skip: !enabled }, as
   assert.equal(submit.ok, true, "Anonymous TTS.ai synthesis should be accepted");
   const type = submit.headers.get("content-type") || "";
   let audio;
+  let audioContentType = type;
   if (type.startsWith("audio/") || type === "application/octet-stream") {
     audio = new Uint8Array(await submit.arrayBuffer());
   } else {
@@ -61,13 +62,15 @@ test("live TTS.ai anonymous Vietnamese Piper smoke test", { skip: !enabled }, as
     const resultUrl = new URL(result.result_url);
     assert.ok(["https://api.tts.ai", "https://cdn.tts.ai"].includes(resultUrl.origin), "Audio must be hosted on a TTS.ai-controlled origin");
     const download = await fetch(resultUrl);
-    assert.equal(download.ok, true, "Generated MP3 should be downloadable");
+    assert.equal(download.ok, true, "Generated audio should be downloadable");
+    audioContentType = download.headers.get("content-type") || "";
     audio = new Uint8Array(await download.arrayBuffer());
   }
   assert.ok(audio?.byteLength > 100, "TTS.ai should return non-empty audio bytes");
   console.log("AUDIO_SMOKE_OK", JSON.stringify({
     voice: preferred.id,
+    contentType: audioContentType,
     bytes: audio.byteLength,
-    header: Array.from(audio.slice(0, 4))
+    header: Array.from(audio.slice(0, 12))
   }));
 });
