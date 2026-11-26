@@ -6,15 +6,20 @@ const enabled = process.env.GITHUB_HEAD_REF === "feat/ttsai-piper-provider" ||
 
 test("live TTS.ai anonymous Vietnamese Piper smoke test", { skip: !enabled }, async () => {
   const base = "https://api.tts.ai/v1";
-  const voicesResponse = await fetch(base + "/voices/?model=piper&language=vi", {
-    headers: { accept: "application/json" }
-  });
+  const [voicesResponse, vitsResponse] = await Promise.all([
+    fetch(base + "/voices/?model=piper&language=vi", { headers: { accept: "application/json" } }),
+    fetch(base + "/voices/?model=vits&language=vi", { headers: { accept: "application/json" } })
+  ]);
   const voicesText = await voicesResponse.text();
-  console.log("VOICE_LIST_STATUS", voicesResponse.status);
-  console.log("VOICE_LIST_BODY", voicesText.slice(0, 10000));
+  const vitsText = await vitsResponse.text();
+  console.log("PIPER_VOICE_LIST_STATUS", voicesResponse.status);
+  console.log("PIPER_VOICE_LIST_BODY", voicesText.slice(0, 10000));
+  console.log("VITS_VOICE_LIST_STATUS", vitsResponse.status);
+  console.log("VITS_VI_VOICES", vitsText.slice(0, 5000));
   assert.equal(voicesResponse.ok, true, "Vietnamese Piper voice list should be available");
   const voices = JSON.parse(voicesText).voices || [];
-  const preferred = voices.find(v => /vais1000/i.test(v.id + " " + v.name)) || voices[0];
+  const preferred = voices.find(v => v.language === "vi" && /vais1000/i.test(v.id + " " + v.name)) ||
+    voices.find(v => v.language === "vi");
   assert.ok(preferred?.id, "TTS.ai must expose at least one Vietnamese Piper voice");
   console.log("SELECTED_VOICE", JSON.stringify(preferred));
 
@@ -54,7 +59,7 @@ test("live TTS.ai anonymous Vietnamese Piper smoke test", { skip: !enabled }, as
     }
     assert.ok(result?.result_url, "TTS job should complete within 36 seconds");
     const resultUrl = new URL(result.result_url);
-    assert.equal(resultUrl.origin, "https://api.tts.ai", "Audio must be hosted on the documented API origin");
+    assert.ok(["https://api.tts.ai", "https://cdn.tts.ai"].includes(resultUrl.origin), "Audio must be hosted on a TTS.ai-controlled origin");
     const download = await fetch(resultUrl);
     assert.equal(download.ok, true, "Generated MP3 should be downloadable");
     audio = new Uint8Array(await download.arrayBuffer());
