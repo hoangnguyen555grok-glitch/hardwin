@@ -5,7 +5,11 @@ import worker from "../cloudflare/audio-tts-worker.js";
 const origin = "https://geed.example";
 const env = {
   GEED_ALLOWED_ORIGINS: origin,
+  FPT_TTS_ENABLED: "true",
   FPT_TTS_API_KEY: "test-fpt-secret",
+  FPT_TTS_API_URL: "https://fpt.example/tts",
+  FPT_TTS_MODEL: "FPT.TTS-ultra",
+  GOOGLE_TTS_ENABLED: "true",
   GOOGLE_TTS_API_KEY: "test-google-secret"
 };
 
@@ -57,40 +61,40 @@ test("Google TTS returns MP3 bytes and keeps the API key server-side", async () 
   }
 });
 
-test("FPT TTS submits once and retrieves the asynchronous MP3", async () => {
+test("FPT AI Factory TTS sends the configured model and returns MP3 bytes", async () => {
   const originalFetch = globalThis.fetch;
-  const calls = [];
+  let called = false;
   globalThis.fetch = async (url, options = {}) => {
-    calls.push({ url: String(url), options });
-    if (String(url).includes("/hmi/tts/v5")) {
-      assert.equal(options.headers.api_key, "test-fpt-secret");
-      assert.equal(options.headers.voice, "banmai");
-      return new Response(JSON.stringify({ error: 0, async: "https://cdn.fpt.example/audio.mp3" }), {
-        headers: { "content-type": "application/json" }
-      });
-    }
-    return new Response("fpt-mp3", { headers: { "content-type": "audio/mpeg" } });
+    called = true;
+    assert.equal(String(url), "https://fpt.example/tts");
+    assert.equal(options.headers.Authorization, "Bearer test-fpt-secret");
+    const body = JSON.parse(options.body);
+    assert.equal(body.model, "FPT.TTS-ultra");
+    assert.equal(body.input, "Xin chào Geed");
+    assert.equal(body.response_format, "mp3");
+    assert.equal(body.voice, undefined);
+    return new Response("fpt-factory-mp3", { headers: { "content-type": "audio/mpeg" } });
   };
   try {
     const response = await worker.fetch(new Request("https://audio.test/tts", {
       method: "POST",
       headers: { Origin: origin, "Content-Type": "application/json" },
-      body: JSON.stringify({ provider: "fpt", text: "Xin chào Geed", voice: "banmai", speed: 0 })
+      body: JSON.stringify({ provider: "fpt", text: "Xin chào Geed", voice: "auto", speed: 1 })
     }), env);
     assert.equal(response.status, 200);
-    assert.equal(await response.text(), "fpt-mp3");
-    assert.equal(calls.filter(call => call.url.includes("/hmi/tts/v5")).length, 1);
-    assert.equal(calls.length, 2);
+    assert.equal(response.headers.get("content-type"), "audio/mpeg");
+    assert.equal(await response.text(), "fpt-factory-mp3");
+    assert.equal(called, true);
   } finally {
     globalThis.fetch = originalFetch;
   }
 });
 
-test("rejects invalid voice IDs and text over the provider request limit", async () => {
+test("rejects invalid Google voice IDs and text over the provider request limit", async () => {
   const badVoice = await worker.fetch(new Request("https://audio.test/tts", {
     method: "POST",
     headers: { Origin: origin, "Content-Type": "application/json" },
-    body: JSON.stringify({ provider: "fpt", text: "Xin chào", voice: "not-a-voice" })
+    body: JSON.stringify({ provider: "google", text: "Xin chào", voice: "not-a-voice" })
   }), env);
   assert.equal(badVoice.status, 400);
   const tooLong = await worker.fetch(new Request("https://audio.test/tts", {
