@@ -1,6 +1,9 @@
+import { synthesizeEdgeTts, chunkEdgeTtsText } from "./edge-tts-engine.js";
+
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" };
 const GOOGLE_VOICES = new Set(["vi-VN-Standard-A", "vi-VN-Standard-B", "vi-VN-Standard-C", "vi-VN-Standard-D"]);
 const AZURE_VOICES = new Set(["vi-VN-HoaiMyNeural", "vi-VN-NamMinhNeural"]);
+const EDGE_TTS_VOICES = new Set(["vi-VN-HoaiMyNeural", "vi-VN-NamMinhNeural"]);
 const MAX_REQUEST_BYTES = 24000;
 const RATE_LIMIT_WINDOW = 60;
 function xmlEscape(value) {
@@ -93,6 +96,44 @@ function decodeBase64(value) {
   return bytes;
 }
 
+
+async function fetchEdgeTts(text, voice, speed, env) {
+  if (env.EDGE_TTS_ENABLED !== "true") {
+    throw new Error("Edge TTS cộng đồng chưa được bật.");
+  }
+  const selectedVoice = EDGE_TTS_VOICES.has(voice) ? voice : "vi-VN-HoaiMyNeural";
+  const safeSpeed = Math.max(0.75, Math.min(1.25, speed));
+  const rate = String(Math.round((safeSpeed - 1) * 100));
+  const chunks = chunkEdgeTtsText(text, 1000);
+  if (!chunks.length || chunks.length > 12) {
+    throw new Error("Văn bản cần được chia thành ít đoạn hơn để bảo vệ dịch vụ.");
+  }
+  const response = await synthesizeEdgeTts(
+    chunks,
+    3,
+    null,
+    selectedVoice,
+    rate,
+    "0",
+    "general",
+    "audio-24khz-48kbitrate-mono-mp3",
+    "audio/mpeg"
+  );
+  if (!response.ok) {
+    throw new Error("Edge TTS cộng đồng từ chối yêu cầu (HTTP " + response.status + ").");
+  }
+  const contentType = response.headers.get("content-type") || "audio/mpeg";
+  if (!contentType.startsWith("audio/")) {
+    throw new Error("Edge TTS cộng đồng không trả về dữ liệu âm thanh.");
+  }
+  const audio = await response.arrayBuffer();
+  if (!audio.byteLength) throw new Error("Edge TTS cộng đồng trả về file rỗng.");
+  return new Response(audio, {
+    status: 200,
+    headers: { "content-type": "audio/mpeg", "cache-control": "no-store" }
+  });
+}
+
 async function fetchAzure(text, voice, speed, env) {
   if (env.AZURE_TTS_ENABLED !== "true" || !env.AZURE_SPEECH_KEY || !env.AZURE_SPEECH_REGION) {
     throw new Error("Azure Speech đang khóa hoặc chưa cấu hình. Chỉ bật với tài nguyên F0 miễn phí.");
@@ -158,7 +199,8 @@ export default {
         providers: {
           fpt: env.FPT_TTS_ENABLED === "true" && Boolean(env.FPT_TTS_API_KEY && env.FPT_TTS_API_URL && env.FPT_TTS_MODEL),
           google: env.GOOGLE_TTS_ENABLED === "true" && Boolean(env.GOOGLE_TTS_API_KEY),
-          azure: env.AZURE_TTS_ENABLED === "true" && Boolean(env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION)
+          azure: env.AZURE_TTS_ENABLED === "true" && Boolean(env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION),
+          edge: env.EDGE_TTS_ENABLED === "true"
         },
         maxCharacters: 5000,
         outputFormat: "mp3",
@@ -197,8 +239,8 @@ export default {
       return withCors(errorResponse("Yêu cầu vượt quá dung lượng cho phép.", 413), origin);
     }
 
-    if (!(env.FPT_TTS_ENABLED === "true" && env.FPT_TTS_API_KEY && env.FPT_TTS_API_URL && env.FPT_TTS_MODEL) && !(env.GOOGLE_TTS_ENABLED === "true" && env.GOOGLE_TTS_API_KEY) && !(env.AZURE_TTS_ENABLED === "true" && env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION)) {
-      return withCors(errorResponse("Chưa bật nhà cung cấp nào. Azure, FPT và Google đều khóa mặc định cho đến khi chủ dự án cấu hình rõ ràng.", 503), origin);
+    if (!(env.FPT_TTS_ENABLED === "true" && env.FPT_TTS_API_KEY && env.FPT_TTS_API_URL && env.FPT_TTS_MODEL) && !(env.GOOGLE_TTS_ENABLED === "true" && env.GOOGLE_TTS_API_KEY) && !(env.AZURE_TTS_ENABLED === "true" && env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION) && env.EDGE_TTS_ENABLED !== "true") {
+      return withCors(errorResponse("Chưa bật nhà cung cấp giọng đọc nào trên máy chủ.", 503), origin);
     }
 
     try {
@@ -212,17 +254,19 @@ export default {
       if (!body || typeof body !== "object" || Array.isArray(body)) {
         return withCors(errorResponse("Dữ liệu yêu cầu không hợp lệ."), origin);
       }
-      const provider = ["fpt", "google", "azure"].includes(body?.provider) ? body.provider : null;
+      const provider = ["fpt", "google", "azure", "edge"].includes(body?.provider) ? body.provider : null;
       const text = typeof body?.text === "string" ? body.text.trim() : "";
       const voice = typeof body?.voice === "string" ? body.voice : "";
       const speed = Number.isFinite(Number(body?.speed)) ? Number(body.speed) : 1;
       if (!provider) return withCors(errorResponse("Nhà cung cấp không hợp lệ."), origin);
       if (text.length < 3 || text.length > 5000) return withCors(errorResponse("Văn bản phải từ 3 đến 5.000 ký tự."), origin);
       if (provider === "fpt" && !(env.FPT_TTS_ENABLED === "true" && env.FPT_TTS_API_KEY && env.FPT_TTS_API_URL && env.FPT_TTS_MODEL)) return withCors(errorResponse("FPT AI Factory đang khóa hoặc chưa cấu hình đầy đủ. Chỉ bật khi đã có voucher/hạn mức an toàn.", 503), origin);
+      if (provider === "edge" && env.EDGE_TTS_ENABLED !== "true") return withCors(errorResponse("Edge TTS cộng đồng đang khóa trên máy chủ.", 503), origin);
       if (provider === "google" && !(env.GOOGLE_TTS_ENABLED === "true" && env.GOOGLE_TTS_API_KEY)) return withCors(errorResponse("Google TTS đang khóa hoặc chưa cấu hình đầy đủ. Chỉ bật sau khi đặt giới hạn chi tiêu.", 503), origin);
       if (provider === "fpt" && voice !== "auto" && (typeof voice !== "string" || voice.length > 120)) return withCors(errorResponse("Mã giọng FPT không hợp lệ."), origin);
       if (provider === "google" && !GOOGLE_VOICES.has(voice)) return withCors(errorResponse("Giọng Google không hợp lệ."), origin);
       if (provider === "azure" && !AZURE_VOICES.has(voice)) return withCors(errorResponse("Giọng Azure không hợp lệ."), origin);
+      if (provider === "edge" && !EDGE_TTS_VOICES.has(voice)) return withCors(errorResponse("Giọng Edge TTS không hợp lệ."), origin);
       if (provider === "azure" && !(env.AZURE_TTS_ENABLED === "true" && env.AZURE_SPEECH_KEY && env.AZURE_SPEECH_REGION)) return withCors(errorResponse("Azure Speech đang khóa hoặc chưa cấu hình tài nguyên F0.", 503), origin);
       if (provider === "azure") {
         if (!env.AZURE_F0_RATE_LIMITER || typeof env.AZURE_F0_RATE_LIMITER.limit !== "function") {
@@ -245,7 +289,9 @@ export default {
 
       const audio = provider === "fpt"
         ? await fetchFpt(text, voice, speed, env)
-        : provider === "google" ? await fetchGoogle(text, voice, speed, env) : await fetchAzure(text, voice, speed, env);
+        : provider === "google" ? await fetchGoogle(text, voice, speed, env)
+        : provider === "azure" ? await fetchAzure(text, voice, speed, env)
+        : await fetchEdgeTts(text, voice, speed, env);
       const headers = new Headers(audio.headers);
       headers.set("Access-Control-Allow-Origin", origin);
       headers.set("Vary", "Origin");

@@ -15,6 +15,7 @@ const env = {
   AZURE_TTS_ENABLED: "true",
   AZURE_SPEECH_KEY: "test-azure-secret",
   AZURE_SPEECH_REGION: "southeastasia",
+  EDGE_TTS_ENABLED: "true",
   TURNSTILE_SECRET_KEY: "test-turnstile-secret",
   TTS_RATE_LIMITER: { limit: async () => ({ success: true }) },
   AZURE_F0_RATE_LIMITER: { limit: async () => ({ success: true }) }
@@ -26,7 +27,7 @@ test("status reports configured cloud providers without exposing credentials", a
   }), env);
   const body = await response.json();
   assert.equal(response.status, 200);
-  assert.deepEqual(body.providers, { fpt: true, google: true, azure: true });
+  assert.deepEqual(body.providers, { fpt: true, google: true, azure: true, edge: true });
   assert.equal(JSON.stringify(body).includes("test-fpt-secret"), false);
   assert.equal(JSON.stringify(body).includes("test-google-secret"), false);
   assert.equal(JSON.stringify(body).includes("test-azure-secret"), false);
@@ -45,7 +46,7 @@ test("both providers stay locked unless explicit enable flags are set", async ()
     headers: { Origin: origin }
   }), lockedEnv);
   const status = await statusResponse.json();
-  assert.deepEqual(status.providers, { fpt: false, google: false, azure: false });
+  assert.deepEqual(status.providers, { fpt: false, google: false, azure: false, edge: false });
 
   const originalFetch = globalThis.fetch;
   let called = false;
@@ -148,6 +149,19 @@ test("rejects invalid Google voice IDs and text over the provider request limit"
   assert.equal(tooLong.status, 400);
 });
 
+
+test("community Edge TTS is wired through the protected Worker with bounded Vietnamese MP3 synthesis", async () => {
+  const workerSource = await readFile(new URL("../cloudflare/audio-tts-worker.js", import.meta.url), "utf8");
+  const engineSource = await readFile(new URL("../cloudflare/edge-tts-engine.js", import.meta.url), "utf8");
+  assert.match(workerSource, /EDGE_TTS_ENABLED !== "true"/);
+  assert.match(workerSource, /chunkEdgeTtsText\(text, 1000\)/);
+  assert.match(workerSource, /synthesizeEdgeTts\(/);
+  assert.match(workerSource, /EDGE_TTS_VOICES = new Set\(\["vi-VN-HoaiMyNeural", "vi-VN-NamMinhNeural"\]\)/);
+  assert.match(engineSource, /dev\.microsofttranslator\.com\/apps\/endpoint/);
+  assert.match(engineSource, /audio-24khz-48kbitrate-mono-mp3/);
+  assert.match(engineSource, /export \{ getVoice as synthesizeEdgeTts, smartChunkText as chunkEdgeTtsText \}/);
+});
+
 test("Azure Speech F0 returns MP3 and safely escapes Vietnamese SSML", async () => {
   const originalFetch = globalThis.fetch;
   let calledUrl = "";
@@ -189,8 +203,10 @@ test("Azure Speech remains locked unless explicitly enabled", async () => {
 
 test("voice workspace exposes Azure Vietnamese voices and submits the selected provider", async () => {
   const source = await readFile(new URL("../lib/audio-workspace.mjs", import.meta.url), "utf8");
+  assert.match(source, /edge:\s*\{\s*label: "Edge TTS · Cộng đồng"/);
   assert.match(source, /azure:\s*\{\s*label: "Azure Speech F0"/);
   assert.match(source, /vi-VN-HoaiMyNeural/);
+  assert.match(source, /vi-VN-NamMinhNeural/);
   assert.match(source, /vi-VN-NamMinhNeural/);
   assert.match(source, /Object\.hasOwn\(PROVIDERS, selected\)/);
   assert.match(source, /provider: selectedProvider/);
